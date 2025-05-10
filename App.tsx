@@ -9,6 +9,7 @@ import { AppNavigator } from './src/navigation';
 import { useThemeManager } from './src/hooks';
 import { initializeDatabase } from './src/utils';
 import { LoadingIndicator } from './src/components';
+import { ThemeProvider, useThemeContext } from './src/context';
 
 // Ignore specific warnings
 LogBox.ignoreLogs([
@@ -17,8 +18,27 @@ LogBox.ignoreLogs([
   'DatePickerIOS has been merged',
 ]);
 
+// Main app component with theme provider
+// This component will be rendered inside ThemeProvider
+const MainApp = () => {
+  // Get theme from context
+  const { theme, isDarkMode } = useThemeContext();
+
+  console.log('MainApp rendering with theme:', isDarkMode ? 'dark' : 'light');
+
+  return (
+    <PaperProvider theme={theme}>
+      <SafeAreaProvider>
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+        <AppNavigator />
+      </SafeAreaProvider>
+    </PaperProvider>
+  );
+};
+
 export default function App() {
-  const { theme } = useThemeManager();
+  // Use theme manager for initial theme
+  const themeManager = useThemeManager();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +61,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <PaperProvider theme={theme}>
+      <PaperProvider theme={themeManager.theme}>
         <View style={styles.container}>
           <LoadingIndicator message="Initializing app..." />
         </View>
@@ -51,7 +71,7 @@ export default function App() {
 
   if (error) {
     return (
-      <PaperProvider theme={theme}>
+      <PaperProvider theme={themeManager.theme}>
         <View style={styles.container}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
@@ -59,14 +79,13 @@ export default function App() {
     );
   }
 
+  // Wrap everything in GestureHandlerRootView for gesture support
   return (
     <GestureHandlerRootView style={styles.container}>
-      <PaperProvider theme={theme}>
-        <SafeAreaProvider>
-          <StatusBar style={theme.dark ? 'light' : 'dark'} />
-          <AppNavigator />
-        </SafeAreaProvider>
-      </PaperProvider>
+      {/* ThemeProvider must be rendered before any component that uses useThemeContext */}
+      <ThemeProvider>
+        <MainApp />
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

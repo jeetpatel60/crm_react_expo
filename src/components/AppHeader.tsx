@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { Appbar, useTheme, Avatar, Menu, Divider } from 'react-native-paper';
+import { Appbar, useTheme, Menu, Divider, Text } from 'react-native-paper';
 import { getHeaderTitle } from '@react-navigation/elements';
 import { DrawerHeaderProps } from '@react-navigation/drawer';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing } from '../constants/theme';
+import { useThemeContext } from '../context';
 
 interface AppHeaderProps extends DrawerHeaderProps {
   back?: boolean;
@@ -16,14 +17,22 @@ interface AppHeaderProps extends DrawerHeaderProps {
 
 const AppHeader = ({ navigation, route, back, options, title, subtitle, actions }: AppHeaderProps) => {
   const theme = useTheme();
+  const { isDarkMode, themeMode } = useThemeContext();
   const insets = useSafeAreaInsets();
   const [menuVisible, setMenuVisible] = React.useState(false);
+
+  // Log theme changes
+  React.useEffect(() => {
+    console.log('AppHeader - Theme mode:', themeMode);
+    console.log('AppHeader - Is dark mode:', isDarkMode);
+    console.log('AppHeader - StatusBar style:', isDarkMode ? 'light' : 'dark');
+  }, [isDarkMode, themeMode]);
 
   const headerTitle = title || getHeaderTitle(options, route.name);
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Appbar.Header
         style={[
           styles.header,
@@ -49,12 +58,15 @@ const AppHeader = ({ navigation, route, back, options, title, subtitle, actions 
 
         <View style={styles.titleContainer}>
           <Appbar.Content
-            title={headerTitle}
+            title={`${headerTitle} ${isDarkMode ? '🌙' : '☀️'}`}
             titleStyle={styles.title}
-            subtitle={subtitle}
-            subtitleStyle={styles.subtitle}
             color="#fff"
           />
+          {subtitle && (
+            <Text style={[styles.subtitle, { color: '#fff' }]}>
+              {subtitle}
+            </Text>
+          )}
         </View>
 
         {actions}

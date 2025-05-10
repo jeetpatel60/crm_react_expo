@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import {
   List,
@@ -13,16 +13,24 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { spacing } from '../constants/theme';
 import { APP_NAME } from '../constants';
+import { ThemeMode } from '../hooks/useThemeManager';
+import { useThemeContext } from '../context';
+import { ThemeIndicator } from '../components';
 
 const SettingsScreen = () => {
+  const { themeMode, setThemeMode, isDarkMode } = useThemeContext();
   const theme = useTheme();
-  
-  const [darkMode, setDarkMode] = useState(false);
+
   const [notifications, setNotifications] = useState(true);
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [resetDialogVisible, setResetDialogVisible] = useState(false);
 
-  const toggleDarkMode = () => setDarkMode(!darkMode);
+  // Log theme changes
+  useEffect(() => {
+    console.log('SettingsScreen - Theme mode changed:', themeMode);
+    console.log('SettingsScreen - Is dark mode:', isDarkMode);
+  }, [themeMode, isDarkMode]);
+
   const toggleNotifications = () => setNotifications(!notifications);
   const toggleSync = () => setSyncEnabled(!syncEnabled);
 
@@ -34,22 +42,24 @@ const SettingsScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <ThemeIndicator />
       <ScrollView>
         <List.Section>
           <List.Subheader>Appearance</List.Subheader>
           <List.Item
-            title="Dark Mode"
-            description="Enable dark theme throughout the app"
+            title="Theme"
+            description="Customize the app's appearance"
             left={(props) => (
-              <List.Icon {...props} icon="theme-light-dark" color={theme.colors.primary} />
-            )}
-            right={(props) => (
-              <Switch
-                value={darkMode}
-                onValueChange={toggleDarkMode}
+              <List.Icon
+                {...props}
+                icon="theme-light-dark"
                 color={theme.colors.primary}
               />
             )}
+            onPress={() => {
+              // The ThemeIndicator at the top of the screen already handles theme switching
+              // This is just an informational item now
+            }}
           />
         </List.Section>
 
