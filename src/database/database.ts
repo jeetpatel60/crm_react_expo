@@ -143,6 +143,22 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    // Create projects table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        address TEXT,
+        start_date INTEGER,
+        end_date INTEGER,
+        progress REAL,
+        total_budget REAL,
+        status TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+
     console.log('Database tables created successfully');
   } catch (error) {
     console.error('Error initializing database tables:', error);

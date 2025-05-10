@@ -9,6 +9,7 @@ import { DrawerParamList } from '../types';
 import DashboardScreen from '../screens/DashboardScreen';
 import CompanyScreen from '../screens/CompanyScreen';
 import LeadsScreen from '../screens/LeadsScreen';
+import QuotationScreen from '../screens/QuotationScreen';
 import ClientsScreen from '../screens/ClientsScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import UnitsFlatScreen from '../screens/UnitsFlatScreen';
@@ -88,6 +89,16 @@ const DrawerNavigator = () => {
           title: 'Leads',
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account-convert" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Quotation"
+        component={QuotationScreen}
+        options={{
+          title: 'Quotation',
+          drawerIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="file-document-outline" color={color} size={size} />
           ),
         }}
       />

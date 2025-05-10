@@ -29,3 +29,15 @@ export const LEAD_STATUS_COLORS = {
   'Quote Given': '#8B5CF6', // Purple
   Converted: '#10B981', // Green
 };
+
+export const PROJECT_STATUS_OPTIONS = [
+  { label: 'Not Started', value: 'Not Started' },
+  { label: 'In Progress', value: 'In Progress' },
+  { label: 'Completed', value: 'Completed' },
+];
+
+export const PROJECT_STATUS_COLORS = {
+  'Not Started': '#F59E0B', // Amber
+  'In Progress': '#3B82F6', // Blue
+  'Completed': '#10B981', // Green
+};
