@@ -5,8 +5,15 @@ import {
   DrawerItemList,
   DrawerContentComponentProps,
 } from '@react-navigation/drawer';
-import { Divider, Text, useTheme, Avatar } from 'react-native-paper';
+import { Divider, Text, useTheme, Avatar, Button } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { APP_NAME } from '../constants';
+import { spacing, shadows, borderRadius, animations } from '../constants/theme';
+
+// Create animated components
+const AnimatedView = Animated.createAnimatedComponent(View);
+const AnimatedAvatar = Animated.createAnimatedComponent(Avatar.Text);
 
 const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   const theme = useTheme();
@@ -14,71 +21,131 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   return (
     <DrawerContentScrollView
       {...props}
-      contentContainerStyle={{ flex: 1 }}
-      style={{ backgroundColor: theme.colors.surface }}
+      contentContainerStyle={{ flexGrow: 1 }} // Changed from flex: 1 to flexGrow: 1 to allow scrolling
+      style={[
+        { backgroundColor: theme.colors.surface },
+        styles.scrollView
+      ]}
     >
-      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
+      <AnimatedView
+        style={[
+          styles.header,
+          { backgroundColor: theme.colors.primary },
+          shadows.lg
+        ]}
+        entering={FadeIn.duration(animations.duration.standard)}
+      >
         <View style={styles.userInfo}>
-          <Avatar.Text
-            size={60}
+          <AnimatedAvatar
+            size={60} // Reduced from 70 to 60
             label="CRM"
-            style={{ backgroundColor: theme.colors.primaryContainer }}
+            style={[
+              { backgroundColor: theme.colors.primaryContainer },
+              styles.avatar,
+              shadows.md
+            ]}
             color={theme.colors.onPrimaryContainer}
+            entering={FadeInLeft.delay(300).duration(animations.duration.standard)}
           />
-          <View style={styles.userDetails}>
+          <AnimatedView
+            style={styles.userDetails}
+            entering={FadeInRight.delay(400).duration(animations.duration.standard)}
+          >
             <Text style={[styles.appName, { color: '#fff' }]}>{APP_NAME}</Text>
             <Text style={[styles.version, { color: 'rgba(255, 255, 255, 0.8)' }]}>
               Version 1.0.0
             </Text>
-          </View>
+            <Button
+              mode="text"
+              compact
+              style={styles.profileButton}
+              textColor="#fff"
+              labelStyle={{ fontSize: 12 }}
+            >
+              View Profile
+            </Button>
+          </AnimatedView>
         </View>
-      </View>
-      <View style={styles.drawerContent}>
+      </AnimatedView>
+
+      <Divider style={styles.topDivider} />
+
+      <AnimatedView
+        style={styles.drawerContent}
+        entering={FadeIn.delay(500).duration(animations.duration.standard)}
+      >
         <DrawerItemList {...props} />
-      </View>
+      </AnimatedView>
+
       <Divider style={styles.divider} />
-      <View style={styles.footer}>
+
+      <AnimatedView
+        style={styles.footer}
+        entering={FadeIn.delay(600).duration(animations.duration.standard)}
+      >
         <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>
           © 2025 CRM App
         </Text>
-      </View>
+      </AnimatedView>
     </DrawerContentScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollView: {
+    borderTopRightRadius: borderRadius.lg,
+  },
   header: {
-    padding: 20,
-    paddingTop: 40,
+    padding: spacing.md,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.md, // Reduced from lg to md
+    borderBottomRightRadius: borderRadius.lg,
+    marginBottom: spacing.sm, // Reduced from xl to sm
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  avatar: {
+    borderRadius: borderRadius.round,
+  },
   userDetails: {
-    marginLeft: 15,
+    marginLeft: spacing.md,
   },
   appName: {
-    fontSize: 18,
+    fontSize: 18, // Reduced from 20 to 18
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   version: {
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 12, // Reduced from 14 to 12
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  profileButton: {
+    borderRadius: borderRadius.md,
+    marginTop: spacing.xs,
   },
   drawerContent: {
     flex: 1,
-    paddingTop: 10,
+    paddingTop: spacing.sm, // Reduced from lg to sm
+  },
+  topDivider: {
+    marginBottom: spacing.xs, // Reduced from md to xs
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    height: 1,
   },
   divider: {
-    marginVertical: 10,
+    marginVertical: spacing.md,
   },
   footer: {
-    padding: 20,
+    padding: spacing.md, // Reduced from lg to md
+    paddingBottom: spacing.lg, // Keep bottom padding larger
     alignItems: 'center',
   },
   footerText: {
     fontSize: 12,
+    letterSpacing: 0.5,
   },
 });
 

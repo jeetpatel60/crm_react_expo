@@ -1,12 +1,14 @@
-import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { Appbar, useTheme, Menu, Divider, Text } from 'react-native-paper';
 import { getHeaderTitle } from '@react-navigation/elements';
 import { DrawerHeaderProps } from '@react-navigation/drawer';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { spacing } from '../constants/theme';
+import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
+import { spacing, shadows, animations, borderRadius } from '../constants/theme';
 import { useThemeContext } from '../context';
+import { usePressAnimation } from '../utils/animationUtils';
 
 interface AppHeaderProps extends DrawerHeaderProps {
   back?: boolean;
@@ -15,18 +17,20 @@ interface AppHeaderProps extends DrawerHeaderProps {
   actions?: React.ReactNode;
 }
 
+const AnimatedAppbarAction = Animated.createAnimatedComponent(Appbar.Action);
+const AnimatedAppbarBackAction = Animated.createAnimatedComponent(Appbar.BackAction);
+
 const AppHeader = ({ navigation, route, back, options, title, subtitle, actions }: AppHeaderProps) => {
   const theme = useTheme();
   const { isDarkMode, themeMode } = useThemeContext();
   const insets = useSafeAreaInsets();
-  const [menuVisible, setMenuVisible] = React.useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuButtonPressed, setMenuButtonPressed] = useState(false);
+  const [backButtonPressed, setBackButtonPressed] = useState(false);
 
-  // Log theme changes
-  React.useEffect(() => {
-    console.log('AppHeader - Theme mode:', themeMode);
-    console.log('AppHeader - Is dark mode:', isDarkMode);
-    console.log('AppHeader - StatusBar style:', isDarkMode ? 'light' : 'dark');
-  }, [isDarkMode, themeMode]);
+  // Animation styles
+  const menuButtonStyle = usePressAnimation(menuButtonPressed);
+  const backButtonStyle = usePressAnimation(backButtonPressed);
 
   const headerTitle = title || getHeaderTitle(options, route.name);
 
@@ -44,30 +48,45 @@ const AppHeader = ({ navigation, route, back, options, title, subtitle, actions 
         ]}
       >
         {back ? (
-          <Appbar.BackAction
+          <Pressable
+            onPressIn={() => setBackButtonPressed(true)}
+            onPressOut={() => setBackButtonPressed(false)}
             onPress={navigation.goBack}
-            color="#fff"
-          />
+          >
+            <AnimatedAppbarBackAction
+              color="#fff"
+              style={backButtonStyle}
+            />
+          </Pressable>
         ) : (
-          <Appbar.Action
-            icon="menu"
-            color="#fff"
+          <Pressable
+            onPressIn={() => setMenuButtonPressed(true)}
+            onPressOut={() => setMenuButtonPressed(false)}
             onPress={() => navigation.openDrawer()}
-          />
+          >
+            <AnimatedAppbarAction
+              icon="menu"
+              color="#fff"
+              style={menuButtonStyle}
+            />
+          </Pressable>
         )}
 
-        <View style={styles.titleContainer}>
+        <Animated.View
+          style={styles.titleContainer}
+          entering={FadeIn.duration(animations.duration.standard)}
+        >
           <Appbar.Content
-            title={`${headerTitle} ${isDarkMode ? '🌙' : '☀️'}`}
+            title={headerTitle}
             titleStyle={styles.title}
             color="#fff"
           />
           {subtitle && (
-            <Text style={[styles.subtitle, { color: '#fff' }]}>
+            <Text style={[styles.subtitle, { color: 'rgba(255, 255, 255, 0.9)' }]}>
               {subtitle}
             </Text>
           )}
-        </View>
+        </Animated.View>
 
         {actions}
 
@@ -79,9 +98,14 @@ const AppHeader = ({ navigation, route, back, options, title, subtitle, actions 
               icon="dots-vertical"
               color="#fff"
               onPress={() => setMenuVisible(true)}
+              style={styles.menuButton}
             />
           }
-          contentStyle={{ backgroundColor: theme.colors.surface }}
+          contentStyle={[
+            { backgroundColor: theme.colors.surface },
+            styles.menuContent,
+            shadows.lg
+          ]}
         >
           <Menu.Item
             onPress={() => {
@@ -90,6 +114,7 @@ const AppHeader = ({ navigation, route, back, options, title, subtitle, actions 
             }}
             title="Profile"
             leadingIcon="account"
+            titleStyle={styles.menuItemTitle}
           />
           <Menu.Item
             onPress={() => {
@@ -99,8 +124,9 @@ const AppHeader = ({ navigation, route, back, options, title, subtitle, actions 
             }}
             title="Settings"
             leadingIcon="cog"
+            titleStyle={styles.menuItemTitle}
           />
-          <Divider />
+          <Divider style={styles.menuDivider} />
           <Menu.Item
             onPress={() => {
               setMenuVisible(false);
@@ -108,6 +134,7 @@ const AppHeader = ({ navigation, route, back, options, title, subtitle, actions 
             }}
             title="Logout"
             leadingIcon="logout"
+            titleStyle={styles.menuItemTitle}
           />
         </Menu>
       </Appbar.Header>
@@ -117,10 +144,10 @@ const AppHeader = ({ navigation, route, back, options, title, subtitle, actions 
 
 const styles = StyleSheet.create({
   header: {
-    elevation: 4,
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
   },
   titleContainer: {
     flex: 1,
@@ -128,9 +155,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 14,
+    opacity: 0.9,
+  },
+  menuButton: {
+    marginLeft: 0,
+  },
+  menuContent: {
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  menuItemTitle: {
+    fontSize: 16,
+  },
+  menuDivider: {
+    marginVertical: 8,
   },
 });
 

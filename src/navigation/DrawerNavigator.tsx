@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { spacing, borderRadius, shadows } from '../constants/theme';
 
 import { DrawerParamList } from '../types';
 import DashboardScreen from '../screens/DashboardScreen';
@@ -34,14 +35,28 @@ const DrawerNavigator = () => {
         headerTintColor: '#fff',
         headerTitleStyle: {
           fontWeight: 'bold',
+          letterSpacing: 0.5,
         },
+        drawerType: 'slide',
         drawerActiveTintColor: theme.colors.primary,
         drawerInactiveTintColor: theme.colors.onSurface,
+        drawerActiveBackgroundColor: theme.colors.primaryContainer + '40', // 25% opacity
         drawerLabelStyle: {
-          marginLeft: 8, // Positive margin to create space between icon and label
+          marginLeft: spacing.sm, // Reduced from md to sm
+          fontSize: 14, // Reduced from 15 to 14
+          fontWeight: '500',
         },
         drawerItemStyle: {
-          paddingVertical: 5, // Add vertical padding for better spacing
+          paddingVertical: spacing.xs, // Reduced back to xs
+          marginVertical: 2, // Reduced to a fixed small value
+          borderRadius: borderRadius.md,
+          marginHorizontal: spacing.sm,
+        },
+        drawerStyle: {
+          width: 300,
+          borderTopRightRadius: borderRadius.lg,
+          borderBottomRightRadius: borderRadius.lg,
+          ...shadows.lg,
         },
       }}
     >
