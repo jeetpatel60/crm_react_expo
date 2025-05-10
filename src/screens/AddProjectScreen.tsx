@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal } from 'react-native-paper';
+import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal, Divider, Card } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { RootStackParamList } from '../types';
 import { Project, ProjectStatus } from '../database/projectsDb';
+import { Milestone } from '../database/projectSchedulesDb';
 import { addProject } from '../database';
-import { spacing } from '../constants/theme';
+import { addProjectScheduleWithMilestones } from '../database/projectSchedulesDb';
+import { spacing, shadows } from '../constants/theme';
 import { PROJECT_STATUS_OPTIONS } from '../constants';
+import { MilestoneForm } from '../components';
 
 type AddProjectNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -26,13 +29,17 @@ const AddProjectScreen = () => {
   const [status, setStatus] = useState<ProjectStatus>('Not Started');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [includeSchedule, setIncludeSchedule] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
 
   // Date picker state
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showScheduleDatePicker, setShowScheduleDatePicker] = useState(false);
   const [datePickerDate, setDatePickerDate] = useState(new Date());
   const [showIOSDateModal, setShowIOSDateModal] = useState(false);
-  const [currentDateField, setCurrentDateField] = useState<'start' | 'end'>('start');
+  const [currentDateField, setCurrentDateField] = useState<'start' | 'end' | 'schedule'>('start');
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -70,12 +77,35 @@ const AddProjectScreen = () => {
         address: address.trim() || undefined,
         start_date: startDate ? startDate.getTime() : undefined,
         end_date: endDate ? endDate.getTime() : undefined,
-        progress: progress ? Number(progress) : 0,
+        progress: 0, // Progress will be calculated automatically based on milestones
         total_budget: totalBudget ? Number(totalBudget) : undefined,
         status,
       };
 
-      await addProject(newProject);
+      // Add the project
+      const projectId = await addProject(newProject);
+
+      // If including a schedule with milestones
+      if (includeSchedule && milestones.length > 0) {
+        try {
+          // Create milestones without schedule_id (will be set in the function)
+          const milestonesWithoutScheduleId = milestones.map(({ schedule_id, ...rest }) => rest);
+
+          // Add the schedule with milestones
+          await addProjectScheduleWithMilestones(
+            projectId,
+            scheduleDate.getTime(),
+            milestonesWithoutScheduleId
+          );
+        } catch (scheduleError) {
+          console.error('Error adding schedule with milestones:', scheduleError);
+          Alert.alert(
+            'Warning',
+            'Project was created successfully, but there was an error adding the schedule and milestones.'
+          );
+        }
+      }
+
       navigation.goBack();
     } catch (error) {
       console.error('Error adding project:', error);
@@ -93,7 +123,7 @@ const AddProjectScreen = () => {
     });
   };
 
-  const showDatePicker = (field: 'start' | 'end') => {
+  const showDatePicker = (field: 'start' | 'end' | 'schedule') => {
     setCurrentDateField(field);
 
     // Set initial date in picker based on current value
@@ -101,6 +131,8 @@ const AddProjectScreen = () => {
       setDatePickerDate(startDate);
     } else if (field === 'end' && endDate) {
       setDatePickerDate(endDate);
+    } else if (field === 'schedule') {
+      setDatePickerDate(scheduleDate);
     } else {
       setDatePickerDate(new Date());
     }
@@ -110,8 +142,10 @@ const AddProjectScreen = () => {
     } else {
       if (field === 'start') {
         setShowStartDatePicker(true);
-      } else {
+      } else if (field === 'end') {
         setShowEndDatePicker(true);
+      } else {
+        setShowScheduleDatePicker(true);
       }
     }
   };
@@ -120,8 +154,10 @@ const AddProjectScreen = () => {
     if (Platform.OS === 'android') {
       if (currentDateField === 'start') {
         setShowStartDatePicker(false);
-      } else {
+      } else if (currentDateField === 'end') {
         setShowEndDatePicker(false);
+      } else {
+        setShowScheduleDatePicker(false);
       }
     }
 
@@ -130,8 +166,10 @@ const AddProjectScreen = () => {
 
       if (currentDateField === 'start') {
         setStartDate(selectedDate);
-      } else {
+      } else if (currentDateField === 'end') {
         setEndDate(selectedDate);
+      } else {
+        setScheduleDate(selectedDate);
       }
     }
   };
@@ -139,8 +177,10 @@ const AddProjectScreen = () => {
   const confirmIOSDate = () => {
     if (currentDateField === 'start') {
       setStartDate(datePickerDate);
-    } else {
+    } else if (currentDateField === 'end') {
       setEndDate(datePickerDate);
+    } else {
+      setScheduleDate(datePickerDate);
     }
     setShowIOSDateModal(false);
   };
@@ -235,7 +275,7 @@ const AddProjectScreen = () => {
             ]}
           >
             <Text style={styles.modalTitle}>
-              Select {currentDateField === 'start' ? 'Start' : 'End'} Date
+              Select {currentDateField === 'start' ? 'Start' : currentDateField === 'end' ? 'End' : 'Schedule'} Date
             </Text>
             <DateTimePicker
               value={datePickerDate}
@@ -256,21 +296,18 @@ const AddProjectScreen = () => {
         </Portal>
 
         <TextInput
-          label="Progress (%)"
+          label="Progress (%) - Calculated from completed milestones"
           value={progress}
-          onChangeText={setProgress}
           mode="outlined"
           style={styles.input}
           keyboardType="numeric"
-          error={!!errors.progress}
+          disabled={true}
           outlineColor={theme.colors.outline}
           activeOutlineColor={theme.colors.primary}
         />
-        {errors.progress && (
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>
-            {errors.progress}
-          </Text>
-        )}
+        <Text style={{ marginTop: -spacing.sm, marginBottom: spacing.sm, fontSize: 12, color: theme.colors.onSurfaceVariant }}>
+          Progress is automatically calculated based on completed milestones
+        </Text>
 
         <TextInput
           label="Total Budget"
@@ -299,6 +336,51 @@ const AddProjectScreen = () => {
           }))}
           style={styles.segmentedButtons}
         />
+
+        <Card style={[styles.scheduleCard, shadows.md]}>
+          <Card.Content>
+            <View style={styles.scheduleHeader}>
+              <Text variant="titleMedium" style={styles.scheduleTitle}>Add Schedule & Milestones</Text>
+              <Button
+                mode={includeSchedule ? "contained" : "outlined"}
+                onPress={() => setIncludeSchedule(!includeSchedule)}
+                style={styles.toggleButton}
+              >
+                {includeSchedule ? "Enabled" : "Disabled"}
+              </Button>
+            </View>
+
+            {includeSchedule && (
+              <>
+                <Divider style={styles.divider} />
+
+                <Text style={styles.sectionTitle}>Schedule Date</Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => showDatePicker('schedule')}
+                  style={styles.dateButton}
+                  icon="calendar"
+                >
+                  {formatDate(scheduleDate)}
+                </Button>
+
+                {showScheduleDatePicker && Platform.OS === 'android' && (
+                  <DateTimePicker
+                    value={datePickerDate}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                  />
+                )}
+
+                <MilestoneForm
+                  milestones={milestones}
+                  setMilestones={setMilestones}
+                />
+              </>
+            )}
+          </Card.Content>
+        </Card>
 
         <Button
           mode="contained"
@@ -339,6 +421,25 @@ const styles = StyleSheet.create({
   },
   segmentedButtons: {
     marginBottom: spacing.lg,
+  },
+  scheduleCard: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    borderRadius: 12,
+  },
+  scheduleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  scheduleTitle: {
+    fontWeight: 'bold',
+  },
+  toggleButton: {
+    borderRadius: 20,
+  },
+  divider: {
+    marginVertical: spacing.md,
   },
   saveButton: {
     marginTop: spacing.md,

@@ -27,3 +27,8 @@ export { default as EditLeadScreen } from './EditLeadScreen';
 export { default as ProjectDetailsScreen } from './ProjectDetailsScreen';
 export { default as AddProjectScreen } from './AddProjectScreen';
 export { default as EditProjectScreen } from './EditProjectScreen';
+export { default as ProjectScheduleDetailsScreen } from './ProjectScheduleDetailsScreen';
+export { default as AddProjectScheduleScreen } from './AddProjectScheduleScreen';
+export { default as EditProjectScheduleScreen } from './EditProjectScheduleScreen';
+export { default as AddMilestoneScreen } from './AddMilestoneScreen';
+export { default as EditMilestoneScreen } from './EditMilestoneScreen';

@@ -4,8 +4,9 @@ import { Company } from '../database/companiesDb';
 import { Client } from '../database/clientsDb';
 import { Lead } from '../database/leadsDb';
 import { Project } from '../database/projectsDb';
+import { ProjectSchedule, Milestone } from '../database/projectSchedulesDb';
 
-export type { Contact, Task, Company, Client, Lead, Project };
+export type { Contact, Task, Company, Client, Lead, Project, ProjectSchedule, Milestone };
 
 export type RootStackParamList = {
   Home: undefined;
@@ -27,6 +28,11 @@ export type RootStackParamList = {
   ProjectDetails: { projectId: number };
   AddProject: undefined;
   EditProject: { project: Project };
+  ProjectScheduleDetails: { scheduleId: number };
+  AddProjectSchedule: undefined;
+  EditProjectSchedule: { schedule: ProjectSchedule };
+  AddMilestone: { scheduleId: number };
+  EditMilestone: { milestone: Milestone };
 };
 
 export type DrawerParamList = {

@@ -4,6 +4,8 @@ export { default as TaskCard } from './TaskCard';
 export { default as ClientCard } from './ClientCard';
 export { default as LeadCard } from './LeadCard';
 export { default as ProjectCard } from './ProjectCard';
+export { default as ProjectScheduleCard } from './ProjectScheduleCard';
+export { default as MilestoneForm } from './MilestoneForm';
 export { default as LoadingIndicator } from './LoadingIndicator';
 export { default as EmptyState } from './EmptyState';
 export { default as ThemeIndicator } from './ThemeIndicator';

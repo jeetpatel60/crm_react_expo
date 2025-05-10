@@ -41,3 +41,15 @@ export const PROJECT_STATUS_COLORS = {
   'In Progress': '#3B82F6', // Blue
   'Completed': '#10B981', // Green
 };
+
+export const MILESTONE_STATUS_OPTIONS = [
+  { label: 'Not Started', value: 'Not Started' },
+  { label: 'In Progress', value: 'In Progress' },
+  { label: 'Completed', value: 'Completed' },
+];
+
+export const MILESTONE_STATUS_COLORS = {
+  'Not Started': '#F59E0B', // Amber
+  'In Progress': '#3B82F6', // Blue
+  'Completed': '#10B981', // Green
+};

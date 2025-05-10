@@ -23,6 +23,11 @@ import EditLeadScreen from '../screens/EditLeadScreen';
 import ProjectDetailsScreen from '../screens/ProjectDetailsScreen';
 import AddProjectScreen from '../screens/AddProjectScreen';
 import EditProjectScreen from '../screens/EditProjectScreen';
+import ProjectScheduleDetailsScreen from '../screens/ProjectScheduleDetailsScreen';
+import AddProjectScheduleScreen from '../screens/AddProjectScheduleScreen';
+import EditProjectScheduleScreen from '../screens/EditProjectScheduleScreen';
+import AddMilestoneScreen from '../screens/AddMilestoneScreen';
+import EditMilestoneScreen from '../screens/EditMilestoneScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -137,6 +142,31 @@ const AppNavigator = () => {
           name="EditProject"
           component={EditProjectScreen}
           options={{ title: 'Edit Project' }}
+        />
+        <Stack.Screen
+          name="ProjectScheduleDetails"
+          component={ProjectScheduleDetailsScreen}
+          options={{ title: 'Schedule Details' }}
+        />
+        <Stack.Screen
+          name="AddProjectSchedule"
+          component={AddProjectScheduleScreen}
+          options={{ title: 'Add Schedule' }}
+        />
+        <Stack.Screen
+          name="EditProjectSchedule"
+          component={EditProjectScheduleScreen}
+          options={{ title: 'Edit Schedule' }}
+        />
+        <Stack.Screen
+          name="AddMilestone"
+          component={AddMilestoneScreen}
+          options={{ title: 'Add Milestone' }}
+        />
+        <Stack.Screen
+          name="EditMilestone"
+          component={EditMilestoneScreen}
+          options={{ title: 'Edit Milestone' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
