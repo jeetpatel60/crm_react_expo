@@ -7,6 +7,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import { Lead, LeadStatus } from '../database/leadsDb';
 import { addLead } from '../database';
+import { convertLeadToClient } from '../utils/conversionUtils';
 import { spacing } from '../constants/theme';
 
 type AddLeadNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -62,6 +63,11 @@ const AddLeadScreen = () => {
     return isValid;
   };
 
+  // Function to handle status change to Converted
+  const handleStatusChange = (newStatus: LeadStatus) => {
+    setStatus(newStatus);
+  };
+
   const handleSave = async () => {
     if (!validateForm()) {
       return;
@@ -77,7 +83,51 @@ const AddLeadScreen = () => {
         status,
       };
 
-      await addLead(newLead);
+      // Add the lead to the database
+      const leadId = await addLead(newLead);
+
+      // If the lead status is Converted, ask if they want to create a client
+      if (status === 'Converted') {
+        Alert.alert(
+          'Convert to Client',
+          'Would you like to convert this lead into a client?',
+          [
+            {
+              text: 'No',
+              style: 'cancel',
+              onPress: () => {
+                // If user cancels, revert to 'Lead' status
+                setStatus('Lead');
+              }
+            },
+            {
+              text: 'Yes',
+              onPress: async () => {
+                try {
+                  // Make sure the lead has status set to Converted
+                  // This is already done when creating the lead, but we'll ensure it here as well
+                  const leadWithConvertedStatus: Lead = {
+                    ...newLead,
+                    status: 'Converted'
+                  };
+
+                  // Convert lead to client
+                  const clientId = await convertLeadToClient(leadWithConvertedStatus);
+
+                  Alert.alert(
+                    'Success',
+                    'Lead has been converted to a client successfully. You can find the new client in the Clients section.'
+                  );
+                } catch (error) {
+                  console.error('Error during conversion:', error);
+                  Alert.alert('Error', 'Failed to convert lead to client');
+                }
+              },
+            },
+          ]
+        );
+      }
+
       navigation.goBack();
     } catch (error) {
       console.error('Error adding lead:', error);
@@ -178,7 +228,7 @@ const AddLeadScreen = () => {
         <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Status</Text>
         <SegmentedButtons
           value={status}
-          onValueChange={(value) => setStatus(value as LeadStatus)}
+          onValueChange={(value) => handleStatusChange(value as LeadStatus)}
           buttons={LEAD_STATUS_OPTIONS}
           style={styles.segmentedButtons}
         />

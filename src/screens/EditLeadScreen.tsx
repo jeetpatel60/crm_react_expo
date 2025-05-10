@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { TextInput, Button, useTheme, Text, SegmentedButtons, Menu, Divider } from 'react-native-paper';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import { Lead, LeadStatus } from '../database/leadsDb';
 import { updateLead } from '../database';
+import { convertLeadToClient } from '../utils/conversionUtils';
 import { spacing } from '../constants/theme';
 
 type EditLeadScreenRouteProp = RouteProp<RootStackParamList, 'EditLead'>;
@@ -44,6 +45,7 @@ const EditLeadScreen = () => {
   const [reference, setReference] = useState(lead.reference || '');
   const [leadSource, setLeadSource] = useState(lead.lead_source || '');
   const [status, setStatus] = useState<LeadStatus>(lead.status);
+  const [previousStatus, setPreviousStatus] = useState<LeadStatus>(lead.status);
 
   // Dropdown menus state
   const [enquiryMenuVisible, setEnquiryMenuVisible] = useState(false);
@@ -63,6 +65,62 @@ const EditLeadScreen = () => {
     }
 
     return isValid;
+  };
+
+  // Function to handle status change to Converted
+  const handleStatusChange = (newStatus: LeadStatus) => {
+    // Update the status
+    setStatus(newStatus);
+
+    // If changing to Converted, show confirmation dialog
+    if (newStatus === 'Converted' && previousStatus !== 'Converted') {
+      // Update previous status to prevent multiple dialogs
+      setPreviousStatus('Converted');
+
+      Alert.alert(
+        'Convert to Client',
+        'Would you like to convert this lead into a client?',
+        [
+          {
+            text: 'No',
+            style: 'cancel',
+            onPress: () => {
+              // Revert back to the previous status if user cancels
+              setStatus(previousStatus);
+            }
+          },
+          {
+            text: 'Yes',
+            onPress: async () => {
+              try {
+                // Make sure the lead status is set to Converted
+                const updatedLead: Lead = {
+                  ...lead,
+                  status: 'Converted'
+                };
+
+                // Update the lead status in the database
+                await updateLead(updatedLead);
+
+                // Update the UI to reflect the status change
+                setStatus('Converted');
+
+                // Convert lead to client
+                const clientId = await convertLeadToClient(updatedLead);
+
+                Alert.alert(
+                  'Success',
+                  'Lead has been converted to a client successfully. You can find the new client in the Clients section.'
+                );
+              } catch (error) {
+                console.error('Error during conversion:', error);
+                Alert.alert('Error', 'Failed to convert lead to client');
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   const handleSave = async () => {
@@ -182,7 +240,7 @@ const EditLeadScreen = () => {
         <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Status</Text>
         <SegmentedButtons
           value={status}
-          onValueChange={(value) => setStatus(value as LeadStatus)}
+          onValueChange={(value) => handleStatusChange(value as LeadStatus)}
           buttons={LEAD_STATUS_OPTIONS}
           style={styles.segmentedButtons}
         />
