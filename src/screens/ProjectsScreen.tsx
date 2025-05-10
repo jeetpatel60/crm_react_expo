@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme, SegmentedButtons } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -28,20 +28,39 @@ const ProjectsScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadProjects = useCallback(async () => {
     try {
       setLoading(true);
       const projectsData = await getProjects();
       setProjects(projectsData);
-      setFilteredProjects(projectsData);
+
+      // Apply filters to the new data
+      let filtered = projectsData;
+      if (searchQuery) {
+        filtered = filtered.filter(project =>
+          project.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(project => project.status === statusFilter);
+      }
+
+      setFilteredProjects(filtered);
     } catch (error) {
       console.error('Error loading projects:', error);
       Alert.alert('Error', 'Failed to load projects');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [searchQuery, statusFilter]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadProjects();
+  }, [loadProjects]);
 
   useFocusEffect(
     useCallback(() => {
@@ -142,6 +161,15 @@ const ProjectsScreen = () => {
             />
           )}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
         />
       )}
 

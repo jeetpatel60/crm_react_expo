@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -20,24 +20,39 @@ const LeadsScreen = () => {
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Load leads function
+  const loadLeads = async () => {
+    try {
+      setLoading(true);
+      const data = await getLeads();
+      setLeads(data);
+      setFilteredLeads(searchQuery ?
+        data.filter(lead =>
+          lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (lead.enquiry_for && lead.enquiry_for.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (lead.lead_source && lead.lead_source.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          lead.status.toLowerCase().includes(searchQuery.toLowerCase())
+        ) : data);
+    } catch (error) {
+      console.error('Error loading leads:', error);
+      Alert.alert('Error', 'Failed to load leads');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Handle refresh
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadLeads();
+  }, [searchQuery]);
 
   // Load leads when the screen is focused
   useFocusEffect(
     useCallback(() => {
-      const loadLeads = async () => {
-        try {
-          setLoading(true);
-          const data = await getLeads();
-          setLeads(data);
-          setFilteredLeads(data);
-        } catch (error) {
-          console.error('Error loading leads:', error);
-          Alert.alert('Error', 'Failed to load leads');
-        } finally {
-          setLoading(false);
-        }
-      };
-
       loadLeads();
     }, [])
   );
@@ -123,6 +138,15 @@ const LeadsScreen = () => {
             )}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[theme.colors.primary]}
+                tintColor={theme.colors.primary}
+                progressBackgroundColor={theme.colors.surface}
+              />
+            }
           />
         )}
       </View>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -21,20 +21,33 @@ const ClientsScreen = () => {
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadClients = async () => {
     try {
       setLoading(true);
       const clientsData = await getClients();
       setClients(clientsData);
-      setFilteredClients(clientsData);
+      setFilteredClients(searchQuery ?
+        clientsData.filter(client =>
+          client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (client.gstin_no && client.gstin_no.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (client.pan_no && client.pan_no.toLowerCase().includes(searchQuery.toLowerCase()))
+        ) : clientsData);
     } catch (error) {
       console.error('Error loading clients:', error);
       Alert.alert('Error', 'Failed to load clients. Please try again.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadClients();
+  }, [searchQuery]);
 
   useFocusEffect(
     useCallback(() => {
@@ -128,6 +141,15 @@ const ClientsScreen = () => {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
         />
       )}
 

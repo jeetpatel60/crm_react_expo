@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme, Appbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -15,24 +15,43 @@ type ContactsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 const ContactsScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<ContactsScreenNavigationProp>();
-  
+
   const [loading, setLoading] = useState(true);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadContacts = async () => {
     try {
       setLoading(true);
       const data = await getContacts();
       setContacts(data);
-      setFilteredContacts(data);
+
+      // Apply search filter if needed
+      if (searchQuery.trim() === '') {
+        setFilteredContacts(data);
+      } else {
+        const filtered = data.filter(
+          (contact) =>
+            contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (contact.email && contact.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (contact.company && contact.company.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+        setFilteredContacts(filtered);
+      }
     } catch (error) {
       console.error('Error loading contacts:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadContacts();
+  }, [searchQuery]);
 
   useFocusEffect(
     useCallback(() => {
@@ -118,6 +137,15 @@ const ContactsScreen = () => {
             />
           )}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
         />
       )}
 

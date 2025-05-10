@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme, Card, Text, IconButton } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -21,20 +21,36 @@ const CompanyScreen = () => {
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadCompanies = async () => {
     try {
       setLoading(true);
       const data = await getCompanies();
       setCompanies(data);
-      setFilteredCompanies(data);
+
+      // Apply search filter if needed
+      if (searchQuery.trim() === '') {
+        setFilteredCompanies(data);
+      } else {
+        const filtered = data.filter(company =>
+          company.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setFilteredCompanies(filtered);
+      }
     } catch (error) {
       console.error('Error loading companies:', error);
       Alert.alert('Error', 'Failed to load companies. Please try again.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadCompanies();
+  }, [searchQuery]);
 
   useFocusEffect(
     useCallback(() => {
@@ -168,6 +184,15 @@ const CompanyScreen = () => {
             />
           )}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
         />
       )}
 

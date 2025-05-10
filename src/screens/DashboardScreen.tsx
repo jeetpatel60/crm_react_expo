@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, Button, useTheme, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -16,27 +16,34 @@ type DashboardScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 const DashboardScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<DashboardScreenNavigationProp>();
-  
+
   const [loading, setLoading] = useState(true);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const contactsData = await getContacts();
+      const tasksData = await getTasks();
+
+      setContacts(contactsData.slice(0, 5)); // Show only 5 recent contacts
+      setTasks(tasksData.filter(task => task.status !== 'completed').slice(0, 5)); // Show only 5 pending tasks
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData();
+  }, []);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const contactsData = await getContacts();
-        const tasksData = await getTasks();
-        
-        setContacts(contactsData.slice(0, 5)); // Show only 5 recent contacts
-        setTasks(tasksData.filter(task => task.status !== 'completed').slice(0, 5)); // Show only 5 pending tasks
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadData();
   }, []);
 
@@ -46,7 +53,17 @@ const DashboardScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+            progressBackgroundColor={theme.colors.surface}
+          />
+        }>
         {/* Stats Section */}
         <View style={styles.statsContainer}>
           <Card style={[styles.statCard, shadows.md, { backgroundColor: theme.colors.primary }]}>
@@ -60,7 +77,7 @@ const DashboardScreen = () => {
               </Text>
             </Card.Content>
           </Card>
-          
+
           <Card style={[styles.statCard, shadows.md, { backgroundColor: theme.colors.secondary }]}>
             <Card.Content style={styles.statContent}>
               <MaterialCommunityIcons name="checkbox-marked-outline" size={32} color="#fff" />
@@ -88,7 +105,7 @@ const DashboardScreen = () => {
               View All
             </Button>
           </View>
-          
+
           {contacts.length > 0 ? (
             contacts.map((contact) => (
               <ContactCard
@@ -129,7 +146,7 @@ const DashboardScreen = () => {
               View All
             </Button>
           </View>
-          
+
           {tasks.length > 0 ? (
             tasks.map((task) => (
               <TaskCard

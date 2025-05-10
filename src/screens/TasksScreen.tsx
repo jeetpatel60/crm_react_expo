@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme, Chip, SegmentedButtons } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -16,12 +16,13 @@ type TasksScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 const TasksScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<TasksScreenNavigationProp>();
-  
+
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadTasks = async () => {
     try {
@@ -33,8 +34,14 @@ const TasksScreen = () => {
       console.error('Error loading tasks:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadTasks();
+  }, [searchQuery, statusFilter]);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,12 +51,12 @@ const TasksScreen = () => {
 
   const filterTasks = (taskList: Task[], query: string, status: string) => {
     let filtered = taskList;
-    
+
     // Filter by status
     if (status !== 'all') {
       filtered = filtered.filter((task) => task.status === status);
     }
-    
+
     // Filter by search query
     if (query.trim() !== '') {
       filtered = filtered.filter(
@@ -58,7 +65,7 @@ const TasksScreen = () => {
           (task.description && task.description.toLowerCase().includes(query.toLowerCase()))
       );
     }
-    
+
     setFilteredTasks(filtered);
   };
 
@@ -158,6 +165,15 @@ const TasksScreen = () => {
             />
           )}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
         />
       )}
 

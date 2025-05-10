@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -22,13 +22,20 @@ const ProjectSchedulesScreen = () => {
   const [projects, setProjects] = useState<Map<number, Project>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadSchedules = useCallback(async () => {
     try {
       setLoading(true);
       const schedulesData = await getProjectSchedules();
       setSchedules(schedulesData);
-      setFilteredSchedules(schedulesData);
+
+      // Apply search filter if needed
+      if (searchQuery.trim() === '') {
+        setFilteredSchedules(schedulesData);
+      } else {
+        // We'll filter after loading projects
+      }
 
       // Load project data for each schedule
       const projectsMap = new Map<number, Project>();
@@ -41,13 +48,36 @@ const ProjectSchedulesScreen = () => {
         }
       }
       setProjects(projectsMap);
+
+      // Apply search filter if needed
+      if (searchQuery.trim() !== '') {
+        const filtered = schedulesData.filter((schedule) => {
+          const project = projectsMap.get(schedule.project_id);
+          if (!project) return false;
+
+          const projectNameMatch = project.name.toLowerCase().includes(searchQuery.toLowerCase());
+          const dateMatch = new Date(schedule.date)
+            .toLocaleDateString('en-IN')
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
+
+          return projectNameMatch || dateMatch;
+        });
+        setFilteredSchedules(filtered);
+      }
     } catch (error) {
       console.error('Error loading project schedules:', error);
       Alert.alert('Error', 'Failed to load project schedules');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, []);
+  }, [searchQuery]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadSchedules();
+  }, [loadSchedules]);
 
   useFocusEffect(
     useCallback(() => {
@@ -147,6 +177,15 @@ const ProjectSchedulesScreen = () => {
             );
           }}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
         />
       )}
 
