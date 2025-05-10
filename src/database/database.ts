@@ -128,6 +128,21 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    // Create leads table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS leads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        enquiry_for TEXT,
+        budget REAL,
+        reference TEXT,
+        lead_source TEXT,
+        status TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+
     console.log('Database tables created successfully');
   } catch (error) {
     console.error('Error initializing database tables:', error);

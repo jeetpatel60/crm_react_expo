@@ -1,5 +1,6 @@
 export { default as DashboardScreen } from './DashboardScreen';
 export { default as CompanyScreen } from './CompanyScreen';
+export { default as LeadsScreen } from './LeadsScreen';
 export { default as ClientsScreen } from './ClientsScreen';
 export { default as ProjectsScreen } from './ProjectsScreen';
 export { default as UnitsFlatScreen } from './UnitsFlatScreen';
@@ -19,3 +20,6 @@ export { default as EditCompanyScreen } from './EditCompanyScreen';
 export { default as ClientDetailsScreen } from './ClientDetailsScreen';
 export { default as AddClientScreen } from './AddClientScreen';
 export { default as EditClientScreen } from './EditClientScreen';
+export { default as LeadDetailsScreen } from './LeadDetailsScreen';
+export { default as AddLeadScreen } from './AddLeadScreen';
+export { default as EditLeadScreen } from './EditLeadScreen';

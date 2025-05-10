@@ -17,6 +17,9 @@ import EditCompanyScreen from '../screens/EditCompanyScreen';
 import ClientDetailsScreen from '../screens/ClientDetailsScreen';
 import AddClientScreen from '../screens/AddClientScreen';
 import EditClientScreen from '../screens/EditClientScreen';
+import LeadDetailsScreen from '../screens/LeadDetailsScreen';
+import AddLeadScreen from '../screens/AddLeadScreen';
+import EditLeadScreen from '../screens/EditLeadScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -101,6 +104,21 @@ const AppNavigator = () => {
           name="EditClient"
           component={EditClientScreen}
           options={{ title: 'Edit Client' }}
+        />
+        <Stack.Screen
+          name="LeadDetails"
+          component={LeadDetailsScreen}
+          options={{ title: 'Lead Details' }}
+        />
+        <Stack.Screen
+          name="AddLead"
+          component={AddLeadScreen}
+          options={{ title: 'Add Lead' }}
+        />
+        <Stack.Screen
+          name="EditLead"
+          component={EditLeadScreen}
+          options={{ title: 'Edit Lead' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
