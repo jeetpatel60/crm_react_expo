@@ -1,31 +1,223 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, useTheme } from 'react-native-paper';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, FlatList, Alert } from 'react-native';
+import { Searchbar, FAB, useTheme, Card, Text, IconButton } from 'react-native-paper';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+
+import { RootStackParamList } from '../types';
+import { Company } from '../database/companiesDb';
+import { getCompanies, deleteCompany } from '../database';
+import { LoadingIndicator, EmptyState } from '../components';
+import { spacing } from '../constants/theme';
+import { shadows } from '../constants/theme';
+
+type CompanyScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const CompanyScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation<CompanyScreenNavigationProp>();
 
-  return (
-    <ScrollView style={styles.container}>
-      <Card style={[styles.card, { backgroundColor: theme.colors.surfaceVariant }]}>
-        <Card.Content>
-          <Text variant="titleLarge" style={{ marginBottom: 10 }}>Company</Text>
-          <Text variant="bodyMedium">
-            This is a placeholder for the Company screen. Content will be implemented in a future update.
-          </Text>
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const loadCompanies = async () => {
+    try {
+      setLoading(true);
+      const data = await getCompanies();
+      setCompanies(data);
+      setFilteredCompanies(data);
+    } catch (error) {
+      console.error('Error loading companies:', error);
+      Alert.alert('Error', 'Failed to load companies. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCompanies();
+    }, [])
+  );
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setFilteredCompanies(companies);
+    } else {
+      const filtered = companies.filter(company =>
+        company.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredCompanies(filtered);
+    }
+  };
+
+  const handleDeleteCompany = (companyId: number) => {
+    Alert.alert(
+      'Delete Company',
+      'Are you sure you want to delete this company? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteCompany(companyId);
+              loadCompanies();
+              Alert.alert('Success', 'Company deleted successfully');
+            } catch (error) {
+              console.error('Error deleting company:', error);
+              Alert.alert('Error', 'Failed to delete company. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const CompanyCard = ({ company, onPress, onEdit, onDelete }: {
+    company: Company;
+    onPress: (company: Company) => void;
+    onEdit?: (company: Company) => void;
+    onDelete?: (companyId: number) => void;
+  }) => {
+    return (
+      <Card
+        style={[
+          styles.companyCard,
+          shadows.md,
+          { backgroundColor: theme.colors.surface }
+        ]}
+        onPress={() => onPress(company)}
+      >
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.cardDetails}>
+            <Text variant="titleMedium" style={styles.companyName}>
+              {company.name}
+            </Text>
+            {company.salutation && (
+              <Text
+                variant="bodySmall"
+                style={[styles.salutation, { color: theme.colors.onSurfaceVariant }]}
+                numberOfLines={1}
+              >
+                {company.salutation.substring(0, 50)}
+                {company.salutation.length > 50 ? '...' : ''}
+              </Text>
+            )}
+          </View>
+          <View style={styles.cardActions}>
+            {onEdit && (
+              <IconButton
+                icon="pencil"
+                size={20}
+                iconColor={theme.colors.secondary}
+                onPress={() => onEdit(company)}
+              />
+            )}
+            {onDelete && company.id && (
+              <IconButton
+                icon="delete"
+                size={20}
+                iconColor={theme.colors.error}
+                onPress={() => onDelete(company.id!)}
+              />
+            )}
+          </View>
         </Card.Content>
       </Card>
-    </ScrollView>
+    );
+  };
+
+  if (loading) {
+    return <LoadingIndicator />;
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Searchbar
+        placeholder="Search companies..."
+        onChangeText={handleSearch}
+        value={searchQuery}
+        style={styles.searchBar}
+        iconColor={theme.colors.primary}
+        inputStyle={{ color: theme.colors.onSurface }}
+      />
+
+      {filteredCompanies.length === 0 ? (
+        <EmptyState
+          icon="office-building"
+          title="No Companies"
+          message={searchQuery ? "No companies match your search" : "You haven't added any companies yet"}
+          buttonText={searchQuery ? undefined : "Add Company"}
+          onButtonPress={searchQuery ? undefined : () => navigation.navigate('AddCompany')}
+        />
+      ) : (
+        <FlatList
+          data={filteredCompanies}
+          keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+          renderItem={({ item }) => (
+            <CompanyCard
+              company={item}
+              onPress={(company) => navigation.navigate('CompanyDetails', { companyId: company.id! })}
+              onEdit={(company) => navigation.navigate('EditCompany', { company })}
+              onDelete={(companyId) => handleDeleteCompany(companyId)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+        />
+      )}
+
+      <FAB
+        icon="plus"
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        onPress={() => navigation.navigate('AddCompany')}
+        color="#fff"
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  card: {
-    marginBottom: 16,
+  searchBar: {
+    margin: spacing.md,
+    elevation: 2,
+  },
+  listContent: {
+    padding: spacing.md,
+    paddingBottom: 80, // Extra padding for FAB
+  },
+  companyCard: {
+    marginBottom: spacing.md,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardDetails: {
+    flex: 1,
+  },
+  companyName: {
+    fontWeight: '600',
+  },
+  salutation: {
+    marginTop: 4,
+  },
+  cardActions: {
+    flexDirection: 'row',
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
   },
 });
 

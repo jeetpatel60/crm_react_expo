@@ -11,6 +11,12 @@ import EditContactScreen from '../screens/EditContactScreen';
 import TaskDetailsScreen from '../screens/TaskDetailsScreen';
 import AddTaskScreen from '../screens/AddTaskScreen';
 import EditTaskScreen from '../screens/EditTaskScreen';
+import CompanyDetailsScreen from '../screens/CompanyDetailsScreen';
+import AddCompanyScreen from '../screens/AddCompanyScreen';
+import EditCompanyScreen from '../screens/EditCompanyScreen';
+import ClientDetailsScreen from '../screens/ClientDetailsScreen';
+import AddClientScreen from '../screens/AddClientScreen';
+import EditClientScreen from '../screens/EditClientScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -65,6 +71,36 @@ const AppNavigator = () => {
           name="EditTask"
           component={EditTaskScreen}
           options={{ title: 'Edit Task' }}
+        />
+        <Stack.Screen
+          name="CompanyDetails"
+          component={CompanyDetailsScreen}
+          options={{ title: 'Company Details' }}
+        />
+        <Stack.Screen
+          name="AddCompany"
+          component={AddCompanyScreen}
+          options={{ title: 'Add Company' }}
+        />
+        <Stack.Screen
+          name="EditCompany"
+          component={EditCompanyScreen}
+          options={{ title: 'Edit Company' }}
+        />
+        <Stack.Screen
+          name="ClientDetails"
+          component={ClientDetailsScreen}
+          options={{ title: 'Client Details' }}
+        />
+        <Stack.Screen
+          name="AddClient"
+          component={AddClientScreen}
+          options={{ title: 'Add Client' }}
+        />
+        <Stack.Screen
+          name="EditClient"
+          component={EditClientScreen}
+          options={{ title: 'Edit Client' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

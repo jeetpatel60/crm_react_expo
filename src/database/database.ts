@@ -101,6 +101,33 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    // Create companies table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS companies (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        salutation TEXT,
+        letterhead_path TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+
+    // Create clients table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        address TEXT,
+        pan_no TEXT,
+        gstin_no TEXT,
+        contact_no TEXT,
+        email TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+
     console.log('Database tables created successfully');
   } catch (error) {
     console.error('Error initializing database tables:', error);
