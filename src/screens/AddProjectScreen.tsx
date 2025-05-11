@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal, Divider, Card } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -8,8 +8,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { RootStackParamList } from '../types';
 import { Project, ProjectStatus } from '../database/projectsDb';
 import { Milestone } from '../database/projectSchedulesDb';
+import { Company } from '../database/companiesDb';
 import { addProject } from '../database';
 import { addProjectScheduleWithMilestones } from '../database/projectSchedulesDb';
+import { getCompanies } from '../database/companiesDb';
 import { spacing, shadows } from '../constants/theme';
 import { PROJECT_STATUS_OPTIONS } from '../constants';
 import { MilestoneForm } from '../components';
@@ -32,6 +34,12 @@ const AddProjectScreen = () => {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [includeSchedule, setIncludeSchedule] = useState(false);
   const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
+
+  // Company dropdown state
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState<number | null>(null);
+  const [companyName, setCompanyName] = useState('');
+  const [companyMenuVisible, setCompanyMenuVisible] = useState(false);
 
   // Date picker state
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -80,6 +88,7 @@ const AddProjectScreen = () => {
         progress: 0, // Progress will be calculated automatically based on milestones
         total_budget: totalBudget ? Number(totalBudget) : undefined,
         status,
+        company_id: companyId || undefined,
       };
 
       // Add the project
@@ -188,6 +197,21 @@ const AddProjectScreen = () => {
   const cancelIOSDate = () => {
     setShowIOSDateModal(false);
   };
+
+  // Load companies for dropdown
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        const companiesData = await getCompanies();
+        setCompanies(companiesData);
+      } catch (error) {
+        console.error('Error loading companies:', error);
+        Alert.alert('Error', 'Failed to load companies');
+      }
+    };
+
+    loadCompanies();
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -325,6 +349,60 @@ const AddProjectScreen = () => {
             {errors.totalBudget}
           </Text>
         )}
+
+        <Text style={styles.sectionTitle}>Company</Text>
+        <View style={styles.dropdownContainer}>
+          <TextInput
+            label="Select Company"
+            value={companyName}
+            mode="outlined"
+            style={styles.input}
+            outlineColor={theme.colors.outline}
+            activeOutlineColor={theme.colors.primary}
+            right={
+              <TextInput.Icon
+                icon="menu-down"
+                onPress={() => setCompanyMenuVisible(true)}
+              />
+            }
+            onTouchStart={() => setCompanyMenuVisible(true)}
+          />
+          <Portal>
+            <Modal
+              visible={companyMenuVisible}
+              onDismiss={() => setCompanyMenuVisible(false)}
+              contentContainerStyle={[
+                styles.modalContainer,
+                { backgroundColor: theme.colors.surface }
+              ]}
+            >
+              <Text style={styles.modalTitle}>Select Company</Text>
+              <ScrollView style={styles.modalScrollView}>
+                {companies.map((company) => (
+                  <Button
+                    key={company.id}
+                    mode="text"
+                    onPress={() => {
+                      setCompanyId(company.id);
+                      setCompanyName(company.name);
+                      setCompanyMenuVisible(false);
+                    }}
+                    style={styles.modalButton}
+                  >
+                    {company.name}
+                  </Button>
+                ))}
+              </ScrollView>
+              <Button
+                mode="contained"
+                onPress={() => setCompanyMenuVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                Close
+              </Button>
+            </Modal>
+          </Portal>
+        </View>
 
         <Text style={styles.sectionTitle}>Status</Text>
         <SegmentedButtons
@@ -468,6 +546,18 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     minWidth: 100,
+    justifyContent: 'flex-start',
+    paddingVertical: spacing.xs,
+  },
+  modalCloseButton: {
+    marginTop: spacing.md,
+  },
+  dropdownContainer: {
+    marginBottom: spacing.md,
+  },
+  modalScrollView: {
+    maxHeight: 300,
+    width: '100%',
   },
 });
 

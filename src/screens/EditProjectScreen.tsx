@@ -9,8 +9,10 @@ import { useCallback } from 'react';
 import { RootStackParamList } from '../types';
 import { Project, ProjectStatus, getProjectById } from '../database/projectsDb';
 import { Milestone, ProjectSchedule, MilestoneStatus } from '../database/projectSchedulesDb';
+import { Company } from '../database/companiesDb';
 import { updateProject } from '../database';
 import { getProjectSchedulesByProjectId, getMilestonesByScheduleId, updateProjectSchedule, deleteMilestone, updateMilestone } from '../database/projectSchedulesDb';
+import { getCompanies } from '../database/companiesDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
 import { PROJECT_STATUS_OPTIONS, MILESTONE_STATUS_COLORS, MILESTONE_STATUS_OPTIONS } from '../constants';
 
@@ -40,6 +42,12 @@ const EditProjectScreen = () => {
   const [status, setStatus] = useState<ProjectStatus>(project.status);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Company dropdown state
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState<number | null>(project.company_id || null);
+  const [companyName, setCompanyName] = useState('');
+  const [companyMenuVisible, setCompanyMenuVisible] = useState(false);
 
   // Schedule and milestones state
   const [schedules, setSchedules] = useState<ProjectSchedule[]>([]);
@@ -118,6 +126,7 @@ const EditProjectScreen = () => {
         progress: currentProgress, // Use the current progress value from the database
         total_budget: totalBudget ? Number(totalBudget) : undefined,
         status,
+        company_id: companyId || undefined,
       };
 
       console.log(`Updating project with progress: ${updatedProject.progress}%`);
@@ -194,6 +203,29 @@ const EditProjectScreen = () => {
   const cancelIOSDate = () => {
     setShowIOSDateModal(false);
   };
+
+  // Load companies for dropdown and set initial company name
+  useEffect(() => {
+    const loadCompanies = async () => {
+      try {
+        const companiesData = await getCompanies();
+        setCompanies(companiesData);
+
+        // Set initial company name if company_id exists
+        if (project.company_id) {
+          const selectedCompany = companiesData.find(c => c.id === project.company_id);
+          if (selectedCompany) {
+            setCompanyName(selectedCompany.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading companies:', error);
+        Alert.alert('Error', 'Failed to load companies');
+      }
+    };
+
+    loadCompanies();
+  }, [project.company_id]);
 
   // Load schedules and milestones for the project
   useEffect(() => {
@@ -616,6 +648,60 @@ const EditProjectScreen = () => {
           </Text>
         )}
 
+        <Text style={styles.sectionTitle}>Company</Text>
+        <View style={styles.dropdownContainer}>
+          <TextInput
+            label="Select Company"
+            value={companyName}
+            mode="outlined"
+            style={styles.input}
+            outlineColor={theme.colors.outline}
+            activeOutlineColor={theme.colors.primary}
+            right={
+              <TextInput.Icon
+                icon="menu-down"
+                onPress={() => setCompanyMenuVisible(true)}
+              />
+            }
+            onTouchStart={() => setCompanyMenuVisible(true)}
+          />
+          <Portal>
+            <Modal
+              visible={companyMenuVisible}
+              onDismiss={() => setCompanyMenuVisible(false)}
+              contentContainerStyle={[
+                styles.modalContainer,
+                { backgroundColor: theme.colors.surface }
+              ]}
+            >
+              <Text style={styles.modalTitle}>Select Company</Text>
+              <ScrollView style={styles.modalScrollView}>
+                {companies.map((company) => (
+                  <Button
+                    key={company.id}
+                    mode="text"
+                    onPress={() => {
+                      setCompanyId(company.id || null);
+                      setCompanyName(company.name);
+                      setCompanyMenuVisible(false);
+                    }}
+                    style={styles.modalButton}
+                  >
+                    {company.name}
+                  </Button>
+                ))}
+              </ScrollView>
+              <Button
+                mode="contained"
+                onPress={() => setCompanyMenuVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                Close
+              </Button>
+            </Modal>
+          </Portal>
+        </View>
+
         <Text style={styles.sectionTitle}>Status</Text>
         <SegmentedButtons
           value={status}
@@ -1027,6 +1113,18 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     minWidth: 100,
+    justifyContent: 'flex-start',
+    paddingVertical: spacing.xs,
+  },
+  modalCloseButton: {
+    marginTop: spacing.md,
+  },
+  dropdownContainer: {
+    marginBottom: spacing.md,
+  },
+  modalScrollView: {
+    maxHeight: 300,
+    width: '100%',
   },
 });
 

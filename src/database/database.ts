@@ -154,8 +154,10 @@ export const initDatabase = async (): Promise<void> => {
         progress REAL,
         total_budget REAL,
         status TEXT NOT NULL,
+        company_id INTEGER,
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE SET NULL
       );
     `);
 

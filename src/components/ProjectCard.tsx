@@ -7,6 +7,7 @@ import { Project } from '../types';
 import { shadows, spacing, borderRadius, animations } from '../constants/theme';
 import { usePressAnimation, useStaggeredAnimation } from '../utils/animationUtils';
 import { PROJECT_STATUS_COLORS } from '../constants';
+import { getCompanyById } from '../database/companiesDb';
 
 interface ProjectCardProps {
   project: Project;
@@ -19,6 +20,7 @@ interface ProjectCardProps {
 const ProjectCard = ({ project, onPress, onEdit, onDelete, index = 0 }: ProjectCardProps) => {
   const theme = useTheme();
   const [pressed, setPressed] = useState(false);
+  const [companyName, setCompanyName] = useState<string>('');
 
   // Animations
   const fadeScaleStyle = useStaggeredAnimation(index, true);
@@ -28,6 +30,25 @@ const ProjectCard = ({ project, onPress, onEdit, onDelete, index = 0 }: ProjectC
   useEffect(() => {
     console.log(`ProjectCard: ${project.name}, Progress: ${project.progress}%, Updated: ${new Date(project.updated_at || 0).toISOString()}`);
   }, [project.id, project.progress, project.updated_at]);
+
+  // Load company name if company_id exists
+  useEffect(() => {
+    const loadCompanyName = async () => {
+      if (project.company_id) {
+        try {
+          const company = await getCompanyById(project.company_id);
+          setCompanyName(company.name);
+        } catch (error) {
+          console.error('Error loading company:', error);
+          setCompanyName('');
+        }
+      } else {
+        setCompanyName('');
+      }
+    };
+
+    loadCompanyName();
+  }, [project.company_id]);
 
   const formatCurrency = (amount?: number) => {
     if (amount === undefined || amount === null) return 'N/A';
@@ -111,6 +132,11 @@ const ProjectCard = ({ project, onPress, onEdit, onDelete, index = 0 }: ProjectC
                     <Text variant="titleMedium" style={styles.title}>
                       {project.name}
                     </Text>
+                    {companyName && (
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                        Company: {companyName}
+                      </Text>
+                    )}
                   </View>
                 </View>
               </View>

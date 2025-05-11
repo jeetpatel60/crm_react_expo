@@ -11,6 +11,7 @@ export interface Project {
   progress?: number; // percentage (0-100)
   total_budget?: number; // decimal
   status: ProjectStatus;
+  company_id?: number;
   created_at?: number;
   updated_at?: number;
 }
@@ -35,6 +36,7 @@ export const getProjects = async (): Promise<Project[]> => {
         progress,
         total_budget,
         status,
+        company_id,
         created_at,
         updated_at
       FROM projects
@@ -84,8 +86,8 @@ export const addProject = async (project: Project): Promise<number> => {
     const now = Date.now();
 
     const result = await db.runAsync(
-      `INSERT INTO projects (name, address, start_date, end_date, progress, total_budget, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      `INSERT INTO projects (name, address, start_date, end_date, progress, total_budget, status, company_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         project.name,
         project.address || null,
@@ -94,6 +96,7 @@ export const addProject = async (project: Project): Promise<number> => {
         project.progress || 0,
         project.total_budget || null,
         project.status,
+        project.company_id || null,
         now,
         now
       ]
@@ -128,7 +131,7 @@ export const updateProject = async (project: Project): Promise<void> => {
 
     await db.runAsync(
       `UPDATE projects
-       SET name = ?, address = ?, start_date = ?, end_date = ?, progress = ?, total_budget = ?, status = ?, updated_at = ?
+       SET name = ?, address = ?, start_date = ?, end_date = ?, progress = ?, total_budget = ?, status = ?, company_id = ?, updated_at = ?
        WHERE id = ?;`,
       [
         project.name,
@@ -138,6 +141,7 @@ export const updateProject = async (project: Project): Promise<void> => {
         progressValue,
         project.total_budget || null,
         project.status,
+        project.company_id || null,
         now,
         project.id
       ]

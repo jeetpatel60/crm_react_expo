@@ -13,3 +13,4 @@ export * from './unitPaymentReceiptsDb';
 export * from './quotationsDb';
 export * from './quotationAnnexuresDb';
 export * from './quotationHelpers';
+export * from './migrations';
