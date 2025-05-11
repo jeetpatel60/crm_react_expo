@@ -387,7 +387,8 @@ export const generateAndSharePaymentRequestPdf = async (
       paymentRequest.unit_id,
       undefined,
       project.id,
-      effectiveCompanyId
+      effectiveCompanyId,
+      paymentRequestId  // Pass the specific payment request ID
     );
   } catch (error) {
     console.error('Error generating or sharing payment request PDF:', error);

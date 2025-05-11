@@ -150,12 +150,22 @@ const AddPaymentRequestTemplateScreen: React.FC = () => {
             </View>
 
             <View style={[styles.placeholderColumn, { width: '100%' }]}>
+              <Text style={styles.placeholderCategory}>Current Payment Request Fields (for specific payment request export)</Text>
+              <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_SR_NO}}"} - Sr No of the current payment request</Text>
+              <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_DATE}}"} - Date of the current payment request</Text>
+              <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_DESCRIPTION}}"} - Description of the current payment request</Text>
+              <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_AMOUNT}}"} - Amount of the current payment request</Text>
+              <Text style={styles.placeholder}>{"{{AMOUNT}}"} - Shorthand for amount of the current payment request</Text>
+              <Text style={styles.placeholder}>{"{{DATE}}"} - Shorthand for date of the current payment request</Text>
+              <Text style={styles.placeholder}>{"{{DESCRIPTION}}"} - Shorthand for description of the current payment request</Text>
+            </View>
+
+            <View style={[styles.placeholderColumn, { width: '100%' }]}>
               <Text style={styles.placeholderCategory}>Payment Requests Fields (use with index, e.g. 0 for first request)</Text>
               <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_SR_NO[index]}}"} - Sr No of request at index</Text>
               <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_DATE[index]}}"} - Date of request at index</Text>
               <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_DESCRIPTION[index]}}"} - Description of request at index</Text>
               <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_AMOUNT[index]}}"} - Amount of request at index</Text>
-              <Text style={styles.placeholder}>{"{{PAYMENT_REQUEST_STATUS[index]}}"} - Status of request at index</Text>
             </View>
 
             <View style={[styles.placeholderColumn, { width: '100%' }]}>
@@ -174,7 +184,6 @@ const AddPaymentRequestTemplateScreen: React.FC = () => {
               <Text style={styles.placeholder}>{"{{PENDING_PAYMENT_DATE[index]}}"} - Date of pending payment at index</Text>
               <Text style={styles.placeholder}>{"{{PENDING_PAYMENT_DESCRIPTION[index]}}"} - Description of pending payment at index</Text>
               <Text style={styles.placeholder}>{"{{PENDING_PAYMENT_AMOUNT[index]}}"} - Amount of pending payment at index</Text>
-              <Text style={styles.placeholder}>{"{{PENDING_PAYMENT_STATUS[index]}}"} - Status of pending payment at index</Text>
             </View>
 
             <View style={[styles.placeholderColumn, { width: '100%' }]}>

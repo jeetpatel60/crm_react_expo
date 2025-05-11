@@ -55,11 +55,20 @@ export const generateAndShareTemplateDocument = async (
   unitId?: number,
   clientId?: number,
   projectId?: number,
-  companyId?: number
+  companyId?: number,
+  specificPaymentRequestId?: number
 ): Promise<void> => {
   try {
     // Prepare data for document generation
-    const data = await prepareTemplateData(templateId, templateType, unitId, clientId, projectId, companyId);
+    const data = await prepareTemplateData(
+      templateId,
+      templateType,
+      unitId,
+      clientId,
+      projectId,
+      companyId,
+      specificPaymentRequestId
+    );
 
     // Generate HTML content
     const htmlContent = generateTemplateHtml(data);
@@ -84,7 +93,8 @@ const prepareTemplateData = async (
   unitId?: number,
   clientId?: number,
   projectId?: number,
-  companyId?: number
+  companyId?: number,
+  specificPaymentRequestId?: number
 ): Promise<TemplateData> => {
   // Import required functions here to avoid circular dependencies
   const { getAgreementTemplateById } = require('../database/agreementTemplatesDb');
@@ -117,8 +127,20 @@ const prepareTemplateData = async (
       data.paymentRequests = await getUnitPaymentRequests(unitId);
       data.paymentReceipts = await getUnitPaymentReceipts(unitId);
 
-      // Filter pending payment requests (those with status not 'Paid')
-      data.pendingPayments = data.paymentRequests.filter(request => request.status !== 'Paid');
+      // All payment requests are considered pending since there's no status field
+      data.pendingPayments = [...data.paymentRequests];
+
+      // If a specific payment request ID is provided, filter the payment requests
+      if (specificPaymentRequestId) {
+        const { getUnitPaymentRequestById } = require('../database/unitPaymentRequestsDb');
+        const specificRequest = await getUnitPaymentRequestById(specificPaymentRequestId);
+
+        if (specificRequest && specificRequest.unit_id === unitId) {
+          // Replace the payment requests array with just the specific request
+          data.paymentRequests = [specificRequest];
+          data.pendingPayments = [specificRequest];
+        }
+      }
     }
   }
 
@@ -243,6 +265,22 @@ export const replacePlaceholders = (content: string, data: TemplateData): string
 
   // Replace individual field placeholders
 
+  // Current Payment Request fields (without index)
+  if (data.paymentRequests && data.paymentRequests.length > 0) {
+    const currentRequest = data.paymentRequests[0]; // Use the first one (should be the only one for specific exports)
+
+    // Replace placeholders without index for the current payment request
+    result = result.replace(/\{\{PAYMENT_REQUEST_SR_NO\}\}/g, currentRequest.sr_no?.toString() || '');
+    result = result.replace(/\{\{PAYMENT_REQUEST_DATE\}\}/g, formatDate(currentRequest.date || 0));
+    result = result.replace(/\{\{PAYMENT_REQUEST_DESCRIPTION\}\}/g, currentRequest.description || '');
+    result = result.replace(/\{\{PAYMENT_REQUEST_AMOUNT\}\}/g, formatCurrency(currentRequest.amount || 0));
+
+    // Also add simpler aliases for common fields
+    result = result.replace(/\{\{AMOUNT\}\}/g, formatCurrency(currentRequest.amount || 0));
+    result = result.replace(/\{\{DATE\}\}/g, formatDate(currentRequest.date || 0));
+    result = result.replace(/\{\{DESCRIPTION\}\}/g, currentRequest.description || '');
+  }
+
   // Project Milestones fields
   if (data.projectMilestones) {
     const milestoneRegex = /\{\{PROJECT_MILESTONE_([A-Z_]+)\[(\d+)\]\}\}/g;
@@ -343,7 +381,8 @@ export const replacePlaceholders = (content: string, data: TemplateData): string
             value = formatCurrency(request.amount || 0);
             break;
           case 'STATUS':
-            value = request.status || '';
+            // Payment requests don't have a status field in the database
+            value = '';
             break;
         }
 
@@ -422,7 +461,8 @@ export const replacePlaceholders = (content: string, data: TemplateData): string
             value = formatCurrency(pending.amount || 0);
             break;
           case 'STATUS':
-            value = pending.status || '';
+            // Payment requests don't have a status field in the database
+            value = '';
             break;
         }
 
@@ -562,7 +602,6 @@ const generatePaymentRequestsTable = (data: TemplateData): string => {
           <th>Date</th>
           <th>Description</th>
           <th>Amount</th>
-          <th>Status</th>
         </tr>
       </thead>
       <tbody>
@@ -575,7 +614,6 @@ const generatePaymentRequestsTable = (data: TemplateData): string => {
         <td>${formatDate(request.date)}</td>
         <td>${request.description || ''}</td>
         <td>${formatCurrency(request.amount || 0)}</td>
-        <td>${request.status}</td>
       </tr>
     `;
   });
@@ -648,7 +686,6 @@ const generatePendingPaymentsTable = (data: TemplateData): string => {
           <th>Date</th>
           <th>Description</th>
           <th>Amount</th>
-          <th>Status</th>
         </tr>
       </thead>
       <tbody>
@@ -661,7 +698,6 @@ const generatePendingPaymentsTable = (data: TemplateData): string => {
         <td>${formatDate(request.date)}</td>
         <td>${request.description || ''}</td>
         <td>${formatCurrency(request.amount || 0)}</td>
-        <td>${request.status}</td>
       </tr>
     `;
   });
