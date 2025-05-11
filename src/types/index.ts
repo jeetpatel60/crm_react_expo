@@ -33,6 +33,7 @@ export type RootStackParamList = {
   EditProjectSchedule: { schedule: ProjectSchedule };
   AddMilestone: { scheduleId: number };
   EditMilestone: { milestone: Milestone };
+  TestMilestoneEdit: undefined;
 };
 
 export type DrawerParamList = {

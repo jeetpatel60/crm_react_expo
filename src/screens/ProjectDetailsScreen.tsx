@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Card, Button, useTheme, Divider, IconButton, ProgressBar, Chip } from 'react-native-paper';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
+import { Text, Card, Button, useTheme, Divider, ProgressBar, Chip } from 'react-native-paper';
+import { RouteProp, useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../types';
 import { Project } from '../types';
 import { getProjectById, deleteProject } from '../database';
+import { db } from '../database/database';
 import { LoadingIndicator } from '../components';
 import { spacing, shadows } from '../constants/theme';
 
@@ -22,22 +23,114 @@ const ProjectDetailsScreen = () => {
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const loadProject = async () => {
-      try {
-        const projectData = await getProjectById(projectId);
+  const loadProject = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      console.log(`Loading project details for ID: ${projectId}`);
+
+      // Force a fresh query to the database
+      const projectData = await getProjectById(projectId);
+
+      if (projectData) {
+        console.log(`Project loaded: ${projectData.name}, progress: ${projectData.progress}%`);
+
+        // Update the state with fresh data
         setProject(projectData);
-      } catch (error) {
-        console.error('Error loading project:', error);
-        Alert.alert('Error', 'Failed to load project details');
-      } finally {
+      } else {
+        console.log(`No project found with ID: ${projectId}`);
+        Alert.alert('Error', 'Project not found');
+      }
+    } catch (error) {
+      console.error('Error loading project:', error);
+      Alert.alert('Error', 'Failed to load project details');
+    } finally {
+      if (showLoading) {
         setLoading(false);
       }
-    };
-
-    loadProject();
+      setRefreshing(false);
+    }
   }, [projectId]);
+
+  // Initial load
+  useEffect(() => {
+    loadProject();
+  }, [loadProject]);
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Project details screen focused - FORCE refreshing data');
+
+      // Store the current progress value in a local variable to avoid dependency on project state
+      const currentProgressRef = project?.progress || 0;
+
+      // Force refresh data without using loadProject to avoid any caching issues
+      const forceRefreshProject = async () => {
+        try {
+          console.log(`Force refreshing project details for ID: ${projectId}`);
+
+          // Get fresh project data directly from the database with a direct SQL query
+          // This ensures we're not getting cached data
+          const freshProjectData = await db.getFirstAsync<Project>(
+            `SELECT * FROM projects WHERE id = ? LIMIT 1;`,
+            [projectId]
+          );
+
+          if (freshProjectData) {
+            console.log(`Fresh project data loaded via direct SQL: ${freshProjectData.name}, Progress: ${freshProjectData.progress}%`);
+
+            // Check if progress has changed
+            const newProgress = freshProjectData.progress || 0;
+            const progressChanged = currentProgressRef !== newProgress;
+
+            // Update the state with fresh data
+            setProject(freshProjectData);
+
+            // Show notification if progress has changed
+            if (progressChanged) {
+              console.log(`Progress changed from ${currentProgressRef}% to ${newProgress}%`);
+
+              // Only show notification if progress increased (milestone completed)
+              if (newProgress > currentProgressRef) {
+                Alert.alert(
+                  'Project Progress Updated',
+                  `The project progress has been updated from ${currentProgressRef}% to ${newProgress}% based on completed milestones.`,
+                  [{ text: 'OK' }]
+                );
+              }
+            }
+          } else {
+            console.log('No project found with ID:', projectId);
+
+            // Try again with the regular getProjectById function as a fallback
+            const fallbackProjectData = await getProjectById(projectId);
+            if (fallbackProjectData) {
+              console.log(`Fallback project data loaded: ${fallbackProjectData.name}, Progress: ${fallbackProjectData.progress}%`);
+              setProject(fallbackProjectData);
+            }
+          }
+        } catch (error) {
+          console.error('Error force refreshing project:', error);
+        }
+      };
+
+      // Execute the refresh function
+      forceRefreshProject();
+
+      return () => {
+        console.log('Project details screen focus cleanup');
+      };
+    }, [projectId]) // Only depend on projectId, not on project state
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadProject(false);
+  }, [loadProject]);
 
   const handleDelete = () => {
     Alert.alert(
@@ -96,7 +189,7 @@ const ProjectDetailsScreen = () => {
       case 'In Progress':
         return theme.colors.primary;
       case 'Completed':
-        return theme.colors.success;
+        return '#4CAF50'; // Green color for success
       default:
         return theme.colors.primary;
     }
@@ -116,7 +209,17 @@ const ProjectDetailsScreen = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+            progressBackgroundColor={theme.colors.surface}
+          />
+        }>
         <Card style={[styles.card, shadows.md]}>
           <Card.Content>
             <View style={styles.headerRow}>

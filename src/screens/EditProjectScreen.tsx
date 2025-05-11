@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal, Card, Divider, DataTable, IconButton, Chip } from 'react-native-paper';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useCallback } from 'react';
 
 import { RootStackParamList } from '../types';
-import { Project, ProjectStatus } from '../database/projectsDb';
-import { Milestone, ProjectSchedule } from '../database/projectSchedulesDb';
+import { Project, ProjectStatus, getProjectById } from '../database/projectsDb';
+import { Milestone, ProjectSchedule, MilestoneStatus } from '../database/projectSchedulesDb';
 import { updateProject } from '../database';
-import { getProjectSchedulesByProjectId, getMilestonesByScheduleId, addProjectScheduleWithMilestones, updateProjectSchedule, deleteMilestone, updateMilestone } from '../database/projectSchedulesDb';
+import { getProjectSchedulesByProjectId, getMilestonesByScheduleId, updateProjectSchedule, deleteMilestone, updateMilestone } from '../database/projectSchedulesDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
-import { PROJECT_STATUS_OPTIONS, MILESTONE_STATUS_COLORS } from '../constants';
-import { MilestoneForm } from '../components';
+import { PROJECT_STATUS_OPTIONS, MILESTONE_STATUS_COLORS, MILESTONE_STATUS_OPTIONS } from '../constants';
 
 type EditProjectRouteProp = RouteProp<RootStackParamList, 'EditProject'>;
 type EditProjectNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -45,20 +45,24 @@ const EditProjectScreen = () => {
   const [schedules, setSchedules] = useState<ProjectSchedule[]>([]);
   const [selectedSchedule, setSelectedSchedule] = useState<ProjectSchedule | null>(null);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [newMilestones, setNewMilestones] = useState<Milestone[]>([]);
-  const [includeNewSchedule, setIncludeNewSchedule] = useState(false);
-  const [newScheduleDate, setNewScheduleDate] = useState<Date>(new Date());
   const [loadingSchedules, setLoadingSchedules] = useState(true);
-  const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null);
-  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+
+  // Inline editing state
+  const [editingMilestoneId, setEditingMilestoneId] = useState<number | null>(null);
+  const [editMilestoneName, setEditMilestoneName] = useState('');
+  const [editCompletionPercentage, setEditCompletionPercentage] = useState(0);
+  const [editStatus, setEditStatus] = useState<MilestoneStatus>('Not Started');
+  const [editSrNo, setEditSrNo] = useState(1);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editErrors, setEditErrors] = useState<{ [key: string]: string }>({});
+
 
   // Date picker state
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [showScheduleDatePicker, setShowScheduleDatePicker] = useState(false);
   const [datePickerDate, setDatePickerDate] = useState(new Date());
   const [showIOSDateModal, setShowIOSDateModal] = useState(false);
-  const [currentDateField, setCurrentDateField] = useState<'start' | 'end' | 'schedule'>('start');
+  const [currentDateField, setCurrentDateField] = useState<'start' | 'end'>('start');
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -91,17 +95,32 @@ const EditProjectScreen = () => {
     try {
       setLoading(true);
 
+      // Get the latest progress value from the database before updating
+      let currentProgress = Number(progress);
+      if (project.id) {
+        try {
+          const currentProject = await getProjectById(project.id);
+          if (currentProject && currentProject.progress !== undefined) {
+            currentProgress = currentProject.progress;
+            console.log(`Using latest progress from database: ${currentProgress}%`);
+          }
+        } catch (error) {
+          console.error('Error getting current project progress:', error);
+        }
+      }
+
       const updatedProject: Project = {
         ...project,
         name,
         address: address.trim() || undefined,
         start_date: startDate ? startDate.getTime() : undefined,
         end_date: endDate ? endDate.getTime() : undefined,
-        // Progress is not updated here as it's calculated automatically based on milestones
+        progress: currentProgress, // Use the current progress value from the database
         total_budget: totalBudget ? Number(totalBudget) : undefined,
         status,
       };
 
+      console.log(`Updating project with progress: ${updatedProject.progress}%`);
       await updateProject(updatedProject);
       navigation.goBack();
     } catch (error) {
@@ -120,7 +139,7 @@ const EditProjectScreen = () => {
     });
   };
 
-  const showDatePicker = (field: 'start' | 'end' | 'schedule') => {
+  const showDatePicker = (field: 'start' | 'end') => {
     setCurrentDateField(field);
 
     // Set initial date in picker based on current value
@@ -128,8 +147,6 @@ const EditProjectScreen = () => {
       setDatePickerDate(startDate);
     } else if (field === 'end' && endDate) {
       setDatePickerDate(endDate);
-    } else if (field === 'schedule') {
-      setDatePickerDate(newScheduleDate);
     } else {
       setDatePickerDate(new Date());
     }
@@ -141,20 +158,16 @@ const EditProjectScreen = () => {
         setShowStartDatePicker(true);
       } else if (field === 'end') {
         setShowEndDatePicker(true);
-      } else {
-        setShowScheduleDatePicker(true);
       }
     }
   };
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
+  const onDateChange = (_event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       if (currentDateField === 'start') {
         setShowStartDatePicker(false);
-      } else if (currentDateField === 'end') {
-        setShowEndDatePicker(false);
       } else {
-        setShowScheduleDatePicker(false);
+        setShowEndDatePicker(false);
       }
     }
 
@@ -165,8 +178,6 @@ const EditProjectScreen = () => {
         setStartDate(selectedDate);
       } else if (currentDateField === 'end') {
         setEndDate(selectedDate);
-      } else {
-        setNewScheduleDate(selectedDate);
       }
     }
   };
@@ -176,8 +187,6 @@ const EditProjectScreen = () => {
       setStartDate(datePickerDate);
     } else if (currentDateField === 'end') {
       setEndDate(datePickerDate);
-    } else {
-      setNewScheduleDate(datePickerDate);
     }
     setShowIOSDateModal(false);
   };
@@ -233,83 +242,208 @@ const EditProjectScreen = () => {
     loadMilestones();
   }, [selectedSchedule]);
 
+  // Refresh milestones and project progress when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const refreshData = async () => {
+        // Refresh milestones if a schedule is selected
+        if (selectedSchedule && selectedSchedule.id) {
+          try {
+            console.log('Refreshing milestones for schedule:', selectedSchedule.id);
+            const scheduleMilestones = await getMilestonesByScheduleId(selectedSchedule.id);
+            console.log('Fetched milestones:', scheduleMilestones.length);
+            setMilestones(scheduleMilestones);
+          } catch (error) {
+            console.error('Error refreshing milestones:', error);
+          }
+        }
+
+        // Refresh project progress
+        if (project.id) {
+          try {
+            console.log('Refreshing project progress data');
+            const updatedProject = await getProjectById(project.id);
+            if (updatedProject && updatedProject.progress !== undefined) {
+              console.log(`Updated project progress: ${updatedProject.progress}%`);
+              setProgress(updatedProject.progress.toString());
+            }
+          } catch (error) {
+            console.error('Error refreshing project progress:', error);
+          }
+        }
+      };
+
+      refreshData();
+
+      // Return a cleanup function
+      return () => {
+        // This will run when the component unmounts or before the effect runs again
+        console.log('Cleanup focus effect');
+      };
+    }, [selectedSchedule, project.id])
+  );
+
   // Handle selecting a schedule
   const handleSelectSchedule = (schedule: ProjectSchedule) => {
     setSelectedSchedule(schedule);
   };
 
-  // Handle adding a new schedule with milestones
-  const handleAddSchedule = async () => {
-    if (!project.id || newMilestones.length === 0) return;
 
-    try {
-      setLoading(true);
 
-      // Create milestones without schedule_id (will be set in the function)
-      const milestonesWithoutScheduleId = newMilestones.map(({ schedule_id, ...rest }) => rest);
+  // Start inline editing for a milestone
+  const handleStartEditMilestone = (milestone: Milestone) => {
+    setEditingMilestoneId(milestone.id || null);
+    setEditMilestoneName(milestone.milestone_name);
+    setEditCompletionPercentage(milestone.completion_percentage);
+    setEditStatus(milestone.status);
+    setEditSrNo(milestone.sr_no);
+    setEditErrors({});
+  };
 
-      // Add the schedule with milestones
-      const scheduleId = await addProjectScheduleWithMilestones(
-        project.id,
-        newScheduleDate.getTime(),
-        milestonesWithoutScheduleId
-      );
+  // Cancel inline editing
+  const handleCancelEdit = () => {
+    setEditingMilestoneId(null);
+    setEditErrors({});
+  };
 
-      // Refresh schedules
-      const updatedSchedules = await getProjectSchedulesByProjectId(project.id);
-      setSchedules(updatedSchedules);
+  // Validate the edit form
+  const validateEditForm = () => {
+    const newErrors: { [key: string]: string } = {};
 
-      // Find and select the newly created schedule
-      const newSchedule = updatedSchedules.find(s => s.id === scheduleId);
-      if (newSchedule) {
-        setSelectedSchedule(newSchedule);
-      }
-
-      // Reset new schedule form
-      setIncludeNewSchedule(false);
-      setNewMilestones([]);
-
-      Alert.alert('Success', 'Schedule and milestones added successfully');
-    } catch (error) {
-      console.error('Error adding schedule with milestones:', error);
-      Alert.alert('Error', 'Failed to add schedule and milestones');
-    } finally {
-      setLoading(false);
+    if (!editMilestoneName.trim()) {
+      newErrors.milestoneName = 'Milestone name is required';
     }
+
+    setEditErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  // Handle editing a milestone
-  const handleEditMilestone = (milestone: Milestone) => {
-    setEditingMilestone(milestone);
-    setShowMilestoneModal(true);
-  };
-
-  // Handle saving edited milestone
-  const handleSaveMilestone = async () => {
-    if (!editingMilestone || !editingMilestone.id) {
-      setShowMilestoneModal(false);
+  // Save the edited milestone
+  const handleSaveEditedMilestone = async (milestone: Milestone) => {
+    if (!validateEditForm()) {
       return;
     }
 
-    try {
-      setLoading(true);
+    // Create the updated milestone object
+    const updatedMilestone: Milestone = {
+      ...milestone,
+      sr_no: editSrNo,
+      milestone_name: editMilestoneName.trim(),
+      completion_percentage: editCompletionPercentage,
+      status: editStatus,
+    };
 
-      await updateMilestone(editingMilestone);
+    // Check if status is changing to "Completed"
+    const statusChangingToCompleted = milestone.status !== 'Completed' && editStatus === 'Completed';
 
-      // Refresh milestones
-      if (selectedSchedule && selectedSchedule.id) {
-        const updatedMilestones = await getMilestonesByScheduleId(selectedSchedule.id);
-        setMilestones(updatedMilestones);
+    if (statusChangingToCompleted) {
+      // Show confirmation dialog
+      Alert.alert(
+        'Update Project Progress',
+        'Marking this milestone as completed will update the overall project progress. Continue?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              console.log('Milestone status update cancelled');
+            }
+          },
+          {
+            text: 'Continue',
+            onPress: async () => {
+              try {
+                setEditLoading(true);
+                console.log('Status is changing to Completed - updating project progress');
+
+                console.log('Updating milestone:', updatedMilestone);
+                await updateMilestone(updatedMilestone);
+                console.log('Milestone updated successfully');
+
+                // Add a small delay to ensure the database update completes
+                setTimeout(async () => {
+                  // Refresh the milestones list
+                  if (selectedSchedule && selectedSchedule.id) {
+                    const updatedMilestones = await getMilestonesByScheduleId(selectedSchedule.id);
+                    setMilestones(updatedMilestones);
+                  }
+
+                  // Refresh project data to get updated progress
+                  if (project.id) {
+                    try {
+                      // Get fresh project data with updated progress
+                      const updatedProject = await getProjectById(project.id);
+                      if (updatedProject) {
+                        console.log(`Project progress updated: ${updatedProject.progress}%`);
+                        // Update the progress field in the UI
+                        setProgress(updatedProject.progress?.toString() || '0');
+                      }
+                    } catch (error) {
+                      console.error('Error refreshing project data:', error);
+                    }
+                  }
+
+                  // Reset editing state
+                  setEditingMilestoneId(null);
+                  setEditLoading(false);
+                }, 300);
+              } catch (error) {
+                console.error('Error updating milestone:', error);
+                Alert.alert('Error', 'Failed to update milestone');
+                setEditLoading(false);
+              }
+            }
+          }
+        ]
+      );
+    } else {
+      // For non-completion status changes, proceed without confirmation
+      try {
+        setEditLoading(true);
+
+        console.log('Updating milestone:', updatedMilestone);
+        await updateMilestone(updatedMilestone);
+        console.log('Milestone updated successfully');
+
+        // Add a small delay to ensure the database update completes
+        setTimeout(async () => {
+          // Refresh the milestones list
+          if (selectedSchedule && selectedSchedule.id) {
+            const updatedMilestones = await getMilestonesByScheduleId(selectedSchedule.id);
+            setMilestones(updatedMilestones);
+          }
+
+          // Refresh project data to get updated progress
+          if (project.id) {
+            try {
+              const updatedProject = await getProjectById(project.id);
+              if (updatedProject) {
+                console.log(`Project data after non-completion status change: ${updatedProject.progress}%`);
+                // Update the progress field in the UI
+                setProgress(updatedProject.progress?.toString() || '0');
+              }
+            } catch (error) {
+              console.error('Error refreshing project data:', error);
+            }
+          }
+
+          // Reset editing state
+          setEditingMilestoneId(null);
+          setEditLoading(false);
+        }, 300);
+      } catch (error) {
+        console.error('Error updating milestone:', error);
+        Alert.alert('Error', 'Failed to update milestone');
+        setEditLoading(false);
       }
-
-      setShowMilestoneModal(false);
-      setEditingMilestone(null);
-    } catch (error) {
-      console.error('Error updating milestone:', error);
-      Alert.alert('Error', 'Failed to update milestone');
-    } finally {
-      setLoading(false);
     }
+  };
+
+  // Navigate to EditMilestoneScreen (keeping this as an alternative for future use)
+  // This function is currently unused but kept for potential future implementation
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleNavigateToEditMilestone = (milestone: Milestone) => {
+    navigation.navigate('EditMilestone', { milestone });
   };
 
   // Handle deleting a milestone
@@ -317,11 +451,28 @@ const EditProjectScreen = () => {
     try {
       await deleteMilestone(milestoneId);
 
-      // Refresh milestones
-      if (selectedSchedule && selectedSchedule.id) {
-        const updatedMilestones = await getMilestonesByScheduleId(selectedSchedule.id);
-        setMilestones(updatedMilestones);
-      }
+      // Add a small delay to ensure the database update completes
+      setTimeout(async () => {
+        // Refresh milestones
+        if (selectedSchedule && selectedSchedule.id) {
+          const updatedMilestones = await getMilestonesByScheduleId(selectedSchedule.id);
+          setMilestones(updatedMilestones);
+        }
+
+        // Refresh project data to get updated progress
+        if (project.id) {
+          try {
+            const updatedProject = await getProjectById(project.id);
+            if (updatedProject) {
+              console.log(`Project progress after milestone deletion: ${updatedProject.progress}%`);
+              // Update the progress field in the UI
+              setProgress(updatedProject.progress?.toString() || '0');
+            }
+          } catch (error) {
+            console.error('Error refreshing project data after milestone deletion:', error);
+          }
+        }
+      }, 300);
     } catch (error) {
       console.error('Error deleting milestone:', error);
       Alert.alert('Error', 'Failed to delete milestone');
@@ -505,7 +656,21 @@ const EditProjectScreen = () => {
 
                 {selectedSchedule && (
                   <View style={styles.milestonesContainer}>
-                    <Text style={styles.sectionTitle}>Milestones:</Text>
+                    <View style={styles.milestoneTitleRow}>
+                      <Text style={styles.sectionTitle}>Milestones:</Text>
+                      <Button
+                        mode="contained"
+                        icon="plus"
+                        onPress={() => {
+                          if (selectedSchedule.id) {
+                            navigation.navigate('AddMilestone', { scheduleId: selectedSchedule.id });
+                          }
+                        }}
+                        style={styles.addMilestoneButton}
+                      >
+                        Add Milestone
+                      </Button>
+                    </View>
 
                     {milestones.length === 0 ? (
                       <Text style={styles.emptyText}>No milestones found for this schedule.</Text>
@@ -522,38 +687,143 @@ const EditProjectScreen = () => {
 
                           {milestones.map((milestone) => (
                             <DataTable.Row key={milestone.id} style={styles.tableRow}>
-                              <DataTable.Cell style={styles.srNoColumn}>{milestone.sr_no}</DataTable.Cell>
-                              <DataTable.Cell style={styles.milestoneColumn}>{milestone.milestone_name}</DataTable.Cell>
-                              <DataTable.Cell style={styles.completionColumn}>{milestone.completion_percentage}%</DataTable.Cell>
-                              <DataTable.Cell style={styles.statusColumn}>
-                                <Chip
-                                  style={[
-                                    styles.statusChip,
-                                    { backgroundColor: MILESTONE_STATUS_COLORS[milestone.status] + '20' }
-                                  ]}
-                                  textStyle={{ color: MILESTONE_STATUS_COLORS[milestone.status], textAlign: 'center' }}
-                                >
-                                  {milestone.status}
-                                </Chip>
-                              </DataTable.Cell>
-                              <DataTable.Cell style={styles.actionsColumn}>
-                                <View style={styles.actionButtons}>
-                                  <IconButton
-                                    icon="pencil"
-                                    size={18}
-                                    onPress={() => handleEditMilestone(milestone)}
-                                    iconColor={theme.colors.primary}
-                                    style={styles.actionButton}
-                                  />
-                                  <IconButton
-                                    icon="delete"
-                                    size={18}
-                                    onPress={() => milestone.id && handleDeleteMilestone(milestone.id)}
-                                    iconColor={theme.colors.error}
-                                    style={styles.actionButton}
-                                  />
-                                </View>
-                              </DataTable.Cell>
+                              {editingMilestoneId === milestone.id ? (
+                                // Editing mode
+                                <>
+                                  <DataTable.Cell style={styles.srNoColumn}>
+                                    <TextInput
+                                      value={editSrNo.toString()}
+                                      onChangeText={(text) => {
+                                        const num = parseInt(text);
+                                        if (!isNaN(num) && num > 0) {
+                                          setEditSrNo(num);
+                                        }
+                                      }}
+                                      mode="outlined"
+                                      style={styles.editInput}
+                                      keyboardType="numeric"
+                                      dense
+                                    />
+                                  </DataTable.Cell>
+                                  <DataTable.Cell style={styles.milestoneColumn}>
+                                    <TextInput
+                                      value={editMilestoneName}
+                                      onChangeText={setEditMilestoneName}
+                                      mode="outlined"
+                                      style={styles.editInput}
+                                      error={!!editErrors.milestoneName}
+                                      dense
+                                    />
+                                    {editErrors.milestoneName && (
+                                      <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                                        {editErrors.milestoneName}
+                                      </Text>
+                                    )}
+                                  </DataTable.Cell>
+                                  <DataTable.Cell style={styles.completionColumn}>
+                                    <TextInput
+                                      value={editCompletionPercentage.toString()}
+                                      onChangeText={(text) => {
+                                        // Allow only numbers and up to 2 decimal places
+                                        const regex = /^\d+(\.\d{0,2})?$/;
+                                        if (text === '' || regex.test(text)) {
+                                          const value = text === '' ? 0 : parseFloat(text);
+                                          // Ensure value is between 0 and 100
+                                          if (value >= 0 && value <= 100) {
+                                            setEditCompletionPercentage(value);
+                                          }
+                                        }
+                                      }}
+                                      mode="outlined"
+                                      style={styles.editInput}
+                                      keyboardType="numeric"
+                                      dense
+                                      right={<TextInput.Affix text="%" />}
+                                    />
+                                  </DataTable.Cell>
+                                  <DataTable.Cell style={styles.statusColumn}>
+                                    <View style={styles.statusDropdownContainer}>
+                                      <Button
+                                        mode="outlined"
+                                        onPress={() => {
+                                          // Toggle through status options
+                                          const currentIndex = MILESTONE_STATUS_OPTIONS.findIndex(option => option.value === editStatus);
+                                          const nextIndex = (currentIndex + 1) % MILESTONE_STATUS_OPTIONS.length;
+                                          setEditStatus(MILESTONE_STATUS_OPTIONS[nextIndex].value as MilestoneStatus);
+                                        }}
+                                        style={[
+                                          styles.statusButton,
+                                          { backgroundColor: MILESTONE_STATUS_COLORS[editStatus] + '20' }
+                                        ]}
+                                        labelStyle={{
+                                          color: MILESTONE_STATUS_COLORS[editStatus],
+                                          fontSize: 12
+                                        }}
+                                        compact
+                                      >
+                                        {editStatus}
+                                      </Button>
+                                    </View>
+                                  </DataTable.Cell>
+                                  <DataTable.Cell style={styles.actionsColumn}>
+                                    <View style={styles.actionButtons}>
+                                      <IconButton
+                                        icon="check"
+                                        size={18}
+                                        onPress={() => handleSaveEditedMilestone(milestone)}
+                                        iconColor={theme.colors.primary}
+                                        style={styles.actionButton}
+                                        disabled={editLoading}
+                                        loading={editLoading}
+                                      />
+                                      <IconButton
+                                        icon="close"
+                                        size={18}
+                                        onPress={handleCancelEdit}
+                                        iconColor={theme.colors.error}
+                                        style={styles.actionButton}
+                                        disabled={editLoading}
+                                      />
+                                    </View>
+                                  </DataTable.Cell>
+                                </>
+                              ) : (
+                                // View mode
+                                <>
+                                  <DataTable.Cell style={styles.srNoColumn}>{milestone.sr_no}</DataTable.Cell>
+                                  <DataTable.Cell style={styles.milestoneColumn}>{milestone.milestone_name}</DataTable.Cell>
+                                  <DataTable.Cell style={styles.completionColumn}>{milestone.completion_percentage}%</DataTable.Cell>
+                                  <DataTable.Cell style={styles.statusColumn}>
+                                    <Chip
+                                      style={[
+                                        styles.statusChip,
+                                        { backgroundColor: MILESTONE_STATUS_COLORS[milestone.status] + '20' }
+                                      ]}
+                                      textStyle={{ color: MILESTONE_STATUS_COLORS[milestone.status], textAlign: 'center' }}
+                                    >
+                                      {milestone.status}
+                                    </Chip>
+                                  </DataTable.Cell>
+                                  <DataTable.Cell style={styles.actionsColumn}>
+                                    <View style={styles.actionButtons}>
+                                      <IconButton
+                                        icon="pencil"
+                                        size={18}
+                                        onPress={() => handleStartEditMilestone(milestone)}
+                                        iconColor={theme.colors.primary}
+                                        style={styles.actionButton}
+                                      />
+                                      <IconButton
+                                        icon="delete"
+                                        size={18}
+                                        onPress={() => milestone.id && handleDeleteMilestone(milestone.id)}
+                                        iconColor={theme.colors.error}
+                                        style={styles.actionButton}
+                                      />
+                                    </View>
+                                  </DataTable.Cell>
+                                </>
+                              )}
                             </DataTable.Row>
                           ))}
                         </DataTable>
@@ -564,144 +834,11 @@ const EditProjectScreen = () => {
               </>
             )}
 
-            <Divider style={styles.divider} />
 
-            <View style={styles.addScheduleHeader}>
-              <Text variant="titleMedium" style={styles.cardTitle}>Add New Schedule</Text>
-              <Button
-                mode={includeNewSchedule ? "contained" : "outlined"}
-                onPress={() => setIncludeNewSchedule(!includeNewSchedule)}
-                style={styles.toggleButton}
-              >
-                {includeNewSchedule ? "Enabled" : "Disabled"}
-              </Button>
-            </View>
-
-            {includeNewSchedule && (
-              <>
-                <Text style={styles.sectionTitle}>Schedule Date</Text>
-                <Button
-                  mode="outlined"
-                  onPress={() => showDatePicker('schedule')}
-                  style={styles.dateButton}
-                  icon="calendar"
-                >
-                  {formatDate(newScheduleDate)}
-                </Button>
-
-                {showScheduleDatePicker && Platform.OS === 'android' && (
-                  <DateTimePicker
-                    value={datePickerDate}
-                    mode="date"
-                    display="default"
-                    onChange={onDateChange}
-                  />
-                )}
-
-                <MilestoneForm
-                  milestones={newMilestones}
-                  setMilestones={setNewMilestones}
-                />
-
-                <Button
-                  mode="contained"
-                  onPress={handleAddSchedule}
-                  style={styles.addScheduleButton}
-                  disabled={newMilestones.length === 0 || loading}
-                  loading={loading}
-                >
-                  Add Schedule with Milestones
-                </Button>
-              </>
-            )}
           </Card.Content>
         </Card>
 
-        {/* Edit Milestone Modal */}
-        <Portal>
-          <Modal
-            visible={showMilestoneModal}
-            onDismiss={() => setShowMilestoneModal(false)}
-            contentContainerStyle={[
-              styles.modalContainer,
-              { backgroundColor: theme.colors.surface }
-            ]}
-          >
-            <Text style={styles.modalTitle}>Edit Milestone</Text>
 
-            {editingMilestone && (
-              <>
-                <TextInput
-                  label="Milestone Name"
-                  value={editingMilestone.milestone_name}
-                  onChangeText={(text) => setEditingMilestone({
-                    ...editingMilestone,
-                    milestone_name: text
-                  })}
-                  mode="outlined"
-                  style={styles.modalInput}
-                />
-
-                <TextInput
-                  label="Completion Percentage (%)"
-                  value={editingMilestone.completion_percentage.toString()}
-                  onChangeText={(text) => {
-                    // Allow only numbers and up to 2 decimal places
-                    const regex = /^\d+(\.\d{0,2})?$/;
-                    if (text === '' || regex.test(text)) {
-                      const value = text === '' ? 0 : parseFloat(text);
-                      // Ensure value is between 0 and 100
-                      if (value >= 0 && value <= 100) {
-                        setEditingMilestone({
-                          ...editingMilestone,
-                          completion_percentage: value
-                        });
-                      }
-                    }
-                  }}
-                  mode="outlined"
-                  style={styles.modalInput}
-                  keyboardType="numeric"
-                  placeholder="Enter percentage (0-100)"
-                  right={<TextInput.Affix text="%" />}
-                />
-
-                <Text style={styles.modalLabel}>Status</Text>
-                <SegmentedButtons
-                  value={editingMilestone.status}
-                  onValueChange={(value) => setEditingMilestone({
-                    ...editingMilestone,
-                    status: value as MilestoneStatus
-                  })}
-                  buttons={[
-                    { value: 'Not Started', label: 'Not Started' },
-                    { value: 'In Progress', label: 'In Progress' },
-                    { value: 'Completed', label: 'Completed' }
-                  ]}
-                  style={styles.segmentedButtons}
-                />
-              </>
-            )}
-
-            <View style={styles.modalButtons}>
-              <Button
-                onPress={() => setShowMilestoneModal(false)}
-                style={styles.modalButton}
-              >
-                Cancel
-              </Button>
-              <Button
-                onPress={handleSaveMilestone}
-                mode="contained"
-                style={styles.modalButton}
-                loading={loading}
-                disabled={loading}
-              >
-                Save
-              </Button>
-            </View>
-          </Modal>
-        </Portal>
 
         <Button
           mode="contained"
@@ -782,11 +919,24 @@ const styles = StyleSheet.create({
   milestonesContainer: {
     marginBottom: spacing.md,
   },
+  milestoneTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  addMilestoneButton: {
+    marginLeft: spacing.sm,
+  },
   tableContainer: {
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: borderRadius.sm,
   },
   table: {
     minWidth: '100%',
+    width: 620, // Increased width to accommodate all columns
   },
   tableHeader: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
@@ -796,21 +946,24 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
   srNoColumn: {
-    flex: 0.5,
+    width: 60,
+    justifyContent: 'center',
   },
   milestoneColumn: {
-    flex: 2,
+    width: 180,
+    justifyContent: 'center',
   },
   completionColumn: {
-    flex: 1,
+    width: 100,
     justifyContent: 'center',
   },
   statusColumn: {
-    flex: 1.5,
+    width: 140,
     justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   actionsColumn: {
-    flex: 1,
+    width: 120,
     justifyContent: 'center',
   },
   statusChip: {
@@ -825,17 +978,23 @@ const styles = StyleSheet.create({
   actionButton: {
     margin: 0,
   },
-  addScheduleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+
+  editInput: {
+    fontSize: 14,
+    height: 40,
+    width: '100%',
+    backgroundColor: 'transparent',
+  },
+  statusDropdownContainer: {
+    width: '100%',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    justifyContent: 'center',
   },
-  toggleButton: {
-    borderRadius: 20,
-  },
-  addScheduleButton: {
-    marginTop: spacing.md,
+  statusButton: {
+    height: 36,
+    width: '100%',
+    borderRadius: 4,
+    justifyContent: 'center',
   },
   modalContainer: {
     margin: spacing.lg,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Card, Text, Avatar, useTheme, IconButton, ProgressBar, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,6 +23,11 @@ const ProjectCard = ({ project, onPress, onEdit, onDelete, index = 0 }: ProjectC
   // Animations
   const fadeScaleStyle = useStaggeredAnimation(index, true);
   const pressStyle = usePressAnimation(pressed);
+
+  // Log when project data changes, especially progress
+  useEffect(() => {
+    console.log(`ProjectCard: ${project.name}, Progress: ${project.progress}%, Updated: ${new Date(project.updated_at || 0).toISOString()}`);
+  }, [project.id, project.progress, project.updated_at]);
 
   const formatCurrency = (amount?: number) => {
     if (amount === undefined || amount === null) return 'N/A';
@@ -120,6 +125,10 @@ const ProjectCard = ({ project, onPress, onEdit, onDelete, index = 0 }: ProjectC
                     color={theme.colors.primary}
                     style={styles.progressBar}
                   />
+                  {/* Hidden text to force re-render when progress changes */}
+                  <Text style={{ height: 0, width: 0, opacity: 0 }}>
+                    {`${project.id}-${project.progress}-${project.updated_at || Date.now()}`}
+                  </Text>
                 </View>
 
                 <View style={styles.infoRow}>

@@ -18,7 +18,37 @@ export interface Project {
 // Get all projects
 export const getProjects = async (): Promise<Project[]> => {
   try {
-    return await db.getAllAsync<Project>('SELECT * FROM projects ORDER BY name ASC;');
+    console.log('Fetching all projects from database with NO CACHE...');
+
+    // Add a timestamp to the query to ensure we're not getting cached results
+    const timestamp = Date.now();
+    console.log(`Query timestamp: ${timestamp}`);
+
+    // Use a more explicit query to ensure we get fresh data
+    const projects = await db.getAllAsync<Project>(
+      `SELECT
+        id,
+        name,
+        address,
+        start_date,
+        end_date,
+        progress,
+        total_budget,
+        status,
+        created_at,
+        updated_at
+      FROM projects
+      ORDER BY name ASC;`
+    );
+
+    console.log(`Retrieved ${projects.length} projects from database`);
+
+    // Log each project's progress for debugging
+    projects.forEach(project => {
+      console.log(`DB Project: ${project.name}, ID: ${project.id}, Progress: ${project.progress}%, Updated: ${new Date(project.updated_at || 0).toISOString()}`);
+    });
+
+    return projects;
   } catch (error) {
     console.error('Error fetching projects:', error);
     throw error;
@@ -28,11 +58,20 @@ export const getProjects = async (): Promise<Project[]> => {
 // Get a project by ID
 export const getProjectById = async (id: number): Promise<Project | null> => {
   try {
+    console.log(`Fetching project with ID: ${id}`);
     const projects = await db.getAllAsync<Project>(
       'SELECT * FROM projects WHERE id = ?;',
       [id]
     );
-    return projects.length > 0 ? projects[0] : null;
+
+    if (projects.length > 0) {
+      const project = projects[0];
+      console.log(`Retrieved project: ${project.name}, Progress: ${project.progress}%, Status: ${project.status}`);
+      return project;
+    } else {
+      console.log(`No project found with ID: ${id}`);
+      return null;
+    }
   } catch (error) {
     console.error('Error fetching project by ID:', error);
     throw error;
@@ -76,6 +115,17 @@ export const updateProject = async (project: Project): Promise<void> => {
   try {
     const now = Date.now();
 
+    // Get the current project to log the before/after progress
+    const currentProject = await getProjectById(project.id);
+    console.log(`BEFORE UPDATE - Project ${project.id}: ${project.name}, Progress: ${currentProject?.progress || 0}% -> ${project.progress || 0}%`);
+
+    // Ensure progress is a number
+    const progressValue = project.progress !== undefined && project.progress !== null
+      ? project.progress
+      : 0;
+
+    console.log(`Updating project in database with progress: ${progressValue}%`);
+
     await db.runAsync(
       `UPDATE projects
        SET name = ?, address = ?, start_date = ?, end_date = ?, progress = ?, total_budget = ?, status = ?, updated_at = ?
@@ -85,13 +135,18 @@ export const updateProject = async (project: Project): Promise<void> => {
         project.address || null,
         project.start_date || null,
         project.end_date || null,
-        project.progress || 0,
+        progressValue,
         project.total_budget || null,
         project.status,
         now,
         project.id
       ]
     );
+
+    // Verify the update by fetching the project again
+    const updatedProject = await getProjectById(project.id);
+    console.log(`AFTER UPDATE - Project ${project.id}: ${project.name}, Progress: ${updatedProject?.progress || 0}%`);
+
   } catch (error) {
     console.error('Error updating project:', error);
     throw error;

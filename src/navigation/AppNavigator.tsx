@@ -28,6 +28,7 @@ import AddProjectScheduleScreen from '../screens/AddProjectScheduleScreen';
 import EditProjectScheduleScreen from '../screens/EditProjectScheduleScreen';
 import AddMilestoneScreen from '../screens/AddMilestoneScreen';
 import EditMilestoneScreen from '../screens/EditMilestoneScreen';
+import TestMilestoneEditScreen from '../screens/TestMilestoneEditScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -167,6 +168,11 @@ const AppNavigator = () => {
           name="EditMilestone"
           component={EditMilestoneScreen}
           options={{ title: 'Edit Milestone' }}
+        />
+        <Stack.Screen
+          name="TestMilestoneEdit"
+          component={TestMilestoneEditScreen}
+          options={{ title: 'Test Milestone Edit' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
