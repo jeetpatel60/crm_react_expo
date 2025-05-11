@@ -125,7 +125,7 @@ const SettingsScreen = () => {
           />
           <List.Item
             title="Reset All Data"
-            description="Delete all contacts and tasks"
+            description="Delete all application data"
             left={(props) => (
               <List.Icon {...props} icon="delete" color={theme.colors.error} />
             )}
@@ -175,7 +175,7 @@ const SettingsScreen = () => {
           <Dialog.Title>Reset All Data</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Are you sure you want to reset all data? This action cannot be undone and will delete all your contacts and tasks.
+              Are you sure you want to reset all data? This action cannot be undone and will delete all your application data.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>

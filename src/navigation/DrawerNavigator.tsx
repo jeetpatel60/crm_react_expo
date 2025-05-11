@@ -14,8 +14,6 @@ import ClientsScreen from '../screens/ClientsScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import UnitsFlatScreen from '../screens/UnitsFlatScreen';
 import ProjectSchedulesScreen from '../screens/ProjectSchedulesScreen';
-import ContactsScreen from '../screens/ContactsScreen';
-import TasksScreen from '../screens/TasksScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CustomDrawerContent from './CustomDrawerContent';
 
@@ -142,26 +140,7 @@ const DrawerNavigator = () => {
           ),
         }}
       />
-      <Drawer.Screen
-        name="Contacts"
-        component={ContactsScreen}
-        options={{
-          title: 'Contacts',
-          drawerIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-group" color={color} size={size} />
-          ),
-        }}
-      />
-      <Drawer.Screen
-        name="Tasks"
-        component={TasksScreen}
-        options={{
-          title: 'Tasks',
-          drawerIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="checkbox-marked-outline" color={color} size={size} />
-          ),
-        }}
-      />
+
       <Drawer.Screen
         name="Settings"
         component={SettingsScreen}
