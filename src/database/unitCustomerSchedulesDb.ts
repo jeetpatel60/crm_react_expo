@@ -1,5 +1,5 @@
 import { db } from './database';
-import { getUnitFlatById } from './unitsFlatDb';
+import { calculateScheduleAmount } from './unitScheduleHelpers';
 import { getMilestonesByProjectId, Milestone } from './projectSchedulesDb';
 
 export type UnitCustomerScheduleStatus = 'Not Started' | 'Payment Requested' | 'Payment Received';
@@ -45,16 +45,11 @@ export const getUnitCustomerScheduleById = async (id: number): Promise<UnitCusto
 // Calculate amount based on completion percentage and unit balance
 const calculateAmount = async (schedule: UnitCustomerSchedule): Promise<UnitCustomerSchedule> => {
   try {
-    const unit = await getUnitFlatById(schedule.unit_id);
-    if (!unit || !unit.balance_amount) {
-      return schedule;
-    }
-
-    const amount = parseFloat(((schedule.completion_percentage / 100) * unit.balance_amount).toFixed(2));
+    const amount = await calculateScheduleAmount(schedule);
 
     return {
       ...schedule,
-      amount
+      amount: amount || undefined
     };
   } catch (error) {
     console.error('Error calculating schedule amount:', error);
@@ -153,48 +148,5 @@ export const recalculateUnitScheduleAmounts = async (unitId: number): Promise<vo
   }
 };
 
-// Auto-populate customer schedules from project milestones
-export const autoPopulateCustomerSchedulesFromProjectMilestones = async (
-  unitId: number,
-  projectId: number
-): Promise<void> => {
-  try {
-    console.log(`Auto-populating customer schedules for unit ID ${unitId} from project ID ${projectId}`);
-
-    // Get project milestones
-    const milestones = await getMilestonesByProjectId(projectId);
-    if (milestones.length === 0) {
-      console.log('No milestones found for the project');
-      return;
-    }
-
-    console.log(`Found ${milestones.length} milestones for the project`);
-
-    // Get existing customer schedules for the unit
-    const existingSchedules = await getUnitCustomerSchedules(unitId);
-
-    // If there are already schedules, don't overwrite them
-    if (existingSchedules.length > 0) {
-      console.log(`Unit already has ${existingSchedules.length} schedules, skipping auto-population`);
-      return;
-    }
-
-    // Create customer schedules from milestones
-    for (const milestone of milestones) {
-      const customerSchedule: UnitCustomerSchedule = {
-        unit_id: unitId,
-        sr_no: milestone.sr_no,
-        milestone: milestone.milestone_name,
-        completion_percentage: milestone.completion_percentage,
-        status: 'Not Started'
-      };
-
-      await addUnitCustomerSchedule(customerSchedule);
-    }
-
-    console.log(`Successfully auto-populated ${milestones.length} customer schedules`);
-  } catch (error) {
-    console.error(`Error auto-populating customer schedules for unit ID ${unitId}:`, error);
-    throw error;
-  }
-};
+// Re-export the auto-populate function from the helper module
+export { autoPopulateCustomerSchedulesFromProjectMilestones } from './unitScheduleHelpers';

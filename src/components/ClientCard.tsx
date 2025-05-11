@@ -6,6 +6,7 @@ import Animated from 'react-native-reanimated';
 import { Client } from '../types';
 import { shadows, spacing, borderRadius, animations } from '../constants/theme';
 import { useFadeScaleAnimation, usePressAnimation, useStaggeredAnimation } from '../utils/animationUtils';
+import AnimatedAvatarText from './AnimatedAvatarText';
 
 interface ClientCardProps {
   client: Client;
@@ -16,7 +17,6 @@ interface ClientCardProps {
 }
 
 const AnimatedCard = Animated.createAnimatedComponent(Card);
-const AnimatedAvatar = Animated.createAnimatedComponent(Avatar.Text);
 
 const ClientCard = ({ client, onPress, onEdit, onDelete, index = 0 }: ClientCardProps) => {
   const theme = useTheme();
@@ -52,7 +52,7 @@ const ClientCard = ({ client, onPress, onEdit, onDelete, index = 0 }: ClientCard
       >
         <Card.Content style={styles.content}>
           <View style={styles.leftContent}>
-            <AnimatedAvatar
+            <AnimatedAvatarText
               size={50}
               label={getInitials(client.name)}
               style={[

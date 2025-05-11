@@ -1,5 +1,5 @@
 import { db } from './database';
-import { autoPopulateCustomerSchedulesFromProjectMilestones } from './unitCustomerSchedulesDb';
+import { autoPopulateCustomerSchedulesFromProjectMilestones } from './unitScheduleHelpers';
 
 export type UnitStatus = 'Available' | 'Booked' | 'Sold';
 

@@ -10,10 +10,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { APP_NAME } from '../constants';
 import { spacing, shadows, borderRadius, animations } from '../constants/theme';
+import AnimatedAvatarText from '../components/AnimatedAvatarText';
 
 // Create animated components
 const AnimatedView = Animated.createAnimatedComponent(View);
-const AnimatedAvatar = Animated.createAnimatedComponent(Avatar.Text);
 
 const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   const theme = useTheme();
@@ -36,7 +36,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
         entering={FadeIn.duration(animations.duration.standard)}
       >
         <View style={styles.userInfo}>
-          <AnimatedAvatar
+          <AnimatedAvatarText
             size={60} // Reduced from 70 to 60
             label="CRM"
             style={[
