@@ -35,6 +35,12 @@ import EditUnitPaymentReceiptScreen from '../screens/EditUnitPaymentReceiptScree
 import QuotationDetailsScreen from '../screens/QuotationDetailsScreen';
 import AddQuotationScreen from '../screens/AddQuotationScreen';
 import EditQuotationScreen from '../screens/EditQuotationScreen';
+import AgreementTemplateDetailsScreen from '../screens/AgreementTemplateDetailsScreen';
+import AddAgreementTemplateScreen from '../screens/AddAgreementTemplateScreen';
+import EditAgreementTemplateScreen from '../screens/EditAgreementTemplateScreen';
+import PaymentRequestTemplateDetailsScreen from '../screens/PaymentRequestTemplateDetailsScreen';
+import AddPaymentRequestTemplateScreen from '../screens/AddPaymentRequestTemplateScreen';
+import EditPaymentRequestTemplateScreen from '../screens/EditPaymentRequestTemplateScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -210,6 +216,36 @@ const AppNavigator = () => {
           name="EditQuotation"
           component={EditQuotationScreen}
           options={{ title: 'Edit Quotation' }}
+        />
+        <Stack.Screen
+          name="AgreementTemplateDetails"
+          component={AgreementTemplateDetailsScreen}
+          options={{ title: 'Agreement Template' }}
+        />
+        <Stack.Screen
+          name="AddAgreementTemplate"
+          component={AddAgreementTemplateScreen}
+          options={{ title: 'Add Agreement Template' }}
+        />
+        <Stack.Screen
+          name="EditAgreementTemplate"
+          component={EditAgreementTemplateScreen}
+          options={{ title: 'Edit Agreement Template' }}
+        />
+        <Stack.Screen
+          name="PaymentRequestTemplateDetails"
+          component={PaymentRequestTemplateDetailsScreen}
+          options={{ title: 'Payment Request Template' }}
+        />
+        <Stack.Screen
+          name="AddPaymentRequestTemplate"
+          component={AddPaymentRequestTemplateScreen}
+          options={{ title: 'Add Payment Request Template' }}
+        />
+        <Stack.Screen
+          name="EditPaymentRequestTemplate"
+          component={EditPaymentRequestTemplateScreen}
+          options={{ title: 'Edit Payment Request Template' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

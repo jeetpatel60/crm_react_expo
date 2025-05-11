@@ -9,6 +9,8 @@ import { UnitPaymentRequest } from '../database/unitPaymentRequestsDb';
 import { UnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
 import { Quotation } from '../database/quotationsDb';
 import { QuotationAnnexureItem } from '../database/quotationAnnexuresDb';
+import { AgreementTemplate } from '../database/agreementTemplatesDb';
+import { PaymentRequestTemplate } from '../database/paymentRequestTemplatesDb';
 
 export type {
   Company,
@@ -22,7 +24,9 @@ export type {
   UnitPaymentRequest,
   UnitPaymentReceipt,
   Quotation,
-  QuotationAnnexureItem
+  QuotationAnnexureItem,
+  AgreementTemplate,
+  PaymentRequestTemplate
 };
 
 export type RootStackParamList = {
@@ -57,6 +61,14 @@ export type RootStackParamList = {
   QuotationDetails: { quotationId: number };
   AddQuotation: undefined;
   EditQuotation: { quotation: Quotation };
+  AgreementTemplates: undefined;
+  AgreementTemplateDetails: { templateId: number };
+  AddAgreementTemplate: undefined;
+  EditAgreementTemplate: { template: AgreementTemplate };
+  PaymentRequestTemplates: undefined;
+  PaymentRequestTemplateDetails: { templateId: number };
+  AddPaymentRequestTemplate: undefined;
+  EditPaymentRequestTemplate: { template: PaymentRequestTemplate };
 };
 
 export type DrawerParamList = {
@@ -68,5 +80,6 @@ export type DrawerParamList = {
   Projects: undefined;
   UnitsFlats: undefined;
   ProjectSchedules: undefined;
+  Templates: undefined; // Added Templates option
   Settings: undefined;
 };

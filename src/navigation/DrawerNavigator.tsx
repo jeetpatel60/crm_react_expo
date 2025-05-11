@@ -14,6 +14,7 @@ import ClientsScreen from '../screens/ClientsScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import UnitsFlatScreen from '../screens/UnitsFlatScreen';
 import ProjectSchedulesScreen from '../screens/ProjectSchedulesScreen';
+import TemplatesScreen from '../screens/TemplatesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CustomDrawerContent from './CustomDrawerContent';
 
@@ -137,6 +138,17 @@ const DrawerNavigator = () => {
           title: 'Project Schedules',
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="calendar-clock" color={color} size={size} />
+          ),
+        }}
+      />
+
+      <Drawer.Screen
+        name="Templates"
+        component={TemplatesScreen}
+        options={{
+          title: 'Templates',
+          drawerIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="file-document-multiple-outline" color={color} size={size} />
           ),
         }}
       />

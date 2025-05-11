@@ -32,3 +32,12 @@ export { default as AddProjectScheduleScreen } from './AddProjectScheduleScreen'
 export { default as EditProjectScheduleScreen } from './EditProjectScheduleScreen';
 export { default as AddMilestoneScreen } from './AddMilestoneScreen';
 export { default as EditMilestoneScreen } from './EditMilestoneScreen';
+export { default as TemplatesScreen } from './TemplatesScreen';
+export { default as AgreementTemplatesScreen } from './AgreementTemplatesScreen';
+export { default as PaymentRequestTemplatesScreen } from './PaymentRequestTemplatesScreen';
+export { default as AgreementTemplateDetailsScreen } from './AgreementTemplateDetailsScreen';
+export { default as PaymentRequestTemplateDetailsScreen } from './PaymentRequestTemplateDetailsScreen';
+export { default as AddAgreementTemplateScreen } from './AddAgreementTemplateScreen';
+export { default as EditAgreementTemplateScreen } from './EditAgreementTemplateScreen';
+export { default as AddPaymentRequestTemplateScreen } from './AddPaymentRequestTemplateScreen';
+export { default as EditPaymentRequestTemplateScreen } from './EditPaymentRequestTemplateScreen';

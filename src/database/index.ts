@@ -14,4 +14,6 @@ export * from './unitScheduleHelpers';
 export * from './quotationsDb';
 export * from './quotationAnnexuresDb';
 export * from './quotationHelpers';
+export * from './agreementTemplatesDb';
+export * from './paymentRequestTemplatesDb';
 export * from './migrations';
