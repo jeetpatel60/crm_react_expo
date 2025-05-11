@@ -25,16 +25,19 @@ const AddUnitCustomerScheduleScreen = () => {
   const [completionPercentage, setCompletionPercentage] = useState('');
   const [status, setStatus] = useState<UnitCustomerScheduleStatus>('Not Started');
   const [nextSrNo, setNextSrNo] = useState(1);
-  
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [unitBalance, setUnitBalance] = useState<number>(0);
+  const [schedulesCount, setSchedulesCount] = useState<number>(0);
 
-  // Calculated amount
-  const amount = completionPercentage && unitBalance
-    ? ((parseFloat(completionPercentage) / 100) * unitBalance).toFixed(2)
+  // Calculated amount - now based on balance amount divided by number of schedules
+  const amount = unitBalance
+    ? (schedulesCount > 0
+        ? (unitBalance / (schedulesCount + 1)).toFixed(2) // +1 for the new schedule being added
+        : unitBalance.toFixed(2)) // If no schedules yet, use the full balance amount
     : '0.00';
 
   // Load unit details and get next sr_no
@@ -47,8 +50,10 @@ const AddUnitCustomerScheduleScreen = () => {
           setUnitBalance(unit.balance_amount);
         }
 
-        // Get existing schedules to determine next sr_no
+        // Get existing schedules to determine next sr_no and count
         const schedules = await getUnitCustomerSchedules(unitId);
+        setSchedulesCount(schedules.length);
+
         if (schedules.length > 0) {
           const maxSrNo = Math.max(...schedules.map(s => s.sr_no));
           setNextSrNo(maxSrNo + 1);

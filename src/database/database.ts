@@ -186,6 +186,21 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    // Create project_milestones table (alias for milestones)
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS project_milestones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_schedule_id INTEGER NOT NULL,
+        sr_no INTEGER NOT NULL,
+        milestone_name TEXT NOT NULL,
+        completion_percentage REAL NOT NULL,
+        status TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_schedule_id) REFERENCES project_schedules (id) ON DELETE CASCADE
+      );
+    `);
+
     // Create units_flats table
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS units_flats (

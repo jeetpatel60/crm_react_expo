@@ -16,7 +16,7 @@ export const getUnitPaymentRequests = async (unitId: number): Promise<UnitPaymen
   try {
     return await db.getAllAsync<UnitPaymentRequest>(
       'SELECT * FROM unit_payment_requests WHERE unit_id = ? ORDER BY sr_no ASC;',
-      unitId
+      [unitId]
     );
   } catch (error) {
     console.error(`Error fetching payment requests for unit ID ${unitId}:`, error);
@@ -29,7 +29,7 @@ export const getUnitPaymentRequestById = async (id: number): Promise<UnitPayment
   try {
     return await db.getFirstAsync<UnitPaymentRequest>(
       'SELECT * FROM unit_payment_requests WHERE id = ?;',
-      id
+      [id]
     );
   } catch (error) {
     console.error(`Error fetching payment request with ID ${id}:`, error);
@@ -101,7 +101,7 @@ export const updateUnitPaymentRequest = async (request: UnitPaymentRequest): Pro
 // Delete a payment request
 export const deleteUnitPaymentRequest = async (id: number): Promise<void> => {
   try {
-    await db.runAsync('DELETE FROM unit_payment_requests WHERE id = ?;', id);
+    await db.runAsync('DELETE FROM unit_payment_requests WHERE id = ?;', [id]);
   } catch (error) {
     console.error(`Error deleting payment request with ID ${id}:`, error);
     throw error;

@@ -1,5 +1,6 @@
 import { db } from './database';
 import { autoPopulateCustomerSchedulesFromProjectMilestones } from './unitScheduleHelpers';
+import { recalculateUnitScheduleAmounts } from './unitCustomerSchedulesDb';
 
 export type UnitStatus = 'Available' | 'Booked' | 'Sold';
 
@@ -33,7 +34,7 @@ export const getUnitFlatById = async (id: number): Promise<UnitFlat | null> => {
   try {
     return await db.getFirstAsync<UnitFlat>(
       'SELECT * FROM units_flats WHERE id = ?;',
-      id
+      [id]
     );
   } catch (error) {
     console.error(`Error fetching unit/flat with ID ${id}:`, error);
@@ -46,7 +47,7 @@ export const getUnitsFlatsByProjectId = async (projectId: number): Promise<UnitF
   try {
     return await db.getAllAsync<UnitFlat>(
       'SELECT * FROM units_flats WHERE project_id = ? ORDER BY flat_no ASC;',
-      projectId
+      [projectId]
     );
   } catch (error) {
     console.error(`Error fetching units/flats for project ID ${projectId}:`, error);
@@ -183,6 +184,19 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
         // Don't throw the error here, as the unit was successfully updated
       }
     }
+
+    // Check if balance amount has changed
+    const balanceAmountChanged = currentUnit.balance_amount !== unitWithCalculations.balance_amount;
+
+    // If balance amount has changed, recalculate all customer schedule amounts
+    if (balanceAmountChanged && unit.id) {
+      try {
+        await recalculateUnitScheduleAmounts(unit.id);
+      } catch (scheduleError) {
+        console.error('Error recalculating customer schedule amounts after balance amount change:', scheduleError);
+        // Don't throw the error here, as the unit was successfully updated
+      }
+    }
   } catch (error) {
     console.error(`Error updating unit/flat with ID ${unit.id}:`, error);
     throw error;
@@ -192,7 +206,7 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
 // Delete a unit/flat
 export const deleteUnitFlat = async (id: number): Promise<void> => {
   try {
-    await db.runAsync('DELETE FROM units_flats WHERE id = ?;', id);
+    await db.runAsync('DELETE FROM units_flats WHERE id = ?;', [id]);
   } catch (error) {
     console.error(`Error deleting unit/flat with ID ${id}:`, error);
     throw error;

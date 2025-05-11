@@ -6,7 +6,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import { RootStackParamList } from '../types';
 import { UnitCustomerSchedule, UnitCustomerScheduleStatus } from '../database/unitCustomerSchedulesDb';
-import { updateUnitCustomerSchedule } from '../database/unitCustomerSchedulesDb';
+import { updateUnitCustomerSchedule, getUnitCustomerSchedules } from '../database/unitCustomerSchedulesDb';
 import { getUnitFlatById } from '../database/unitsFlatDb';
 import { spacing, shadows } from '../constants/theme';
 import { UNIT_CUSTOMER_SCHEDULE_STATUS_OPTIONS } from '../constants';
@@ -24,19 +24,22 @@ const EditUnitCustomerScheduleScreen = () => {
   const [milestone, setMilestone] = useState(schedule.milestone);
   const [completionPercentage, setCompletionPercentage] = useState(schedule.completion_percentage.toString());
   const [status, setStatus] = useState<UnitCustomerScheduleStatus>(schedule.status);
-  
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [unitBalance, setUnitBalance] = useState<number>(0);
+  const [schedulesCount, setSchedulesCount] = useState<number>(0);
 
-  // Calculated amount
-  const amount = completionPercentage && unitBalance
-    ? ((parseFloat(completionPercentage) / 100) * unitBalance).toFixed(2)
+  // Calculated amount - now based on balance amount divided by number of schedules
+  const amount = unitBalance
+    ? (schedulesCount > 0
+        ? (unitBalance / schedulesCount).toFixed(2)
+        : unitBalance.toFixed(2)) // If no schedules yet, use the full balance amount
     : schedule.amount?.toFixed(2) || '0.00';
 
-  // Load unit details
+  // Load unit details and schedules count
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -45,6 +48,10 @@ const EditUnitCustomerScheduleScreen = () => {
         if (unit && unit.balance_amount) {
           setUnitBalance(unit.balance_amount);
         }
+
+        // Get all schedules for this unit to determine count
+        const schedules = await getUnitCustomerSchedules(schedule.unit_id);
+        setSchedulesCount(schedules.length);
       } catch (error) {
         console.error('Error loading data:', error);
         Alert.alert('Error', 'Failed to load unit data');

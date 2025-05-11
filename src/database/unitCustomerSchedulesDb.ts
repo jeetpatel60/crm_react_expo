@@ -21,7 +21,7 @@ export const getUnitCustomerSchedules = async (unitId: number): Promise<UnitCust
   try {
     return await db.getAllAsync<UnitCustomerSchedule>(
       'SELECT * FROM unit_customer_schedules WHERE unit_id = ? ORDER BY sr_no ASC;',
-      unitId
+      [unitId]
     );
   } catch (error) {
     console.error(`Error fetching customer schedules for unit ID ${unitId}:`, error);
@@ -34,7 +34,7 @@ export const getUnitCustomerScheduleById = async (id: number): Promise<UnitCusto
   try {
     return await db.getFirstAsync<UnitCustomerSchedule>(
       'SELECT * FROM unit_customer_schedules WHERE id = ?;',
-      id
+      [id]
     );
   } catch (error) {
     console.error(`Error fetching customer schedule with ID ${id}:`, error);
@@ -42,7 +42,7 @@ export const getUnitCustomerScheduleById = async (id: number): Promise<UnitCusto
   }
 };
 
-// Calculate amount based on completion percentage and unit balance
+// Calculate amount by dividing balance amount by number of rows in customer schedule table
 const calculateAmount = async (schedule: UnitCustomerSchedule): Promise<UnitCustomerSchedule> => {
   try {
     const amount = await calculateScheduleAmount(schedule);
@@ -79,6 +79,10 @@ export const addUnitCustomerSchedule = async (schedule: UnitCustomerSchedule): P
         now
       ]
     );
+
+    // After adding a new schedule, recalculate amounts for all schedules
+    // This ensures all schedules have the correct amount based on the new total count
+    await recalculateUnitScheduleAmounts(schedule.unit_id);
 
     return result.lastInsertRowId;
   } catch (error) {
@@ -127,7 +131,17 @@ export const updateUnitCustomerSchedule = async (schedule: UnitCustomerSchedule)
 // Delete a customer schedule
 export const deleteUnitCustomerSchedule = async (id: number): Promise<void> => {
   try {
-    await db.runAsync('DELETE FROM unit_customer_schedules WHERE id = ?;', id);
+    // Get the unit_id before deleting the schedule
+    const schedule = await getUnitCustomerScheduleById(id);
+    const unitId = schedule?.unit_id;
+
+    // Delete the schedule
+    await db.runAsync('DELETE FROM unit_customer_schedules WHERE id = ?;', [id]);
+
+    // If we have a valid unitId, recalculate amounts for all remaining schedules
+    if (unitId) {
+      await recalculateUnitScheduleAmounts(unitId);
+    }
   } catch (error) {
     console.error(`Error deleting customer schedule with ID ${id}:`, error);
     throw error;
@@ -137,11 +151,45 @@ export const deleteUnitCustomerSchedule = async (id: number): Promise<void> => {
 // Recalculate amounts for all schedules of a unit
 export const recalculateUnitScheduleAmounts = async (unitId: number): Promise<void> => {
   try {
+    // Get unit balance amount
+    const unit = await db.getFirstAsync(
+      'SELECT balance_amount FROM units_flats WHERE id = ?;',
+      [unitId]
+    );
+
+    if (!unit || !unit.balance_amount) {
+      console.log(`No balance amount found for unit ID ${unitId}`);
+      return;
+    }
+
+    // Get all schedules for this unit
     const schedules = await getUnitCustomerSchedules(unitId);
 
-    for (const schedule of schedules) {
-      await updateUnitCustomerSchedule(schedule);
+    if (schedules.length === 0) {
+      console.log(`No schedules found for unit ID ${unitId}`);
+      return;
     }
+
+    // Calculate amount per schedule
+    const amountPerSchedule = parseFloat((unit.balance_amount / schedules.length).toFixed(2));
+    const now = Date.now();
+
+    // Update all schedules directly with SQL to avoid circular calls
+    for (const schedule of schedules) {
+      await db.runAsync(
+        `UPDATE unit_customer_schedules SET
+          amount = ?,
+          updated_at = ?
+        WHERE id = ?;`,
+        [
+          amountPerSchedule,
+          now,
+          schedule.id
+        ]
+      );
+    }
+
+    console.log(`Successfully recalculated amounts for ${schedules.length} schedules of unit ID ${unitId}`);
   } catch (error) {
     console.error(`Error recalculating schedule amounts for unit ID ${unitId}:`, error);
     throw error;

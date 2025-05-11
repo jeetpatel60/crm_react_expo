@@ -19,7 +19,7 @@ export const getUnitPaymentReceipts = async (unitId: number): Promise<UnitPaymen
   try {
     return await db.getAllAsync<UnitPaymentReceipt>(
       'SELECT * FROM unit_payment_receipts WHERE unit_id = ? ORDER BY sr_no ASC;',
-      unitId
+      [unitId]
     );
   } catch (error) {
     console.error(`Error fetching payment receipts for unit ID ${unitId}:`, error);
@@ -32,7 +32,7 @@ export const getUnitPaymentReceiptById = async (id: number): Promise<UnitPayment
   try {
     return await db.getFirstAsync<UnitPaymentReceipt>(
       'SELECT * FROM unit_payment_receipts WHERE id = ?;',
-      id
+      [id]
     );
   } catch (error) {
     console.error(`Error fetching payment receipt with ID ${id}:`, error);
@@ -79,16 +79,16 @@ export const addUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Promis
     // Get all receipts to calculate the total received amount
     const receipts = await getUnitPaymentReceipts(receipt.unit_id);
     const totalReceived = receipts.reduce((sum, r) => sum + r.amount, 0);
-    
+
     // Update the unit's received amount with the total from all receipts
     await updateUnitFlatReceivedAmount(receipt.unit_id, totalReceived);
 
     // Return the ID of the last inserted receipt
     const lastReceipt = await db.getFirstAsync<{ id: number }>(
       'SELECT id FROM unit_payment_receipts WHERE unit_id = ? ORDER BY id DESC LIMIT 1;',
-      receipt.unit_id
+      [receipt.unit_id]
     );
-    
+
     return lastReceipt?.id || 0;
   } catch (error) {
     console.error('Error adding payment receipt:', error);
@@ -137,7 +137,7 @@ export const updateUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Pro
     // Get all receipts to recalculate the total received amount
     const receipts = await getUnitPaymentReceipts(receipt.unit_id);
     const totalReceived = receipts.reduce((sum, r) => sum + r.amount, 0);
-    
+
     // Update the unit's received amount with the total from all receipts
     await updateUnitFlatReceivedAmount(receipt.unit_id, totalReceived);
   } catch (error) {
@@ -157,12 +157,12 @@ export const deleteUnitPaymentReceipt = async (id: number): Promise<void> => {
     const unitId = receipt.unit_id;
 
     // Delete the payment receipt
-    await db.runAsync('DELETE FROM unit_payment_receipts WHERE id = ?;', id);
+    await db.runAsync('DELETE FROM unit_payment_receipts WHERE id = ?;', [id]);
 
     // Get all remaining receipts to recalculate the total received amount
     const receipts = await getUnitPaymentReceipts(unitId);
     const totalReceived = receipts.reduce((sum, r) => sum + r.amount, 0);
-    
+
     // Update the unit's received amount with the total from all receipts
     await updateUnitFlatReceivedAmount(unitId, totalReceived);
   } catch (error) {
