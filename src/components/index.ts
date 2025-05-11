@@ -12,3 +12,4 @@ export { default as LoadingIndicator } from './LoadingIndicator';
 export { default as EmptyState } from './EmptyState';
 export { default as ThemeIndicator } from './ThemeIndicator';
 export { default as TemplateCard } from './TemplateCard';
+export { default as TemplateSelectionModal } from './TemplateSelectionModal';

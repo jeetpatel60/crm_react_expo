@@ -4,6 +4,7 @@ import { Text, Card, Button, Chip, IconButton, DataTable, FAB, useTheme, Divider
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { TemplateSelectionModal } from '../components';
 
 import { RootStackParamList } from '../types';
 import { UnitFlat } from '../database/unitsFlatDb';
@@ -18,6 +19,7 @@ import { getProjectById } from '../database/projectsDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
 import { UNIT_STATUS_COLORS, UNIT_CUSTOMER_SCHEDULE_STATUS_COLORS } from '../constants';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { generateAndSharePaymentRequestPdf } from '../utils/pdfUtils';
 
 type UnitFlatDetailsScreenRouteProp = RouteProp<RootStackParamList, 'UnitFlatDetails'>;
 type UnitFlatDetailsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -35,6 +37,8 @@ const UnitFlatDetailsScreen = () => {
   const [paymentReceipts, setPaymentReceipts] = useState<UnitPaymentReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [templateModalVisible, setTemplateModalVisible] = useState(false);
+  const [selectedPaymentRequestId, setSelectedPaymentRequestId] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -160,6 +164,27 @@ const UnitFlatDetailsScreen = () => {
         },
       ]
     );
+  };
+
+  const handleExportPaymentRequest = (requestId: number) => {
+    setSelectedPaymentRequestId(requestId);
+    setTemplateModalVisible(true);
+  };
+
+  const handleTemplateSelect = async (templateId: number) => {
+    setTemplateModalVisible(false);
+
+    if (selectedPaymentRequestId) {
+      try {
+        await generateAndSharePaymentRequestPdf(
+          selectedPaymentRequestId,
+          templateId
+        );
+      } catch (error) {
+        console.error('Error exporting payment request:', error);
+        Alert.alert('Error', 'Failed to export payment request');
+      }
+    }
   };
 
   if (loading || !unit) {
@@ -422,6 +447,13 @@ const UnitFlatDetailsScreen = () => {
                             onPress={() => handleDeletePaymentRequest(request.id!)}
                             style={styles.actionButton}
                           />
+                          <IconButton
+                            icon="file-pdf-box"
+                            size={16}
+                            onPress={() => handleExportPaymentRequest(request.id!)}
+                            style={styles.actionButton}
+                            iconColor={theme.colors.primary}
+                          />
                         </View>
                       </DataTable.Cell>
                     </DataTable.Row>
@@ -502,6 +534,14 @@ const UnitFlatDetailsScreen = () => {
           </Card.Content>
         </Card>
       </ScrollView>
+
+      {/* Template Selection Modal */}
+      <TemplateSelectionModal
+        visible={templateModalVisible}
+        onDismiss={() => setTemplateModalVisible(false)}
+        onSelect={handleTemplateSelect}
+        title="Select Payment Request Template"
+      />
     </View>
   );
 };

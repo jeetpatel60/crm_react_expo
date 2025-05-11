@@ -9,6 +9,9 @@ import { getCompanyById } from '../database/companiesDb';
 import { getProjectById } from '../database/projectsDb';
 import { getLeadById } from '../database/leadsDb';
 import { getUnitFlatById } from '../database/unitsFlatDb';
+import { UnitPaymentRequest } from '../database/unitPaymentRequestsDb';
+import { getPaymentRequestTemplateById } from '../database/paymentRequestTemplatesDb';
+import { generateAndShareTemplateDocument } from './templateUtils';
 
 interface QuotationPdfData {
   quotation: Quotation;
@@ -31,13 +34,13 @@ export const generateAndShareQuotationPdf = async (quotationId: number): Promise
   try {
     // Prepare data for PDF generation
     const data = await prepareQuotationPdfData(quotationId);
-    
+
     // Generate HTML content
     const htmlContent = generateQuotationHtml(data);
-    
+
     // Generate PDF file
     const { uri } = await Print.printToFileAsync({ html: htmlContent });
-    
+
     // Share the PDF file
     await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
   } catch (error) {
@@ -53,48 +56,48 @@ const prepareQuotationPdfData = async (quotationId: number): Promise<QuotationPd
   // Import required functions here to avoid circular dependencies
   const { getQuotationById } = require('../database/quotationsDb');
   const { getQuotationAnnexureA, getQuotationAnnexureB, getQuotationAnnexureC } = require('../database');
-  
+
   // Fetch quotation data
   const quotation = await getQuotationById(quotationId);
   if (!quotation) {
     throw new Error('Quotation not found');
   }
-  
+
   // Fetch annexure items
   const annexureA = await getQuotationAnnexureA(quotationId);
   const annexureB = await getQuotationAnnexureB(quotationId);
   const annexureC = await getQuotationAnnexureC(quotationId);
-  
+
   // Fetch related entities
   let projectName, leadName, flatNo, companyName, companyLetterheadBase64, companyLetterheadType, companySalutation;
-  
+
   if (quotation.project_id) {
     const project = await getProjectById(quotation.project_id);
     if (project) {
       projectName = project.name;
     }
   }
-  
+
   if (quotation.lead_id) {
     const lead = await getLeadById(quotation.lead_id);
     if (lead) {
       leadName = lead.name;
     }
   }
-  
+
   if (quotation.flat_id) {
     const flat = await getUnitFlatById(quotation.flat_id);
     if (flat) {
       flatNo = flat.flat_no;
     }
   }
-  
+
   if (quotation.company_id) {
     const company = await getCompanyById(quotation.company_id);
     if (company) {
       companyName = company.name;
       companySalutation = company.salutation;
-      
+
       // Process letterhead if available
       if (company.letterhead_path) {
         try {
@@ -119,7 +122,7 @@ const prepareQuotationPdfData = async (quotationId: number): Promise<QuotationPd
       }
     }
   }
-  
+
   return {
     quotation,
     annexureA,
@@ -152,7 +155,7 @@ const generateQuotationHtml = (data: QuotationPdfData): string => {
     companyLetterheadType,
     companySalutation
   } = data;
-  
+
   // Generate letterhead section
   let letterheadHtml = '';
   if (companyLetterheadBase64 && companyLetterheadType === 'image') {
@@ -170,15 +173,15 @@ const generateQuotationHtml = (data: QuotationPdfData): string => {
       </div>
     `;
   }
-  
+
   // Generate annexure tables
   const annexureAHtml = generateAnnexureTable('Annexure A', annexureA);
   const annexureBHtml = generateAnnexureTable('Annexure B', annexureB);
   const annexureCHtml = generateAnnexureTable('Annexure C', annexureC);
-  
+
   // Calculate total amount
   const totalAmount = quotation.total_amount || 0;
-  
+
   // Generate the complete HTML
   return `
     <!DOCTYPE html>
@@ -260,7 +263,7 @@ const generateQuotationHtml = (data: QuotationPdfData): string => {
       </head>
       <body>
         ${letterheadHtml}
-        
+
         <div class="quotation-header">
           <div class="quotation-title">Quotation: ${quotation.quotation_no}</div>
           <div class="quotation-info">
@@ -288,15 +291,15 @@ const generateQuotationHtml = (data: QuotationPdfData): string => {
             ` : ''}
           </div>
         </div>
-        
+
         ${annexureAHtml}
         ${annexureBHtml}
         ${annexureCHtml}
-        
+
         <div class="total-amount">
           Total Amount: ${formatCurrency(totalAmount)}
         </div>
-        
+
         <div class="footer">
           <p>This is a computer-generated document. No signature is required.</p>
           <p>Generated on ${new Date().toLocaleDateString()}</p>
@@ -313,7 +316,7 @@ const generateAnnexureTable = (title: string, items: QuotationAnnexureItem[]): s
   if (!items || items.length === 0) {
     return '';
   }
-  
+
   const tableRows = items.map(item => `
     <tr>
       <td>${item.sr_no || ''}</td>
@@ -321,7 +324,7 @@ const generateAnnexureTable = (title: string, items: QuotationAnnexureItem[]): s
       <td style="text-align: right;">${formatCurrency(item.amount || 0)}</td>
     </tr>
   `).join('');
-  
+
   return `
     <div class="table-title">${title}</div>
     <table>
@@ -337,4 +340,57 @@ const generateAnnexureTable = (title: string, items: QuotationAnnexureItem[]): s
       </tbody>
     </table>
   `;
+};
+
+/**
+ * Generate PDF from payment request data and share it
+ *
+ * @param paymentRequestId The ID of the payment request
+ * @param templateId The ID of the payment request template to use
+ * @param companyId Optional company ID to use for letterhead
+ */
+export const generateAndSharePaymentRequestPdf = async (
+  paymentRequestId: number,
+  templateId: number,
+  companyId?: number
+): Promise<void> => {
+  try {
+    // Get the payment request
+    const { getUnitPaymentRequestById } = require('../database/unitPaymentRequestsDb');
+    const paymentRequest = await getUnitPaymentRequestById(paymentRequestId);
+
+    if (!paymentRequest) {
+      throw new Error('Payment request not found');
+    }
+
+    // Get the unit/flat
+    const unitFlat = await getUnitFlatById(paymentRequest.unit_id);
+
+    if (!unitFlat) {
+      throw new Error('Unit/Flat not found');
+    }
+
+    // Get the project
+    const project = await getProjectById(unitFlat.project_id);
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // If companyId is not provided, use the project's company_id
+    const effectiveCompanyId = companyId || project.company_id;
+
+    // Generate and share the document using the template
+    await generateAndShareTemplateDocument(
+      templateId,
+      'payment-request',
+      paymentRequest.unit_id,
+      undefined,
+      project.id,
+      effectiveCompanyId
+    );
+  } catch (error) {
+    console.error('Error generating or sharing payment request PDF:', error);
+    Alert.alert('Error', 'Failed to generate or share payment request PDF. Please try again.');
+  }
 };
