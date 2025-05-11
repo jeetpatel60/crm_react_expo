@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme, SegmentedButtons } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { RootStackParamList } from '../types';
+import { RootStackParamList, DrawerParamList } from '../types';
 import { Project, ProjectStatus } from '../database/projectsDb';
 import { getProjects, deleteProject } from '../database';
 import { db } from '../database/database';
@@ -13,7 +14,10 @@ import { ProjectCard, LoadingIndicator, EmptyState } from '../components';
 import { spacing, shadows, animations } from '../constants/theme';
 import { PROJECT_STATUS_OPTIONS } from '../constants';
 
-type ProjectsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+type ProjectsScreenNavigationProp = CompositeNavigationProp<
+  DrawerNavigationProp<DrawerParamList, 'Projects'>,
+  StackNavigationProp<RootStackParamList>
+>;
 
 const ALL_PROJECT_STATUS_OPTIONS = [
   { label: 'All', value: 'all' },

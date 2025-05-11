@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { RootStackParamList } from '../types';
+import { RootStackParamList, DrawerParamList } from '../types';
 import { ProjectSchedule, Project } from '../types';
 import { getProjectSchedules, deleteProjectSchedule, getProjectById } from '../database';
 import { ProjectScheduleCard, LoadingIndicator, EmptyState } from '../components';
 import { spacing, shadows, animations } from '../constants/theme';
 
-type ProjectSchedulesScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+type ProjectSchedulesScreenNavigationProp = CompositeNavigationProp<
+  DrawerNavigationProp<DrawerParamList, 'ProjectSchedules'>,
+  StackNavigationProp<RootStackParamList>
+>;
 
 const ProjectSchedulesScreen = () => {
   const theme = useTheme();

@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, Button, useTheme } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { RootStackParamList } from '../types';
+import { RootStackParamList, DrawerParamList } from '../types';
 import { LoadingIndicator } from '../components';
 import { spacing, shadows } from '../constants/theme';
 
-type DashboardScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+type DashboardScreenNavigationProp = CompositeNavigationProp<
+  DrawerNavigationProp<DrawerParamList, 'Dashboard'>,
+  StackNavigationProp<RootStackParamList>
+>;
 
 const DashboardScreen = () => {
   const theme = useTheme();

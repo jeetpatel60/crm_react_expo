@@ -11,15 +11,25 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { spacing } from '../constants/theme';
 import { APP_NAME } from '../constants';
 import { ThemeMode } from '../hooks/useThemeManager';
 import { useThemeContext } from '../context';
 import { ThemeIndicator } from '../components';
+import { RootStackParamList, DrawerParamList } from '../types';
+
+type SettingsScreenNavigationProp = CompositeNavigationProp<
+  DrawerNavigationProp<DrawerParamList, 'Settings'>,
+  StackNavigationProp<RootStackParamList>
+>;
 
 const SettingsScreen = () => {
   const { themeMode, setThemeMode, isDarkMode } = useThemeContext();
   const theme = useTheme();
+  const navigation = useNavigation<SettingsScreenNavigationProp>();
 
   const [notifications, setNotifications] = useState(true);
   const [syncEnabled, setSyncEnabled] = useState(false);

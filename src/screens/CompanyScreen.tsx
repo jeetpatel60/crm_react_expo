@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme, Card, Text, IconButton } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 
-import { RootStackParamList } from '../types';
+import { RootStackParamList, DrawerParamList } from '../types';
 import { Company } from '../database/companiesDb';
 import { getCompanies, deleteCompany } from '../database';
 import { LoadingIndicator, EmptyState } from '../components';
 import { spacing } from '../constants/theme';
 import { shadows } from '../constants/theme';
 
-type CompanyScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+type CompanyScreenNavigationProp = CompositeNavigationProp<
+  DrawerNavigationProp<DrawerParamList, 'Company'>,
+  StackNavigationProp<RootStackParamList>
+>;
 
 const CompanyScreen = () => {
   const theme = useTheme();

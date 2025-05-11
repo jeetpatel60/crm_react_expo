@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Searchbar, FAB, useTheme } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { RootStackParamList } from '../types';
+import { RootStackParamList, DrawerParamList } from '../types';
 import { Lead } from '../types';
 import { getLeads, deleteLead } from '../database';
 import { LeadCard, LoadingIndicator, EmptyState } from '../components';
 import { spacing, shadows, animations } from '../constants/theme';
 
-type LeadsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+type LeadsScreenNavigationProp = CompositeNavigationProp<
+  DrawerNavigationProp<DrawerParamList, 'Leads'>,
+  StackNavigationProp<RootStackParamList>
+>;
 
 const LeadsScreen = () => {
   const theme = useTheme();

@@ -1,9 +1,19 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Card, useTheme } from 'react-native-paper';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { RootStackParamList, DrawerParamList } from '../types';
+
+type QuotationScreenNavigationProp = CompositeNavigationProp<
+  DrawerNavigationProp<DrawerParamList, 'Quotation'>,
+  StackNavigationProp<RootStackParamList>
+>;
 
 const QuotationScreen = () => {
   const theme = useTheme();
+  const navigation = useNavigation<QuotationScreenNavigationProp>();
 
   return (
     <ScrollView style={styles.container}>
