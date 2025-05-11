@@ -32,6 +32,9 @@ import AddUnitPaymentRequestScreen from '../screens/AddUnitPaymentRequestScreen'
 import EditUnitPaymentRequestScreen from '../screens/EditUnitPaymentRequestScreen';
 import AddUnitPaymentReceiptScreen from '../screens/AddUnitPaymentReceiptScreen';
 import EditUnitPaymentReceiptScreen from '../screens/EditUnitPaymentReceiptScreen';
+import QuotationDetailsScreen from '../screens/QuotationDetailsScreen';
+import AddQuotationScreen from '../screens/AddQuotationScreen';
+import EditQuotationScreen from '../screens/EditQuotationScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -192,6 +195,21 @@ const AppNavigator = () => {
           name="EditUnitPaymentReceipt"
           component={EditUnitPaymentReceiptScreen}
           options={{ title: 'Edit Payment Receipt' }}
+        />
+        <Stack.Screen
+          name="QuotationDetails"
+          component={QuotationDetailsScreen}
+          options={{ title: 'Quotation Details' }}
+        />
+        <Stack.Screen
+          name="AddQuotation"
+          component={AddQuotationScreen}
+          options={{ title: 'Add Quotation' }}
+        />
+        <Stack.Screen
+          name="EditQuotation"
+          component={EditQuotationScreen}
+          options={{ title: 'Edit Quotation' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -253,6 +253,68 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    // Create quotations table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS quotations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quotation_no TEXT NOT NULL,
+        date INTEGER NOT NULL,
+        project_id INTEGER,
+        lead_id INTEGER,
+        flat_id INTEGER,
+        company_id INTEGER,
+        total_amount REAL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE SET NULL,
+        FOREIGN KEY (lead_id) REFERENCES leads (id) ON DELETE SET NULL,
+        FOREIGN KEY (flat_id) REFERENCES units_flats (id) ON DELETE SET NULL,
+        FOREIGN KEY (company_id) REFERENCES companies (id) ON DELETE SET NULL
+      );
+    `);
+
+    // Create quotation_annexure_a table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS quotation_annexure_a (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quotation_id INTEGER NOT NULL,
+        sr_no INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (quotation_id) REFERENCES quotations (id) ON DELETE CASCADE
+      );
+    `);
+
+    // Create quotation_annexure_b table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS quotation_annexure_b (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quotation_id INTEGER NOT NULL,
+        sr_no INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (quotation_id) REFERENCES quotations (id) ON DELETE CASCADE
+      );
+    `);
+
+    // Create quotation_annexure_c table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS quotation_annexure_c (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quotation_id INTEGER NOT NULL,
+        sr_no INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (quotation_id) REFERENCES quotations (id) ON DELETE CASCADE
+      );
+    `);
+
     console.log('Database tables created successfully');
   } catch (error) {
     console.error('Error initializing database tables:', error);

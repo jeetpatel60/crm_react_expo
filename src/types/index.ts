@@ -7,6 +7,8 @@ import { UnitFlat } from '../database/unitsFlatDb';
 import { UnitCustomerSchedule } from '../database/unitCustomerSchedulesDb';
 import { UnitPaymentRequest } from '../database/unitPaymentRequestsDb';
 import { UnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
+import { Quotation } from '../database/quotationsDb';
+import { QuotationAnnexureItem } from '../database/quotationAnnexuresDb';
 
 export type {
   Company,
@@ -18,7 +20,9 @@ export type {
   UnitFlat,
   UnitCustomerSchedule,
   UnitPaymentRequest,
-  UnitPaymentReceipt
+  UnitPaymentReceipt,
+  Quotation,
+  QuotationAnnexureItem
 };
 
 export type RootStackParamList = {
@@ -50,6 +54,9 @@ export type RootStackParamList = {
   EditUnitPaymentRequest: { request: UnitPaymentRequest };
   AddUnitPaymentReceipt: { unitId: number };
   EditUnitPaymentReceipt: { receipt: UnitPaymentReceipt };
+  QuotationDetails: { quotationId: number };
+  AddQuotation: undefined;
+  EditQuotation: { quotation: Quotation };
 };
 
 export type DrawerParamList = {
