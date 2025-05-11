@@ -1,5 +1,7 @@
 import { db } from './database';
-import { UnitCustomerSchedule } from './unitCustomerSchedulesDb';
+import { UnitCustomerSchedule, UnitCustomerScheduleStatus } from './unitCustomerSchedulesDb';
+import { UnitPaymentRequest } from './unitPaymentRequestsDb';
+import { getUnitsFlatsByProjectId } from './unitsFlatDb';
 
 // Helper function to auto-populate customer schedules from project milestones
 // This function is moved here to break the circular dependency
@@ -130,5 +132,97 @@ export const calculateScheduleAmount = async (schedule: UnitCustomerSchedule): P
   } catch (error) {
     console.error('Error calculating schedule amount:', error);
     return null;
+  }
+};
+
+// Helper function to update customer schedules when a project milestone is completed
+export const updateCustomerSchedulesForCompletedMilestone = async (
+  projectId: number,
+  milestoneName: string
+): Promise<void> => {
+  try {
+    console.log(`Updating customer schedules for completed milestone "${milestoneName}" in project ID ${projectId}`);
+
+    // Get all units associated with this project
+    const units = await getUnitsFlatsByProjectId(projectId);
+
+    if (units.length === 0) {
+      console.log(`No units found for project ID ${projectId}`);
+      return;
+    }
+
+    console.log(`Found ${units.length} units for project ID ${projectId}`);
+    const now = Date.now();
+
+    // For each unit, find the matching customer schedule and update it
+    for (const unit of units) {
+      if (!unit.id) continue;
+
+      // Find the customer schedule with the matching milestone name
+      const customerSchedules = await db.getAllAsync<UnitCustomerSchedule>(
+        'SELECT * FROM unit_customer_schedules WHERE unit_id = ? AND milestone = ?;',
+        [unit.id, milestoneName]
+      );
+
+      if (customerSchedules.length === 0) {
+        console.log(`No matching customer schedule found for unit ID ${unit.id} with milestone "${milestoneName}"`);
+        continue;
+      }
+
+      const customerSchedule = customerSchedules[0];
+
+      // Skip if the schedule is already in "Payment Requested" or "Payment Received" status
+      if (customerSchedule.status !== 'Not Started') {
+        console.log(`Customer schedule for unit ID ${unit.id} is already in "${customerSchedule.status}" status, skipping`);
+        continue;
+      }
+
+      console.log(`Updating customer schedule for unit ID ${unit.id} to "Payment Requested" status`);
+
+      // Update the customer schedule status to "Payment Requested"
+      await db.runAsync(
+        `UPDATE unit_customer_schedules SET
+          status = ?,
+          updated_at = ?
+        WHERE id = ?;`,
+        [
+          'Payment Requested' as UnitCustomerScheduleStatus,
+          now,
+          customerSchedule.id
+        ]
+      );
+
+      // Create a payment request for this unit
+      // First, get the next sr_no for this unit
+      const paymentRequests = await db.getAllAsync<UnitPaymentRequest>(
+        'SELECT * FROM unit_payment_requests WHERE unit_id = ? ORDER BY sr_no DESC LIMIT 1;',
+        [unit.id]
+      );
+
+      const nextSrNo = paymentRequests.length > 0 ? paymentRequests[0].sr_no + 1 : 1;
+
+      // Create the payment request
+      await db.runAsync(
+        `INSERT INTO unit_payment_requests (
+          unit_id, sr_no, date, description, amount, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?);`,
+        [
+          unit.id,
+          nextSrNo,
+          now, // Current date/time
+          `Payment request for ${milestoneName}`, // Description
+          customerSchedule.amount || 0, // Amount from the customer schedule
+          now,
+          now
+        ]
+      );
+
+      console.log(`Created payment request for unit ID ${unit.id}, milestone "${milestoneName}", amount ${customerSchedule.amount || 0}`);
+    }
+
+    console.log(`Successfully updated customer schedules for completed milestone "${milestoneName}" in project ID ${projectId}`);
+  } catch (error) {
+    console.error(`Error updating customer schedules for completed milestone:`, error);
+    throw error;
   }
 };

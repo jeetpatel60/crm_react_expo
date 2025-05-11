@@ -1,5 +1,6 @@
 import { db } from './database';
 import { getProjectById, updateProject } from './projectsDb';
+import { updateCustomerSchedulesForCompletedMilestone } from './unitScheduleHelpers';
 
 export type MilestoneStatus = 'Not Started' | 'In Progress' | 'Completed';
 
@@ -326,6 +327,16 @@ export const updateMilestone = async (milestone: Milestone): Promise<void> => {
         // Log if there's a discrepancy
         if (projectProgress?.progress !== projectAfter?.progress) {
           console.error(`DISCREPANCY DETECTED: SQL query shows ${projectProgress?.progress}% but getProjectById shows ${projectAfter?.progress}%`);
+        }
+
+        // Update customer schedules and generate payment requests for all units in this project
+        try {
+          console.log(`Milestone "${milestone.milestone_name}" marked as completed - updating customer schedules and generating payment requests`);
+          await updateCustomerSchedulesForCompletedMilestone(projectId, milestone.milestone_name);
+        } catch (scheduleError) {
+          console.error('Error updating customer schedules for completed milestone:', scheduleError);
+          // Don't throw the error here, as the milestone update was successful
+          // Just log it so we can diagnose the issue
         }
       }
     } catch (progressError) {
