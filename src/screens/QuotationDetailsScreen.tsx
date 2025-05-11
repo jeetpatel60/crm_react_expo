@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, Card, DataTable, useTheme, FAB, Divider } from 'react-native-paper';
+import { Text, Button, Card, DataTable, useTheme, FAB, Divider, ActivityIndicator } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import { RootStackParamList, Quotation, QuotationAnnexureItem } from '../types';
-import { 
-  getQuotationById, 
+import {
+  getQuotationById,
   deleteQuotation,
   getQuotationAnnexureA,
   getQuotationAnnexureB,
@@ -19,6 +19,7 @@ import { getCompanyById } from '../database/companiesDb';
 import { LoadingIndicator } from '../components';
 import { spacing, shadows } from '../constants/theme';
 import { formatDate, formatCurrency } from '../utils/formatters';
+import { generateAndShareQuotationPdf } from '../utils/pdfUtils';
 
 type QuotationDetailsRouteProp = RouteProp<RootStackParamList, 'QuotationDetails'>;
 type QuotationDetailsNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -38,11 +39,12 @@ const QuotationDetailsScreen = () => {
   const [flatNo, setFlatNo] = useState<string>('');
   const [companyName, setCompanyName] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const fetchQuotationDetails = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Fetch quotation
       const quotationData = await getQuotationById(quotationId);
       if (!quotationData) {
@@ -50,19 +52,19 @@ const QuotationDetailsScreen = () => {
         navigation.goBack();
         return;
       }
-      
+
       setQuotation(quotationData);
-      
+
       // Fetch annexure items
       const annexureAData = await getQuotationAnnexureA(quotationId);
       setAnnexureA(annexureAData);
-      
+
       const annexureBData = await getQuotationAnnexureB(quotationId);
       setAnnexureB(annexureBData);
-      
+
       const annexureCData = await getQuotationAnnexureC(quotationId);
       setAnnexureC(annexureCData);
-      
+
       // Fetch related entities
       if (quotationData.project_id) {
         const project = await getProjectById(quotationData.project_id);
@@ -70,21 +72,21 @@ const QuotationDetailsScreen = () => {
           setProjectName(project.name);
         }
       }
-      
+
       if (quotationData.lead_id) {
         const lead = await getLeadById(quotationData.lead_id);
         if (lead) {
           setLeadName(lead.name);
         }
       }
-      
+
       if (quotationData.flat_id) {
         const flat = await getUnitFlatById(quotationData.flat_id);
         if (flat) {
           setFlatNo(flat.flat_no);
         }
       }
-      
+
       if (quotationData.company_id) {
         const company = await getCompanyById(quotationData.company_id);
         if (company) {
@@ -128,6 +130,18 @@ const QuotationDetailsScreen = () => {
         },
       ]
     );
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      setExportingPdf(true);
+      await generateAndShareQuotationPdf(quotationId);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      Alert.alert('Error', 'Failed to export PDF. Please try again.');
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   if (loading) {
@@ -291,6 +305,16 @@ const QuotationDetailsScreen = () => {
 
             <View style={styles.actionsContainer}>
               <Button
+                mode="contained"
+                onPress={handleExportPdf}
+                style={styles.exportButton}
+                icon="file-pdf-box"
+                loading={exportingPdf}
+                disabled={exportingPdf}
+              >
+                {exportingPdf ? 'Exporting...' : 'Export PDF'}
+              </Button>
+              <Button
                 mode="outlined"
                 onPress={handleDelete}
                 style={styles.deleteButton}
@@ -402,9 +426,15 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     marginTop: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  exportButton: {
+    flex: 1,
+    marginRight: spacing.sm,
   },
   deleteButton: {
-    alignSelf: 'flex-start',
+    flex: 1,
   },
   fab: {
     position: 'absolute',
