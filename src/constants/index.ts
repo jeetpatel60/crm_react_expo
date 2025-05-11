@@ -53,3 +53,27 @@ export const MILESTONE_STATUS_COLORS = {
   'In Progress': '#3B82F6', // Blue
   'Completed': '#10B981', // Green
 };
+
+export const UNIT_STATUS_OPTIONS = [
+  { label: 'Available', value: 'Available' },
+  { label: 'Booked', value: 'Booked' },
+  { label: 'Sold', value: 'Sold' },
+];
+
+export const UNIT_STATUS_COLORS = {
+  'Available': '#10B981', // Green
+  'Booked': '#3B82F6', // Blue
+  'Sold': '#6B7280', // Gray
+};
+
+export const UNIT_CUSTOMER_SCHEDULE_STATUS_OPTIONS = [
+  { label: 'Not Started', value: 'Not Started' },
+  { label: 'Payment Requested', value: 'Payment Requested' },
+  { label: 'Payment Received', value: 'Payment Received' },
+];
+
+export const UNIT_CUSTOMER_SCHEDULE_STATUS_COLORS = {
+  'Not Started': '#F59E0B', // Amber
+  'Payment Requested': '#3B82F6', // Blue
+  'Payment Received': '#10B981', // Green
+};

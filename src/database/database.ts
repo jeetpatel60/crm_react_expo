@@ -186,6 +186,73 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    // Create units_flats table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS units_flats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flat_no TEXT NOT NULL,
+        project_id INTEGER NOT NULL,
+        area_sqft REAL,
+        rate_per_sqft REAL,
+        flat_value REAL,
+        received_amount REAL DEFAULT 0,
+        balance_amount REAL,
+        status TEXT NOT NULL,
+        type TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
+      );
+    `);
+
+    // Create unit_customer_schedules table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS unit_customer_schedules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        unit_id INTEGER NOT NULL,
+        sr_no INTEGER NOT NULL,
+        milestone TEXT NOT NULL,
+        completion_percentage REAL NOT NULL,
+        amount REAL,
+        status TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (unit_id) REFERENCES units_flats (id) ON DELETE CASCADE
+      );
+    `);
+
+    // Create unit_payment_requests table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS unit_payment_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        unit_id INTEGER NOT NULL,
+        sr_no INTEGER NOT NULL,
+        date INTEGER NOT NULL,
+        description TEXT,
+        amount REAL NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (unit_id) REFERENCES units_flats (id) ON DELETE CASCADE
+      );
+    `);
+
+    // Create unit_payment_receipts table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS unit_payment_receipts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        unit_id INTEGER NOT NULL,
+        sr_no INTEGER NOT NULL,
+        date INTEGER NOT NULL,
+        description TEXT,
+        amount REAL NOT NULL,
+        mode TEXT,
+        remarks TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (unit_id) REFERENCES units_flats (id) ON DELETE CASCADE
+      );
+    `);
+
     console.log('Database tables created successfully');
   } catch (error) {
     console.error('Error initializing database tables:', error);

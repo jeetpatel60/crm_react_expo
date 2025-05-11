@@ -5,8 +5,25 @@ import { Client } from '../database/clientsDb';
 import { Lead } from '../database/leadsDb';
 import { Project } from '../database/projectsDb';
 import { ProjectSchedule, Milestone } from '../database/projectSchedulesDb';
+import { UnitFlat } from '../database/unitsFlatDb';
+import { UnitCustomerSchedule } from '../database/unitCustomerSchedulesDb';
+import { UnitPaymentRequest } from '../database/unitPaymentRequestsDb';
+import { UnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
 
-export type { Contact, Task, Company, Client, Lead, Project, ProjectSchedule, Milestone };
+export type {
+  Contact,
+  Task,
+  Company,
+  Client,
+  Lead,
+  Project,
+  ProjectSchedule,
+  Milestone,
+  UnitFlat,
+  UnitCustomerSchedule,
+  UnitPaymentRequest,
+  UnitPaymentReceipt
+};
 
 export type RootStackParamList = {
   Home: undefined;
@@ -34,6 +51,15 @@ export type RootStackParamList = {
   AddMilestone: { scheduleId: number };
   EditMilestone: { milestone: Milestone };
   TestMilestoneEdit: undefined;
+  UnitFlatDetails: { unitId: number };
+  AddUnitFlat: undefined;
+  EditUnitFlat: { unit: UnitFlat };
+  AddUnitCustomerSchedule: { unitId: number };
+  EditUnitCustomerSchedule: { schedule: UnitCustomerSchedule };
+  AddUnitPaymentRequest: { unitId: number };
+  EditUnitPaymentRequest: { request: UnitPaymentRequest };
+  AddUnitPaymentReceipt: { unitId: number };
+  EditUnitPaymentReceipt: { receipt: UnitPaymentReceipt };
 };
 
 export type DrawerParamList = {

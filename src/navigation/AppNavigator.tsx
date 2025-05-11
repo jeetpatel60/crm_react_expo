@@ -29,6 +29,15 @@ import EditProjectScheduleScreen from '../screens/EditProjectScheduleScreen';
 import AddMilestoneScreen from '../screens/AddMilestoneScreen';
 import EditMilestoneScreen from '../screens/EditMilestoneScreen';
 import TestMilestoneEditScreen from '../screens/TestMilestoneEditScreen';
+import UnitFlatDetailsScreen from '../screens/UnitFlatDetailsScreen';
+import AddUnitFlatScreen from '../screens/AddUnitFlatScreen';
+import EditUnitFlatScreen from '../screens/EditUnitFlatScreen';
+import AddUnitCustomerScheduleScreen from '../screens/AddUnitCustomerScheduleScreen';
+import EditUnitCustomerScheduleScreen from '../screens/EditUnitCustomerScheduleScreen';
+import AddUnitPaymentRequestScreen from '../screens/AddUnitPaymentRequestScreen';
+import EditUnitPaymentRequestScreen from '../screens/EditUnitPaymentRequestScreen';
+import AddUnitPaymentReceiptScreen from '../screens/AddUnitPaymentReceiptScreen';
+import EditUnitPaymentReceiptScreen from '../screens/EditUnitPaymentReceiptScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -173,6 +182,51 @@ const AppNavigator = () => {
           name="TestMilestoneEdit"
           component={TestMilestoneEditScreen}
           options={{ title: 'Test Milestone Edit' }}
+        />
+        <Stack.Screen
+          name="UnitFlatDetails"
+          component={UnitFlatDetailsScreen}
+          options={{ title: 'Unit/Flat Details' }}
+        />
+        <Stack.Screen
+          name="AddUnitFlat"
+          component={AddUnitFlatScreen}
+          options={{ title: 'Add Unit/Flat' }}
+        />
+        <Stack.Screen
+          name="EditUnitFlat"
+          component={EditUnitFlatScreen}
+          options={{ title: 'Edit Unit/Flat' }}
+        />
+        <Stack.Screen
+          name="AddUnitCustomerSchedule"
+          component={AddUnitCustomerScheduleScreen}
+          options={{ title: 'Add Customer Schedule' }}
+        />
+        <Stack.Screen
+          name="EditUnitCustomerSchedule"
+          component={EditUnitCustomerScheduleScreen}
+          options={{ title: 'Edit Customer Schedule' }}
+        />
+        <Stack.Screen
+          name="AddUnitPaymentRequest"
+          component={AddUnitPaymentRequestScreen}
+          options={{ title: 'Add Payment Request' }}
+        />
+        <Stack.Screen
+          name="EditUnitPaymentRequest"
+          component={EditUnitPaymentRequestScreen}
+          options={{ title: 'Edit Payment Request' }}
+        />
+        <Stack.Screen
+          name="AddUnitPaymentReceipt"
+          component={AddUnitPaymentReceiptScreen}
+          options={{ title: 'Add Payment Receipt' }}
+        />
+        <Stack.Screen
+          name="EditUnitPaymentReceipt"
+          component={EditUnitPaymentReceiptScreen}
+          options={{ title: 'Edit Payment Receipt' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
