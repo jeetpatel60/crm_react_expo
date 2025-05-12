@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
-import { Text, Card, Button, useTheme, Divider, ProgressBar, Chip } from 'react-native-paper';
+import { Text, Card, Button, useTheme, Divider, ProgressBar } from 'react-native-paper';
 import { RouteProp, useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import { RootStackParamList } from '../types';
 import { Project } from '../types';
 import { getProjectById, deleteProject } from '../database';
 import { db } from '../database/database';
-import { LoadingIndicator } from '../components';
+import { LoadingIndicator, StatusChip } from '../components';
 import { spacing, shadows } from '../constants/theme';
 
 type ProjectDetailsRouteProp = RouteProp<RootStackParamList, 'ProjectDetails'>;
@@ -182,18 +182,7 @@ const ProjectDetailsScreen = () => {
     }).format(amount);
   };
 
-  const getStatusColor = (status: Project['status']) => {
-    switch (status) {
-      case 'Not Started':
-        return theme.colors.error;
-      case 'In Progress':
-        return theme.colors.primary;
-      case 'Completed':
-        return '#4CAF50'; // Green color for success
-      default:
-        return theme.colors.primary;
-    }
-  };
+
 
   if (loading) {
     return <LoadingIndicator />;
@@ -226,15 +215,7 @@ const ProjectDetailsScreen = () => {
               <Text variant="headlineMedium" style={styles.title}>
                 {project.name}
               </Text>
-              <Chip
-                style={[
-                  styles.statusChip,
-                  { backgroundColor: getStatusColor(project.status) },
-                ]}
-                textStyle={{ color: '#fff' }}
-              >
-                {project.status}
-              </Chip>
+              <StatusChip status={project.status} size="medium" />
             </View>
 
             <Divider style={styles.divider} />
@@ -368,6 +349,11 @@ const styles = StyleSheet.create({
   },
   statusChip: {
     height: 28,
+    minWidth: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    textAlignVertical: 'center',
   },
   divider: {
     marginVertical: spacing.md,

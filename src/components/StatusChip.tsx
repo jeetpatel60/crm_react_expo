@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Chip, useTheme } from 'react-native-paper';
-import { spacing } from '../constants/theme';
 
 interface StatusChipProps {
   status: string;
@@ -14,6 +13,7 @@ const StatusChip = ({ status, size = 'medium' }: StatusChipProps) => {
   // Status color mapping
   const getStatusColor = (status: string) => {
     switch (status) {
+      // Lead statuses
       case 'Lead':
         return '#F59E0B'; // Amber
       case 'Contacted':
@@ -22,13 +22,15 @@ const StatusChip = ({ status, size = 'medium' }: StatusChipProps) => {
         return '#8B5CF6'; // Purple
       case 'Converted':
         return '#10B981'; // Green
+
       // Project statuses
       case 'Not Started':
-        return '#6B7280'; // Gray
+        return '#EF4444'; // Red
       case 'In Progress':
         return '#3B82F6'; // Blue
       case 'Completed':
         return '#10B981'; // Green
+
       // Unit statuses
       case 'Available':
         return '#10B981'; // Green
@@ -36,6 +38,11 @@ const StatusChip = ({ status, size = 'medium' }: StatusChipProps) => {
         return '#F59E0B'; // Amber
       case 'Sold':
         return '#3B82F6'; // Blue
+
+      // Milestone statuses (same as project statuses)
+      // These are already covered by the project statuses above
+      // but listed here for clarity
+
       default:
         return theme.colors.primary;
     }
@@ -47,20 +54,20 @@ const StatusChip = ({ status, size = 'medium' }: StatusChipProps) => {
       case 'small':
         return {
           height: 24,
-          minWidth: 60, // Further reduced width
+          minWidth: 90, // Increased width to prevent text cutoff
           fontSize: 10,
         };
       case 'large':
         return {
           height: 32,
-          minWidth: 80, // Further reduced width
+          minWidth: 120, // Increased width to prevent text cutoff
           fontSize: 12,
         };
       case 'medium':
       default:
         return {
           height: 32,
-          minWidth: 70, // Further reduced width
+          minWidth: 110, // Increased width to prevent text cutoff
           fontSize: 14,
         };
     }
@@ -77,8 +84,7 @@ const StatusChip = ({ status, size = 'medium' }: StatusChipProps) => {
             backgroundColor: getStatusColor(status) + '20',
             height: sizeStyles.height,
             minWidth: sizeStyles.minWidth,
-            paddingBottom: 0,
-            paddingTop: 0,
+            paddingHorizontal: 8, // Add horizontal padding
           },
         ]}
         textStyle={{
@@ -87,8 +93,7 @@ const StatusChip = ({ status, size = 'medium' }: StatusChipProps) => {
           textAlign: 'center',
           textAlignVertical: 'center',
           fontSize: sizeStyles.fontSize,
-          paddingHorizontal: 0,
-          paddingVertical: 0, // Add minimal padding to ensure text is visible
+          //width: '100%', // Ensure text takes full width
         }}
         ellipsizeMode="tail"
       >
@@ -102,16 +107,15 @@ const styles = StyleSheet.create({
   chipContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    textAlign: 'center',
-    textAlignVertical: 'center',
+    flexDirection: 'row',
   },
   chip: {
     alignItems: 'center',
     justifyContent: 'center',
     textAlign: 'center',
     textAlignVertical: 'center',
-    paddingHorizontal: 0, // Minimal horizontal padding
-    paddingVertical: 0, // Minimal vertical padding
+    //flexDirection: 'row',
+    overflow: 'visible', // Ensure text isn't clipped
   },
 });
 

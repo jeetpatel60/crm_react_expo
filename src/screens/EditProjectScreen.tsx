@@ -883,9 +883,19 @@ const EditProjectScreen = () => {
                                     <Chip
                                       style={[
                                         styles.statusChip,
-                                        { backgroundColor: MILESTONE_STATUS_COLORS[milestone.status] + '20' }
+                                        {
+                                          backgroundColor: MILESTONE_STATUS_COLORS[milestone.status] + '20',
+                                          paddingHorizontal: 0,
+                                          paddingVertical: 0
+                                        }
                                       ]}
-                                      textStyle={{ color: MILESTONE_STATUS_COLORS[milestone.status], textAlign: 'center' }}
+                                      textStyle={{
+                                        color: MILESTONE_STATUS_COLORS[milestone.status],
+                                        textAlign: 'center',
+                                        textAlignVertical: 'center',
+                                        paddingHorizontal: 0,
+                                        paddingVertical: 0
+                                      }}
                                     >
                                       {milestone.status}
                                     </Chip>
@@ -1054,8 +1064,13 @@ const styles = StyleSheet.create({
   },
   statusChip: {
     height: 28,
+    minWidth: 80,
     alignItems: 'center',
     justifyContent: 'center',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   actionButtons: {
     flexDirection: 'row',

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { Card, Text, Avatar, useTheme, IconButton, ProgressBar, Chip } from 'react-native-paper';
+import { Card, Text, Avatar, useTheme, IconButton, ProgressBar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { Project } from '../types';
 import { shadows, spacing, borderRadius, animations } from '../constants/theme';
 import { usePressAnimation, useStaggeredAnimation } from '../utils/animationUtils';
-import { PROJECT_STATUS_COLORS } from '../constants';
 import { getCompanyById } from '../database/companiesDb';
+import { StatusChip } from '../components';
 
 interface ProjectCardProps {
   project: Project;
@@ -69,22 +69,7 @@ const ProjectCard = ({ project, onPress, onEdit, onDelete, index = 0 }: ProjectC
     });
   };
 
-  const getStatusColor = (status: Project['status']) => {
-    return PROJECT_STATUS_COLORS[status] || theme.colors.primary;
-  };
 
-  const getStatusIcon = (status: Project['status']) => {
-    switch (status) {
-      case 'Not Started':
-        return 'clock-outline';
-      case 'In Progress':
-        return 'progress-clock';
-      case 'Completed':
-        return 'check-circle-outline';
-      default:
-        return 'help-circle-outline';
-    }
-  };
 
   return (
     <Animated.View style={[fadeScaleStyle]}>
@@ -104,19 +89,7 @@ const ProjectCard = ({ project, onPress, onEdit, onDelete, index = 0 }: ProjectC
             <Card.Content style={styles.content}>
               <View style={styles.statusContainer}>
                 <View style={styles.chipWrapper}>
-                  <Chip
-                    icon={() => (
-                      <MaterialCommunityIcons
-                        name={getStatusIcon(project.status)}
-                        size={16}
-                        color="#fff"
-                      />
-                    )}
-                    style={[styles.statusChip, { backgroundColor: getStatusColor(project.status) }]}
-                    textStyle={{ color: '#fff', fontSize: 12, fontWeight: '500', textAlign: 'center' }}
-                  >
-                    {project.status}
-                  </Chip>
+                  <StatusChip status={project.status} size="medium" />
                 </View>
               </View>
 
@@ -257,11 +230,14 @@ const styles = StyleSheet.create({
     width: '100%', // Take full width of container
   },
   statusChip: {
-    height: 28,
-    paddingHorizontal: 8, // Add horizontal padding
-    minWidth: 100, // Ensure minimum width for the chip
+    height: 32,
+    paddingHorizontal: 0, // Minimal horizontal padding
+    paddingVertical: 0, // Minimal vertical padding
+    minWidth: 80, // Reduced minimum width for the chip
     justifyContent: 'center', // Center content vertically
     alignItems: 'center', // Center content horizontally
+    textAlign: 'center', // Center text
+    textAlignVertical: 'center', // Center text vertically
   },
   detailsContainer: {
     marginTop: spacing.sm,

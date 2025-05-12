@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { Text, Card, Button, useTheme, Divider, IconButton, Chip, DataTable, Menu, FAB, Modal, Portal, TextInput, SegmentedButtons } from 'react-native-paper';
+import { Text, Card, Button, useTheme, Divider, IconButton, DataTable, Menu, FAB, Modal, Portal, TextInput, SegmentedButtons } from 'react-native-paper';
 import { RouteProp, useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,9 +11,9 @@ import { ProjectSchedule, Milestone, Project } from '../types';
 import { getProjectById } from '../database';
 import { getProjectScheduleById, getMilestonesByScheduleId, deleteMilestone, updateMilestone, MilestoneStatus } from '../database/projectSchedulesDb';
 import { db } from '../database/database';
-import { LoadingIndicator } from '../components';
+import { LoadingIndicator, StatusChip } from '../components';
 import { spacing, shadows, borderRadius } from '../constants/theme';
-import { MILESTONE_STATUS_COLORS, MILESTONE_STATUS_OPTIONS } from '../constants';
+import { MILESTONE_STATUS_OPTIONS } from '../constants';
 
 type ProjectScheduleDetailsScreenRouteProp = RouteProp<RootStackParamList, 'ProjectScheduleDetails'>;
 type ProjectScheduleDetailsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -533,15 +533,7 @@ const ProjectScheduleDetailsScreen = () => {
                         <DataTable.Cell style={styles.milestoneColumn}>{milestone.milestone_name}</DataTable.Cell>
                         <DataTable.Cell style={styles.completionColumn}>{milestone.completion_percentage}%</DataTable.Cell>
                         <DataTable.Cell style={styles.statusColumn}>
-                          <Chip
-                            style={[
-                              styles.statusChip,
-                              { backgroundColor: MILESTONE_STATUS_COLORS[milestone.status] + '20' }
-                            ]}
-                            textStyle={{ color: MILESTONE_STATUS_COLORS[milestone.status], textAlign: 'center' }}
-                          >
-                            {milestone.status}
-                          </Chip>
+                          <StatusChip status={milestone.status} size="small" />
                         </DataTable.Cell>
                         <DataTable.Cell style={styles.actionsColumn}>
                           <View style={styles.actionButtons}>
@@ -714,8 +706,13 @@ const styles = StyleSheet.create({
   },
   statusChip: {
     height: 28,
+    minWidth: 80,
     alignItems: 'center',
     justifyContent: 'center',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   actionButtons: {
     flexDirection: 'row',
