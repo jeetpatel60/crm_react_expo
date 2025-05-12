@@ -66,15 +66,37 @@ const ClientCard = ({ client, onPress, onEdit, onDelete, index = 0 }: ClientCard
               <Text variant="titleMedium" style={styles.name}>
                 {client.name}
               </Text>
-              {client.gstin_no && (
-                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                  GSTIN: {client.gstin_no}
-                </Text>
+              {client.contact_no && (
+                <View style={styles.detailRow}>
+                  <MaterialCommunityIcons name="phone" size={14} color={theme.colors.onSurfaceVariant} style={styles.icon} />
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {client.contact_no}
+                  </Text>
+                </View>
               )}
               {client.email && (
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  {client.email}
-                </Text>
+                 <View style={styles.detailRow}>
+                  <MaterialCommunityIcons name="email" size={14} color={theme.colors.onSurfaceVariant} style={styles.icon} />
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {client.email}
+                  </Text>
+                 </View>
+              )}
+              {client.pan_no && (
+                 <View style={styles.detailRow}>
+                  <MaterialCommunityIcons name="card-account-details" size={14} color={theme.colors.onSurfaceVariant} style={styles.icon} />
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    PAN: {client.pan_no}
+                  </Text>
+                 </View>
+              )}
+              {client.gstin_no && (
+                 <View style={styles.detailRow}>
+                  <MaterialCommunityIcons name="briefcase-account" size={14} color={theme.colors.onSurfaceVariant} style={styles.icon} />
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    GSTIN: {client.gstin_no}
+                  </Text>
+                 </View>
               )}
             </View>
           </View>
@@ -128,7 +150,15 @@ const styles = StyleSheet.create({
   },
   name: {
     fontWeight: '600',
+    marginBottom: spacing.sm, // Increased margin for better separation
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.xs,
+  },
+  icon: {
+    marginRight: spacing.xs,
   },
   actions: {
     flexDirection: 'row',
