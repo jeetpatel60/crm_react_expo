@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
-import { Text, Card, Button, Chip, IconButton, DataTable, FAB, useTheme, Divider } from 'react-native-paper';
+import { Text, Card, Button, IconButton, DataTable, FAB, useTheme, Divider } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { TemplateSelectionModal, AgreementTemplateSelectionModal } from '../components';
+import { TemplateSelectionModal, AgreementTemplateSelectionModal, StatusBadge } from '../components';
 
 import { RootStackParamList } from '../types';
 import { UnitFlat } from '../database/unitsFlatDb';
@@ -18,7 +18,6 @@ import { getUnitPaymentReceipts, deleteUnitPaymentReceipt } from '../database/un
 import { getProjectById } from '../database/projectsDb';
 import { getClientById } from '../database/clientsDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
-import { UNIT_STATUS_COLORS, UNIT_CUSTOMER_SCHEDULE_STATUS_COLORS } from '../constants';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { generateAndSharePaymentRequestPdf } from '../utils/pdfUtils';
 import { generateAndShareDocxDocument } from '../utils/docxUtils';
@@ -269,20 +268,11 @@ const UnitFlatDetailsScreen = () => {
                 <Text variant="titleLarge" style={styles.title}>
                   {unit.flat_no}
                 </Text>
-                <Chip
-                  style={[
-                    styles.statusChip,
-                    { backgroundColor: UNIT_STATUS_COLORS[unit.status] + '20' }
-                  ]}
-                  textStyle={{
-                    color: UNIT_STATUS_COLORS[unit.status],
-                    textAlign: 'center',
-                    fontSize: 12,
-                    fontWeight: '500',
-                  }}
-                >
-                  {unit.status}
-                </Chip>
+                <StatusBadge
+                  status={unit.status}
+                  size="medium"
+                  showIcon={true}
+                />
               </View>
               <View style={styles.headerActions}>
                 <IconButton
@@ -290,7 +280,6 @@ const UnitFlatDetailsScreen = () => {
                   size={20}
                   onPress={handleExportAgreement}
                   iconColor={theme.colors.primary}
-                  tooltip="Export Agreement"
                 />
                 <IconButton
                   icon="pencil"
@@ -422,23 +411,11 @@ const UnitFlatDetailsScreen = () => {
                       <DataTable.Cell style={styles.amountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(schedule.amount || 0)}</DataTable.Cell>
                       <DataTable.Cell style={styles.statusColumn}>
                         <View style={{alignItems: 'center', width: '100%'}}>
-                          <Chip
-                            style={[
-                              styles.statusChip,
-                              {
-                                backgroundColor: UNIT_CUSTOMER_SCHEDULE_STATUS_COLORS[schedule.status] + '20',
-                                width: 130,
-                              }
-                            ]}
-                            textStyle={{
-                              color: UNIT_CUSTOMER_SCHEDULE_STATUS_COLORS[schedule.status],
-                              textAlign: 'center',
-                              fontSize: 11,
-                              fontWeight: '500',
-                            }}
-                          >
-                            {schedule.status}
-                          </Chip>
+                          <StatusBadge
+                            status={schedule.status}
+                            size="small"
+                            showIcon={true}
+                          />
                         </View>
                       </DataTable.Cell>
                       <DataTable.Cell style={styles.actionsColumn}>

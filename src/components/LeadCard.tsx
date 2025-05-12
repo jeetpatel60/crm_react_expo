@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { Card, Text, Avatar, useTheme, IconButton } from 'react-native-paper';
+import { Card, Text, useTheme, IconButton, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { Lead } from '../types';
-import { shadows, spacing, borderRadius, animations } from '../constants/theme';
-import { useFadeScaleAnimation, usePressAnimation, useStaggeredAnimation } from '../utils/animationUtils';
+import { shadows, spacing, borderRadius } from '../constants/theme';
+import { usePressAnimation, useStaggeredAnimation } from '../utils/animationUtils';
 import AnimatedAvatarText from './AnimatedAvatarText';
-import StatusChip from './StatusChip';
+import StatusBadge from './StatusBadge';
 
 interface LeadCardProps {
   lead: Lead;
@@ -64,54 +64,107 @@ const LeadCard = ({ lead, onPress, onEdit, onDelete, index = 0 }: LeadCardProps)
         ]}
       >
         <Card.Content style={styles.content}>
-          <View style={styles.leftContent}>
-            <AnimatedAvatarText
-              size={50}
-              label={getInitials(lead.name)}
-              style={[
-                {
-                  backgroundColor: theme.colors.primary,
-                  borderRadius: borderRadius.round,
-                },
-              ]}
-            />
-            <View style={styles.details}>
+          {/* Header Section with Name and Status */}
+          <View style={styles.cardHeader}>
+            <View style={styles.nameContainer}>
+              <AnimatedAvatarText
+                size={40}
+                label={getInitials(lead.name)}
+                style={[
+                  {
+                    backgroundColor: theme.colors.primary,
+                    borderRadius: borderRadius.round,
+                  },
+                ]}
+              />
               <Text variant="titleMedium" style={styles.name}>
                 {lead.name}
               </Text>
-              {lead.enquiry_for && (
-                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Enquiry: {lead.enquiry_for}
-                </Text>
-              )}
-              {lead.budget && (
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  Budget: {formatBudget(lead.budget)}
-                </Text>
-              )}
             </View>
+            <StatusBadge status={lead.status} size="medium" />
           </View>
 
-          <View style={styles.rightContent}>
-            <StatusChip status={lead.status} size="medium" />
-            <View style={styles.actions}>
-              {onEdit && (
-                <IconButton
-                  icon="pencil"
-                  size={20}
-                  iconColor={theme.colors.secondary}
-                  onPress={() => onEdit(lead)}
+          <Divider style={styles.divider} />
+
+          {/* Details Section */}
+          <View style={styles.detailsContainer}>
+            {lead.enquiry_for && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="information-outline"
+                  size={18}
+                  color={theme.colors.primary}
+                  style={styles.detailIcon}
                 />
-              )}
-              {onDelete && lead.id && (
-                <IconButton
-                  icon="delete"
-                  size={20}
-                  iconColor={theme.colors.error}
-                  onPress={() => onDelete(lead.id!)}
+                <Text variant="bodyMedium" style={styles.detailText}>
+                  {lead.enquiry_for}
+                </Text>
+              </View>
+            )}
+
+            {lead.budget && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="currency-inr"
+                  size={18}
+                  color={theme.colors.primary}
+                  style={styles.detailIcon}
                 />
-              )}
-            </View>
+                <Text variant="bodyMedium" style={styles.detailText}>
+                  {formatBudget(lead.budget)}
+                </Text>
+              </View>
+            )}
+
+            {lead.lead_source && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="source-branch"
+                  size={18}
+                  color={theme.colors.primary}
+                  style={styles.detailIcon}
+                />
+                <Text variant="bodyMedium" style={styles.detailText}>
+                  {lead.lead_source}
+                </Text>
+              </View>
+            )}
+
+            {lead.reference && (
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons
+                  name="account-arrow-right-outline"
+                  size={18}
+                  color={theme.colors.primary}
+                  style={styles.detailIcon}
+                />
+                <Text variant="bodyMedium" style={styles.detailText}>
+                  {lead.reference}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Actions Section */}
+          <View style={styles.actions}>
+            {onEdit && (
+              <IconButton
+                icon="pencil"
+                size={20}
+                iconColor={theme.colors.secondary}
+                onPress={() => onEdit(lead)}
+                style={styles.actionButton}
+              />
+            )}
+            {onDelete && lead.id && (
+              <IconButton
+                icon="delete"
+                size={20}
+                iconColor={theme.colors.error}
+                onPress={() => onDelete(lead.id!)}
+                style={styles.actionButton}
+              />
+            )}
           </View>
         </Card.Content>
       </AnimatedCard>
@@ -127,38 +180,48 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   content: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     padding: spacing.sm,
   },
-  leftContent: {
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  nameContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-  },
-  rightContent: {
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-  },
-  details: {
-    marginLeft: spacing.md,
     flex: 1,
   },
   name: {
     fontWeight: '600',
-    marginBottom: 2,
+    marginLeft: spacing.sm,
+  },
+  divider: {
+    marginVertical: spacing.xs,
+  },
+  detailsContainer: {
+    marginVertical: spacing.xs,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  detailIcon: {
+    marginRight: spacing.sm,
+  },
+  detailText: {
+    color: '#666',
+    flex: 1,
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    marginTop: spacing.xs,
   },
-  statusChip: {
-    height: 28,
-    marginBottom: spacing.xs,
-    paddingHorizontal: spacing.md,
-    minWidth: 90,
-    alignItems: 'center',
-    justifyContent: 'center',
+  actionButton: {
+    margin: 0,
   },
 });
 

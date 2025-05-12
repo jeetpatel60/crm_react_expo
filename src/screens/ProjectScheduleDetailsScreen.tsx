@@ -11,7 +11,7 @@ import { ProjectSchedule, Milestone, Project } from '../types';
 import { getProjectById } from '../database';
 import { getProjectScheduleById, getMilestonesByScheduleId, deleteMilestone, updateMilestone, MilestoneStatus } from '../database/projectSchedulesDb';
 import { db } from '../database/database';
-import { LoadingIndicator, StatusChip } from '../components';
+import { LoadingIndicator, StatusBadge } from '../components';
 import { spacing, shadows, borderRadius } from '../constants/theme';
 import { MILESTONE_STATUS_OPTIONS } from '../constants';
 
@@ -533,7 +533,7 @@ const ProjectScheduleDetailsScreen = () => {
                         <DataTable.Cell style={styles.milestoneColumn}>{milestone.milestone_name}</DataTable.Cell>
                         <DataTable.Cell style={styles.completionColumn}>{milestone.completion_percentage}%</DataTable.Cell>
                         <DataTable.Cell style={styles.statusColumn}>
-                          <StatusChip status={milestone.status} size="small" />
+                          <StatusBadge status={milestone.status} size="small" />
                         </DataTable.Cell>
                         <DataTable.Cell style={styles.actionsColumn}>
                           <View style={styles.actionButtons}>

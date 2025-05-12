@@ -16,3 +16,4 @@ export { default as TemplateSelectionModal } from './TemplateSelectionModal';
 export { default as AgreementTemplateSelectionModal } from './AgreementTemplateSelectionModal';
 export { default as ClientSelectionModal } from './ClientSelectionModal';
 export { default as StatusChip } from './StatusChip';
+export { default as StatusBadge } from './StatusBadge';

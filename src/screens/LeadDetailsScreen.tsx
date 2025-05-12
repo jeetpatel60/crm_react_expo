@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types';
 import { Lead } from '../types';
 import { getLeadById, deleteLead } from '../database';
-import { LoadingIndicator, StatusChip } from '../components';
+import { LoadingIndicator, StatusBadge } from '../components';
 import { spacing, shadows } from '../constants/theme';
 
 type LeadDetailsScreenRouteProp = RouteProp<RootStackParamList, 'LeadDetails'>;
@@ -108,7 +108,7 @@ const LeadDetailsScreen = () => {
                 <Text variant="headlineSmall" style={styles.name}>
                   {lead.name}
                 </Text>
-                <StatusChip status={lead.status} size="medium" />
+                <StatusBadge status={lead.status} size="large" showIcon={true} />
               </View>
               <View style={styles.headerActions}>
                 <IconButton

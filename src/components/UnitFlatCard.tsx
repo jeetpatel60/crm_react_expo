@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Card, Text, IconButton, Chip, useTheme } from 'react-native-paper';
+import { Card, Text, IconButton, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
+import { StatusBadge } from '../components';
 
 import { UnitFlat } from '../types';
 import { spacing, shadows, borderRadius } from '../constants/theme';
@@ -45,18 +46,11 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
               <Text variant="titleMedium" style={styles.title}>
                 {unit.flat_no}
               </Text>
-              <Chip
-                style={[
-                  styles.statusChip,
-                  { backgroundColor: UNIT_STATUS_COLORS[unit.status] + '20' }
-                ]}
-                textStyle={{
-                  color: UNIT_STATUS_COLORS[unit.status],
-                  textAlign: 'center',
-                }}
-              >
-                {unit.status}
-              </Chip>
+              <StatusBadge
+                status={unit.status}
+                size="small"
+                showIcon={true}
+              />
             </View>
             <View style={styles.actions}>
               {onExport && (

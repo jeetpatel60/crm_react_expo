@@ -9,7 +9,7 @@ import { RootStackParamList } from '../types';
 import { Project } from '../types';
 import { getProjectById, deleteProject } from '../database';
 import { db } from '../database/database';
-import { LoadingIndicator, StatusChip } from '../components';
+import { LoadingIndicator, StatusBadge } from '../components';
 import { spacing, shadows } from '../constants/theme';
 
 type ProjectDetailsRouteProp = RouteProp<RootStackParamList, 'ProjectDetails'>;
@@ -215,7 +215,7 @@ const ProjectDetailsScreen = () => {
               <Text variant="headlineMedium" style={styles.title}>
                 {project.name}
               </Text>
-              <StatusChip status={project.status} size="medium" />
+              <StatusBadge status={project.status} size="large" showIcon={true} />
             </View>
 
             <Divider style={styles.divider} />

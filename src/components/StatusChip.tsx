@@ -54,21 +54,21 @@ const StatusChip = ({ status, size = 'medium' }: StatusChipProps) => {
       case 'small':
         return {
           height: 24,
-          minWidth: 90, // Increased width to prevent text cutoff
           fontSize: 10,
+          paddingHorizontal: 8,
         };
       case 'large':
         return {
           height: 32,
-          minWidth: 120, // Increased width to prevent text cutoff
           fontSize: 12,
+          paddingHorizontal: 12,
         };
       case 'medium':
       default:
         return {
-          height: 32,
-          minWidth: 110, // Increased width to prevent text cutoff
-          fontSize: 14,
+          height: 28,
+          fontSize: 12,
+          paddingHorizontal: 10,
         };
     }
   };
@@ -83,17 +83,14 @@ const StatusChip = ({ status, size = 'medium' }: StatusChipProps) => {
           {
             backgroundColor: getStatusColor(status) + '20',
             height: sizeStyles.height,
-            minWidth: sizeStyles.minWidth,
-            paddingHorizontal: 8, // Add horizontal padding
+            paddingHorizontal: sizeStyles.paddingHorizontal,
           },
         ]}
         textStyle={{
           color: getStatusColor(status),
           fontWeight: '500',
           textAlign: 'center',
-          textAlignVertical: 'center',
           fontSize: sizeStyles.fontSize,
-          //width: '100%', // Ensure text takes full width
         }}
         ellipsizeMode="tail"
       >
@@ -107,15 +104,11 @@ const styles = StyleSheet.create({
   chipContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
   },
   chip: {
     alignItems: 'center',
     justifyContent: 'center',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    //flexDirection: 'row',
-    overflow: 'visible', // Ensure text isn't clipped
+    alignSelf: 'flex-start', // Allow chip to size based on content
   },
 });
 

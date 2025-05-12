@@ -4,10 +4,10 @@ import { Card, Text, Avatar, useTheme, IconButton, ProgressBar } from 'react-nat
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { Project } from '../types';
-import { shadows, spacing, borderRadius, animations } from '../constants/theme';
+import { shadows, spacing, borderRadius } from '../constants/theme';
 import { usePressAnimation, useStaggeredAnimation } from '../utils/animationUtils';
 import { getCompanyById } from '../database/companiesDb';
-import { StatusChip } from '../components';
+import { StatusBadge } from '../components';
 
 interface ProjectCardProps {
   project: Project;
@@ -89,7 +89,7 @@ const ProjectCard = ({ project, onPress, onEdit, onDelete, index = 0 }: ProjectC
             <Card.Content style={styles.content}>
               <View style={styles.statusContainer}>
                 <View style={styles.chipWrapper}>
-                  <StatusChip status={project.status} size="medium" />
+                  <StatusBadge status={project.status} size="medium" />
                 </View>
               </View>
 
