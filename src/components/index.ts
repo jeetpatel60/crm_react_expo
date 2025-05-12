@@ -17,3 +17,6 @@ export { default as AgreementTemplateSelectionModal } from './AgreementTemplateS
 export { default as ClientSelectionModal } from './ClientSelectionModal';
 export { default as StatusChip } from './StatusChip';
 export { default as StatusBadge } from './StatusBadge';
+export { default as KPICard } from './KPICard';
+export { default as ChartCard } from './ChartCard';
+export { default as ActivityList } from './ActivityList';
