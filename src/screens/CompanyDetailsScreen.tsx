@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import { Card, Text, Button, useTheme, Divider, IconButton } from 'react-native-paper';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as FileSystem from 'expo-file-system';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -113,10 +114,19 @@ const CompanyDetailsScreen = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Card style={[styles.card, shadows.md, { backgroundColor: theme.colors.surface }]}>
-          <Card.Content>
-            <View style={styles.headerContainer}>
-              <View style={styles.headerContent}>
+        <Card style={[styles.card, shadows.sm]}>
+          <LinearGradient
+            colors={[
+              theme.colors.surface,
+              theme.dark ? theme.colors.background : theme.colors.outline,
+            ] as any}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.gradientContainer, { borderRadius: theme.roundness }]}
+          >
+            <Card.Content>
+              <View style={styles.headerContainer}>
+                <View style={styles.headerContent}>
                 <Text variant="headlineSmall" style={styles.companyName}>
                   {company.name}
                 </Text>
@@ -159,7 +169,7 @@ const CompanyDetailsScreen = () => {
               <View style={styles.letterheadContainer}>
                 <View style={styles.fileInfoRow}>
                   <MaterialCommunityIcons
-                    name={fileType === 'image' ? 'file-image' : fileType === 'pdf' ? 'file-pdf' : 'file-document'}
+                    name={fileType === 'image' ? 'file-image' : fileType === 'pdf' ? 'file-pdf' : 'file-document' as any} // Cast to any to fix TS error
                     size={24}
                     color={theme.colors.primary}
                   />
@@ -188,7 +198,8 @@ const CompanyDetailsScreen = () => {
                 No letterhead attached
               </Text>
             )}
-          </Card.Content>
+            </Card.Content>
+          </LinearGradient>
         </Card>
       </ScrollView>
     </View>
@@ -258,6 +269,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  gradientContainer: { // Added for LinearGradient
+    flex: 1,
   },
 });
 

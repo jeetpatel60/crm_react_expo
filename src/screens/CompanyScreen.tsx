@@ -3,6 +3,7 @@ import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native'
 import { Searchbar, FAB, useTheme, Card, Text, IconButton } from 'react-native-paper';
 import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import { RootStackParamList, DrawerParamList } from '../types';
@@ -104,18 +105,26 @@ const CompanyScreen = () => {
     onEdit?: (company: Company) => void;
     onDelete?: (companyId: number) => void;
   }) => {
+    // Define gradient colors for a stronger diagonal effect
+    const gradientColors = [
+      theme.colors.surface,
+      theme.dark ? theme.colors.background : theme.colors.outline // Use background (dark) or outline (light) for stronger contrast
+    ] as any; // Explicitly cast to any to resolve TypeScript error
+
     return (
       <Card
-        style={[
-          styles.companyCard,
-          shadows.md,
-          { backgroundColor: theme.colors.surface }
-        ]}
+        style={[styles.companyCard, shadows.lg]} // Use softer shadow (sm)
         onPress={() => onPress(company)}
       >
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.cardDetails}>
-            <Text variant="titleMedium" style={styles.companyName}>
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }} // Diagonal start
+          end={{ x: 1, y: 1 }}   // Diagonal end
+          style={[styles.gradientContainer, { borderRadius: theme.roundness }]} // Apply borderRadius
+        >
+          <Card.Content style={styles.cardContent}>
+            <View style={styles.cardDetails}>
+              <Text variant="titleMedium" style={styles.companyName}>
               {company.name}
             </Text>
             {company.salutation && (
@@ -146,8 +155,9 @@ const CompanyScreen = () => {
                 onPress={() => onDelete(company.id!)}
               />
             )}
-          </View>
-        </Card.Content>
+            </View>
+          </Card.Content>
+        </LinearGradient>
       </Card>
     );
   };
@@ -247,6 +257,9 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+  },
+  gradientContainer: {
+    flex: 1,
   },
 });
 
