@@ -15,6 +15,7 @@ interface UnitFlatCardProps {
   onPress: (unit: UnitFlat) => void;
   onEdit: (unit: UnitFlat) => void;
   onDelete: (unitId: number) => void;
+  onExport?: (unit: UnitFlat) => void;
   index: number;
 }
 
@@ -24,6 +25,7 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
   onPress,
   onEdit,
   onDelete,
+  onExport,
   index,
 }) => {
   const theme = useTheme();
@@ -57,6 +59,15 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
               </Chip>
             </View>
             <View style={styles.actions}>
+              {onExport && (
+                <IconButton
+                  icon="file-document-outline"
+                  size={20}
+                  onPress={() => onExport(unit)}
+                  style={styles.iconButton}
+                  tooltip="Export Agreement"
+                />
+              )}
               <IconButton
                 icon="pencil"
                 size={20}

@@ -10,8 +10,9 @@ import { RootStackParamList, DrawerParamList } from '../types';
 import { UnitFlat, UnitStatus } from '../database/unitsFlatDb';
 import { Project } from '../types';
 import { getUnitsFlats, deleteUnitFlat } from '../database/unitsFlatDb';
+import { generateAndShareDocxDocument } from '../utils/docxUtils';
 import { getProjects } from '../database/projectsDb';
-import { UnitFlatCard, LoadingIndicator, EmptyState } from '../components';
+import { UnitFlatCard, LoadingIndicator, EmptyState, AgreementTemplateSelectionModal } from '../components';
 import { spacing, shadows, animations } from '../constants/theme';
 import { UNIT_STATUS_OPTIONS } from '../constants';
 
@@ -36,6 +37,8 @@ const UnitsFlatScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [templateModalVisible, setTemplateModalVisible] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<UnitFlat | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -120,6 +123,38 @@ const UnitsFlatScreen = () => {
     );
   };
 
+  const handleExportAgreement = (unit: UnitFlat) => {
+    setSelectedUnit(unit);
+    setTemplateModalVisible(true);
+  };
+
+  const handleTemplateSelect = async (templateId: number) => {
+    setTemplateModalVisible(false);
+
+    if (selectedUnit) {
+      try {
+        const project = projects.get(selectedUnit.project_id);
+
+        if (!project) {
+          Alert.alert('Error', 'Project information not found');
+          return;
+        }
+
+        // Use the project's company_id for the letterhead
+        await generateAndShareDocxDocument(
+          templateId,
+          selectedUnit.id,
+          undefined,
+          project.id,
+          project.company_id
+        );
+      } catch (error) {
+        console.error('Error exporting agreement:', error);
+        Alert.alert('Error', 'Failed to export agreement');
+      }
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Animated.View
@@ -169,6 +204,7 @@ const UnitsFlatScreen = () => {
                 onPress={(unit) => navigation.navigate('UnitFlatDetails', { unitId: unit.id! })}
                 onEdit={(unit) => navigation.navigate('EditUnitFlat', { unit })}
                 onDelete={(unitId) => handleDeleteUnitFlat(unitId)}
+                onExport={handleExportAgreement}
                 index={index}
               />
             );
@@ -191,6 +227,14 @@ const UnitsFlatScreen = () => {
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         color="#fff"
         onPress={() => navigation.navigate('AddUnitFlat')}
+      />
+
+      {/* Agreement Template Selection Modal */}
+      <AgreementTemplateSelectionModal
+        visible={templateModalVisible}
+        onDismiss={() => setTemplateModalVisible(false)}
+        onSelect={handleTemplateSelect}
+        title="Select Agreement Template"
       />
     </View>
   );

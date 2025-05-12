@@ -4,7 +4,7 @@ import { Text, Card, Button, Chip, IconButton, DataTable, FAB, useTheme, Divider
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { TemplateSelectionModal } from '../components';
+import { TemplateSelectionModal, AgreementTemplateSelectionModal } from '../components';
 
 import { RootStackParamList } from '../types';
 import { UnitFlat } from '../database/unitsFlatDb';
@@ -20,6 +20,7 @@ import { spacing, shadows, borderRadius } from '../constants/theme';
 import { UNIT_STATUS_COLORS, UNIT_CUSTOMER_SCHEDULE_STATUS_COLORS } from '../constants';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { generateAndSharePaymentRequestPdf } from '../utils/pdfUtils';
+import { generateAndShareDocxDocument } from '../utils/docxUtils';
 
 type UnitFlatDetailsScreenRouteProp = RouteProp<RootStackParamList, 'UnitFlatDetails'>;
 type UnitFlatDetailsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -38,6 +39,7 @@ const UnitFlatDetailsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [templateModalVisible, setTemplateModalVisible] = useState(false);
+  const [agreementTemplateModalVisible, setAgreementTemplateModalVisible] = useState(false);
   const [selectedPaymentRequestId, setSelectedPaymentRequestId] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
@@ -187,6 +189,37 @@ const UnitFlatDetailsScreen = () => {
     }
   };
 
+  const handleExportAgreement = () => {
+    setAgreementTemplateModalVisible(true);
+  };
+
+  const handleAgreementTemplateSelect = async (templateId: number) => {
+    setAgreementTemplateModalVisible(false);
+
+    try {
+      if (!unit) return;
+
+      const project = await getProjectById(unit.project_id);
+
+      if (!project) {
+        Alert.alert('Error', 'Project information not found');
+        return;
+      }
+
+      // Use the project's company_id for the letterhead
+      await generateAndShareDocxDocument(
+        templateId,
+        unit.id,
+        undefined,
+        project.id,
+        project.company_id
+      );
+    } catch (error) {
+      console.error('Error exporting agreement:', error);
+      Alert.alert('Error', 'Failed to export agreement');
+    }
+  };
+
   if (loading || !unit) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -232,11 +265,20 @@ const UnitFlatDetailsScreen = () => {
                   {unit.status}
                 </Chip>
               </View>
-              <IconButton
-                icon="pencil"
-                size={20}
-                onPress={() => navigation.navigate('EditUnitFlat', { unit })}
-              />
+              <View style={styles.headerActions}>
+                <IconButton
+                  icon="file-document-outline"
+                  size={20}
+                  onPress={handleExportAgreement}
+                  iconColor={theme.colors.primary}
+                  tooltip="Export Agreement"
+                />
+                <IconButton
+                  icon="pencil"
+                  size={20}
+                  onPress={() => navigation.navigate('EditUnitFlat', { unit })}
+                />
+              </View>
             </View>
 
             <View style={styles.infoRow}>
@@ -535,12 +577,20 @@ const UnitFlatDetailsScreen = () => {
         </Card>
       </ScrollView>
 
-      {/* Template Selection Modal */}
+      {/* Payment Request Template Selection Modal */}
       <TemplateSelectionModal
         visible={templateModalVisible}
         onDismiss={() => setTemplateModalVisible(false)}
         onSelect={handleTemplateSelect}
         title="Select Payment Request Template"
+      />
+
+      {/* Agreement Template Selection Modal */}
+      <AgreementTemplateSelectionModal
+        visible={agreementTemplateModalVisible}
+        onDismiss={() => setAgreementTemplateModalVisible(false)}
+        onSelect={handleAgreementTemplateSelect}
+        title="Select Agreement Template"
       />
     </View>
   );
@@ -567,6 +617,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
     fontWeight: '600',

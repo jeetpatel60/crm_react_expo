@@ -14,6 +14,7 @@ import Animated, {
 import { AppNavigator } from './src/navigation';
 import { useThemeManager } from './src/hooks';
 import { initializeDatabase } from './src/utils';
+import { addSampleAgreementTemplate } from './src/utils/sampleTemplateUtils';
 import { LoadingIndicator } from './src/components';
 import { ThemeProvider, useThemeContext } from './src/context';
 import { animations, shadows } from './src/constants/theme';
@@ -70,6 +71,15 @@ export default function App() {
         console.log('Starting database initialization...');
         await initializeDatabase();
         console.log('Database initialization completed successfully');
+
+        // Add a sample agreement template for testing
+        try {
+          await addSampleAgreementTemplate();
+          console.log('Sample agreement template added successfully');
+        } catch (templateError) {
+          console.warn('Failed to add sample agreement template:', templateError);
+          // Continue even if template creation fails
+        }
       } catch (err) {
         console.error('Failed to initialize the app', err);
         setError(`Failed to initialize the database: ${err instanceof Error ? err.message : String(err)}`);
