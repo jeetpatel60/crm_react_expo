@@ -48,13 +48,14 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
               <Text variant="titleMedium" style={styles.title}>
                 {quotation.quotation_no}
               </Text>
+            </View>
+            <View style={styles.headerRight}>
               <Text variant="bodySmall" style={[styles.date, { color: theme.colors.onSurfaceVariant }]}>
                 {formatDate(quotation.date)}
               </Text>
-            </View>
-            <View style={styles.actions}>
-              <IconButton
-                icon="pencil"
+              <View style={styles.actions}>
+                <IconButton
+                  icon="pencil"
                 size={20}
                 onPress={() => onEdit(quotation)}
                 style={styles.actionButton}
@@ -69,12 +70,13 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
                 }}
                 style={styles.actionButton}
               />
+              </View>
             </View>
           </View>
 
           <View style={styles.detailsContainer}>
             {projectName && (
-              <View style={styles.detailRow}>
+              <View style={[styles.detailRow, styles.detailColumn]}>
                 <MaterialCommunityIcons
                   name="office-building"
                   size={16}
@@ -88,7 +90,7 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
             )}
 
             {leadName && (
-              <View style={styles.detailRow}>
+              <View style={[styles.detailRow, styles.detailColumn]}>
                 <MaterialCommunityIcons
                   name="account-convert"
                   size={16}
@@ -102,7 +104,7 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
             )}
 
             {flatNo && (
-              <View style={styles.detailRow}>
+              <View style={[styles.detailRow, styles.detailColumn]}>
                 <MaterialCommunityIcons
                   name="home"
                   size={16}
@@ -116,7 +118,7 @@ const QuotationCard: React.FC<QuotationCardProps> = ({
             )}
 
             {companyName && (
-              <View style={styles.detailRow}>
+              <View style={[styles.detailRow, styles.detailColumn]}>
                 <MaterialCommunityIcons
                   name="domain"
                   size={16}
@@ -158,13 +160,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   titleContainer: {
-    flex: 1,
+    // flex: 1, // Adjusted later if needed
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   title: {
     fontWeight: '600',
+    marginRight: spacing.sm, // Add space between title and date/actions
   },
   date: {
-    marginTop: 2,
+    // marginTop: 2, // Removed as it's now aligned horizontally
+    marginRight: spacing.xs,
   },
   actions: {
     flexDirection: 'row',
@@ -173,12 +181,18 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   detailsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between', // Distribute space between columns
     marginBottom: spacing.sm,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs, // Reduced margin for tighter grid
+  },
+  detailColumn: {
+    width: '48%', // Roughly half width with some spacing
   },
   detailIcon: {
     marginRight: 8,
