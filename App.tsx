@@ -72,10 +72,14 @@ export default function App() {
         await initializeDatabase();
         console.log('Database initialization completed successfully');
 
-        // Add a sample agreement template for testing
+        // Add a sample agreement template only if no templates exist
         try {
-          await addSampleAgreementTemplate();
-          console.log('Sample agreement template added successfully');
+          const templateId = await addSampleAgreementTemplate();
+          if (templateId > 0) {
+            console.log('Sample agreement template added successfully with ID:', templateId);
+          } else {
+            console.log('Sample agreement template not added - templates already exist');
+          }
         } catch (templateError) {
           console.warn('Failed to add sample agreement template:', templateError);
           // Continue even if template creation fails

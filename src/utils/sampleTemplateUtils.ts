@@ -1,11 +1,20 @@
 import * as FileSystem from 'expo-file-system';
-import { addAgreementTemplate } from '../database/agreementTemplatesDb';
+import { addAgreementTemplate, getAgreementTemplates } from '../database/agreementTemplatesDb';
 
 /**
- * Add a sample agreement template to the database
+ * Add a sample agreement template to the database only if no templates exist
+ * @returns The ID of the created template or -1 if no template was created
  */
 export const addSampleAgreementTemplate = async (): Promise<number> => {
   try {
+    // Check if any templates already exist
+    const existingTemplates = await getAgreementTemplates();
+    if (existingTemplates.length > 0) {
+      console.log('Agreement templates already exist, skipping sample template creation');
+      return -1;
+    }
+
+    console.log('No agreement templates found, creating sample template...');
     // Read the sample agreement template file
     const fileUri = `${FileSystem.documentDirectory}sample_agreement.txt`;
 
