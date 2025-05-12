@@ -7,9 +7,9 @@ import { DrawerNavigationProp } from '@react-navigation/drawer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { RootStackParamList, DrawerParamList } from '../types';
-import { UnitFlat, UnitStatus } from '../database/unitsFlatDb';
+import { UnitFlat, UnitStatus, UnitFlatWithDetails } from '../database/unitsFlatDb';
 import { Project } from '../types';
-import { getUnitsFlats, deleteUnitFlat } from '../database/unitsFlatDb';
+import { getUnitsFlats, deleteUnitFlat, getUnitsFlatWithDetails } from '../database/unitsFlatDb';
 import { generateAndShareDocxDocument } from '../utils/docxUtils';
 import { getProjects } from '../database/projectsDb';
 import { UnitFlatCard, LoadingIndicator, EmptyState, AgreementTemplateSelectionModal } from '../components';
@@ -30,8 +30,8 @@ const UnitsFlatScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<UnitsFlatScreenNavigationProp>();
 
-  const [units, setUnits] = useState<UnitFlat[]>([]);
-  const [filteredUnits, setFilteredUnits] = useState<UnitFlat[]>([]);
+  const [units, setUnits] = useState<UnitFlatWithDetails[]>([]);
+  const [filteredUnits, setFilteredUnits] = useState<UnitFlatWithDetails[]>([]);
   const [projects, setProjects] = useState<Map<number, Project>>(new Map());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,8 +42,8 @@ const UnitsFlatScreen = () => {
 
   const loadData = useCallback(async () => {
     try {
-      // Fetch units/flats
-      const unitsData = await getUnitsFlats();
+      // Fetch units/flats with client details
+      const unitsData = await getUnitsFlatWithDetails();
       setUnits(unitsData);
 
       // Fetch projects for reference
@@ -61,6 +61,7 @@ const UnitsFlatScreen = () => {
         filtered = filtered.filter(unit =>
           unit.flat_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
           unit.type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          unit.client_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           projectsMap.get(unit.project_id)?.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
       }
@@ -124,6 +125,15 @@ const UnitsFlatScreen = () => {
   };
 
   const handleExportAgreement = (unit: UnitFlat) => {
+    // Check if unit is sold and has a client
+    if (unit.status !== 'Sold' || !unit.client_id) {
+      Alert.alert(
+        'Cannot Generate Agreement',
+        'Agreement can only be generated for units with status "Sold" and a selected client.'
+      );
+      return;
+    }
+
     setSelectedUnit(unit);
     setTemplateModalVisible(true);
   };
@@ -140,11 +150,11 @@ const UnitsFlatScreen = () => {
           return;
         }
 
-        // Use the project's company_id for the letterhead
+        // Use the project's company_id for the letterhead and include client_id
         await generateAndShareDocxDocument(
           templateId,
           selectedUnit.id,
-          undefined,
+          selectedUnit.client_id,
           project.id,
           project.company_id
         );

@@ -41,6 +41,7 @@ import EditAgreementTemplateScreen from '../screens/EditAgreementTemplateScreen'
 import PaymentRequestTemplateDetailsScreen from '../screens/PaymentRequestTemplateDetailsScreen';
 import AddPaymentRequestTemplateScreen from '../screens/AddPaymentRequestTemplateScreen';
 import EditPaymentRequestTemplateScreen from '../screens/EditPaymentRequestTemplateScreen';
+import DatabaseMigrationScreen from '../screens/DatabaseMigrationScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -246,6 +247,11 @@ const AppNavigator = () => {
           name="EditPaymentRequestTemplate"
           component={EditPaymentRequestTemplateScreen}
           options={{ title: 'Edit Payment Request Template' }}
+        />
+        <Stack.Screen
+          name="DatabaseMigration"
+          component={DatabaseMigrationScreen}
+          options={{ title: 'Database Migration' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

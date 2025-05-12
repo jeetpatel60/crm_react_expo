@@ -9,8 +9,10 @@ import { UnitFlat, UnitStatus } from '../database/unitsFlatDb';
 import { Project } from '../database/projectsDb';
 import { updateUnitFlat } from '../database/unitsFlatDb';
 import { getProjects } from '../database/projectsDb';
+import { getClientById } from '../database/clientsDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
 import { UNIT_STATUS_OPTIONS } from '../constants';
+import { ClientSelectionModal } from '../components';
 
 type EditUnitFlatScreenRouteProp = RouteProp<RootStackParamList, 'EditUnitFlat'>;
 type EditUnitFlatNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -25,6 +27,8 @@ const EditUnitFlatScreen = () => {
   const [flatNo, setFlatNo] = useState(unit.flat_no);
   const [projectId, setProjectId] = useState<number>(unit.project_id);
   const [projectName, setProjectName] = useState('');
+  const [clientId, setClientId] = useState<number | null>(unit.client_id || null);
+  const [clientName, setClientName] = useState('');
   const [areaSqft, setAreaSqft] = useState(unit.area_sqft?.toString() || '');
   const [ratePerSqft, setRatePerSqft] = useState(unit.rate_per_sqft?.toString() || '');
   const [receivedAmount, setReceivedAmount] = useState(unit.received_amount?.toString() || '0');
@@ -36,6 +40,7 @@ const EditUnitFlatScreen = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectMenuVisible, setProjectMenuVisible] = useState(false);
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
+  const [clientSelectionVisible, setClientSelectionVisible] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   // Calculated fields
@@ -68,6 +73,24 @@ const EditUnitFlatScreen = () => {
     loadProjects();
   }, [unit.project_id]);
 
+  // Load client name if client_id exists
+  useEffect(() => {
+    const loadClientName = async () => {
+      if (unit.client_id) {
+        try {
+          const client = await getClientById(unit.client_id);
+          if (client) {
+            setClientName(client.name);
+          }
+        } catch (error) {
+          console.error('Error loading client:', error);
+        }
+      }
+    };
+
+    loadClientName();
+  }, [unit.client_id]);
+
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -77,6 +100,10 @@ const EditUnitFlatScreen = () => {
 
     if (!projectId) {
       newErrors.project = 'Project is required';
+    }
+
+    if (status === 'Sold' && !clientId) {
+      newErrors.client = 'Client is required when status is Sold';
     }
 
     if (areaSqft && isNaN(parseFloat(areaSqft))) {
@@ -107,6 +134,7 @@ const EditUnitFlatScreen = () => {
         ...unit,
         flat_no: flatNo.trim(),
         project_id: projectId,
+        client_id: clientId || undefined,
         area_sqft: areaSqft ? parseFloat(areaSqft) : undefined,
         rate_per_sqft: ratePerSqft ? parseFloat(ratePerSqft) : undefined,
         flat_value: parseFloat(flatValue),
@@ -216,6 +244,32 @@ const EditUnitFlatScreen = () => {
           </Portal>
         </View>
 
+        <Text style={styles.sectionTitle}>Client</Text>
+        <View style={styles.dropdownContainer}>
+          <TextInput
+            label="Select Client"
+            value={clientName}
+            mode="outlined"
+            style={styles.input}
+            error={!!errors.client}
+            outlineColor={theme.colors.outline}
+            activeOutlineColor={theme.colors.primary}
+            right={
+              <TextInput.Icon
+                icon="menu-down"
+                onPress={() => setClientSelectionVisible(true)}
+              />
+            }
+            onTouchStart={() => setClientSelectionVisible(true)}
+            disabled={status !== 'Sold'}
+          />
+          {errors.client && (
+            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+              {errors.client}
+            </Text>
+          )}
+        </View>
+
         <View style={styles.row}>
           <View style={styles.halfInput}>
             <TextInput
@@ -321,8 +375,20 @@ const EditUnitFlatScreen = () => {
               <Menu.Item
                 key={option.value}
                 onPress={() => {
-                  setStatus(option.value as UnitStatus);
+                  const newStatus = option.value as UnitStatus;
+                  setStatus(newStatus);
                   setStatusMenuVisible(false);
+
+                  // If status is changed to "Sold", show client selection modal
+                  if (newStatus === 'Sold' && !clientId) {
+                    setClientSelectionVisible(true);
+                  }
+
+                  // If status is changed from "Sold" to something else, clear client
+                  if (newStatus !== 'Sold' && clientId) {
+                    setClientId(null);
+                    setClientName('');
+                  }
                 }}
                 title={option.label}
               />
@@ -360,6 +426,18 @@ const EditUnitFlatScreen = () => {
           </Button>
         </View>
       </ScrollView>
+
+      {/* Client Selection Modal */}
+      <ClientSelectionModal
+        visible={clientSelectionVisible}
+        onDismiss={() => setClientSelectionVisible(false)}
+        onSelect={(id, name) => {
+          setClientId(id);
+          setClientName(name);
+          setClientSelectionVisible(false);
+        }}
+        title="Select Client for Unit/Flat"
+      />
     </View>
   );
 };

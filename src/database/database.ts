@@ -209,6 +209,7 @@ export const initDatabase = async (): Promise<void> => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         flat_no TEXT NOT NULL,
         project_id INTEGER NOT NULL,
+        client_id INTEGER,
         area_sqft REAL,
         rate_per_sqft REAL,
         flat_value REAL,
@@ -218,7 +219,8 @@ export const initDatabase = async (): Promise<void> => {
         type TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
-        FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
+        FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+        FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE SET NULL
       );
     `);
 
@@ -333,8 +335,56 @@ export const initDatabase = async (): Promise<void> => {
     `);
 
     console.log('Database tables created successfully');
+
+    // Run migrations
+    await runMigrations();
   } catch (error) {
     console.error('Error initializing database tables:', error);
+    throw error;
+  }
+};
+
+// Function to run database migrations
+export const runMigrations = async (): Promise<void> => {
+  try {
+    console.log('Running database migrations...');
+
+    // Migration 1: Add client_id column to units_flats table
+    await addClientIdToUnitsFlats();
+
+    console.log('Database migrations completed successfully');
+  } catch (error) {
+    console.error('Error running database migrations:', error);
+    throw error;
+  }
+};
+
+// Migration to add client_id column to units_flats table
+const addClientIdToUnitsFlats = async (): Promise<void> => {
+  try {
+    // Check if the column already exists
+    const tableInfo = await db.getAllAsync(
+      "PRAGMA table_info(units_flats);"
+    );
+
+    const clientIdColumnExists = tableInfo.some(
+      (column: any) => column.name === 'client_id'
+    );
+
+    if (!clientIdColumnExists) {
+      console.log('Adding client_id column to units_flats table...');
+
+      // Add the client_id column
+      await db.execAsync(
+        `ALTER TABLE units_flats ADD COLUMN client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL;`
+      );
+
+      console.log('client_id column added successfully');
+    } else {
+      console.log('client_id column already exists in units_flats table');
+    }
+  } catch (error) {
+    console.error('Error adding client_id column to units_flats table:', error);
     throw error;
   }
 };

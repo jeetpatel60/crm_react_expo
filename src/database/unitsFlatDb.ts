@@ -8,6 +8,7 @@ export interface UnitFlat {
   id?: number;
   flat_no: string;
   project_id: number;
+  client_id?: number;
   area_sqft?: number;
   rate_per_sqft?: number;
   flat_value?: number;
@@ -82,12 +83,13 @@ export const addUnitFlat = async (unit: UnitFlat): Promise<number> => {
 
     const result = await db.runAsync(
       `INSERT INTO units_flats (
-        flat_no, project_id, area_sqft, rate_per_sqft, flat_value,
+        flat_no, project_id, client_id, area_sqft, rate_per_sqft, flat_value,
         received_amount, balance_amount, status, type, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         unit.flat_no,
         unit.project_id,
+        unit.client_id || null,
         unitWithCalculations.area_sqft || null,
         unitWithCalculations.rate_per_sqft || null,
         unitWithCalculations.flat_value || null,
@@ -140,6 +142,7 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
       `UPDATE units_flats SET
         flat_no = ?,
         project_id = ?,
+        client_id = ?,
         area_sqft = ?,
         rate_per_sqft = ?,
         flat_value = ?,
@@ -152,6 +155,7 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
       [
         unit.flat_no,
         unit.project_id,
+        unit.client_id || null,
         unitWithCalculations.area_sqft || null,
         unitWithCalculations.rate_per_sqft || null,
         unitWithCalculations.flat_value || null,
@@ -225,6 +229,50 @@ export const updateUnitFlatReceivedAmount = async (unitId: number, newReceivedAm
     await updateUnitFlat(calculateDerivedValues(unit));
   } catch (error) {
     console.error(`Error updating received amount for unit/flat with ID ${unitId}:`, error);
+    throw error;
+  }
+};
+
+// Get unit/flat with client and project details
+export interface UnitFlatWithDetails extends UnitFlat {
+  project_name?: string;
+  client_name?: string;
+}
+
+export const getUnitFlatWithDetails = async (unitId: number): Promise<UnitFlatWithDetails | null> => {
+  try {
+    return await db.getFirstAsync<UnitFlatWithDetails>(
+      `SELECT
+        u.*,
+        p.name as project_name,
+        c.name as client_name
+      FROM units_flats u
+      LEFT JOIN projects p ON u.project_id = p.id
+      LEFT JOIN clients c ON u.client_id = c.id
+      WHERE u.id = ?;`,
+      [unitId]
+    );
+  } catch (error) {
+    console.error(`Error fetching unit/flat with details for ID ${unitId}:`, error);
+    throw error;
+  }
+};
+
+// Get all units/flats with client and project details
+export const getUnitsFlatWithDetails = async (): Promise<UnitFlatWithDetails[]> => {
+  try {
+    return await db.getAllAsync<UnitFlatWithDetails>(
+      `SELECT
+        u.*,
+        p.name as project_name,
+        c.name as client_name
+      FROM units_flats u
+      LEFT JOIN projects p ON u.project_id = p.id
+      LEFT JOIN clients c ON u.client_id = c.id
+      ORDER BY u.flat_no ASC;`
+    );
+  } catch (error) {
+    console.error('Error fetching units/flats with details:', error);
     throw error;
   }
 };

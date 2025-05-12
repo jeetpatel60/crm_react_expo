@@ -10,7 +10,7 @@ import { UNIT_STATUS_COLORS } from '../constants';
 import { formatCurrency } from '../utils/formatters';
 
 interface UnitFlatCardProps {
-  unit: UnitFlat;
+  unit: UnitFlat & { client_name?: string };
   project?: { name: string };
   onPress: (unit: UnitFlat) => void;
   onEdit: (unit: UnitFlat) => void;
@@ -92,6 +92,19 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
               />
               <Text variant="bodyMedium" style={styles.infoText}>
                 {project.name}
+              </Text>
+            </View>
+          )}
+
+          {unit.client_name && unit.status === 'Sold' && (
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons
+                name="account"
+                size={16}
+                color={theme.colors.onSurfaceVariant}
+              />
+              <Text variant="bodyMedium" style={styles.infoText}>
+                {unit.client_name}
               </Text>
             </View>
           )}

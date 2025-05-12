@@ -72,7 +72,7 @@ export const generateAndShareDocxDocument = async (
 
     // For a real implementation, we would need to convert the HTML template to a docx file
     // For this demo, we'll create a simple text file with the template content
-    const templateUri = `${FileSystem.cacheDirectory}template_${Date.now()}.txt`;
+    const templateUri = `${FileSystem.cacheDirectory}template_${Date.now()}.docx`;
 
     // Write the template content to the file
     await FileSystem.writeAsStringAsync(templateUri, template.content);
@@ -190,8 +190,8 @@ export const generateAndShareDocxDocument = async (
 
     // Share the file
     await shareAsync(outputUri, {
-      UTI: 'public.plain-text',
-      mimeType: 'text/plain'
+      UTI: 'org.openxmlformats.wordprocessingml.document',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     });
 
     // Clean up temporary files
@@ -243,6 +243,11 @@ const prepareTemplateData = async (
       // If project ID is not provided, get it from the unit
       if (!projectId && unitData.project_id) {
         projectId = unitData.project_id;
+      }
+
+      // If client ID is not provided, get it from the unit
+      if (!clientId && unitData.client_id) {
+        clientId = unitData.client_id;
       }
     }
   }

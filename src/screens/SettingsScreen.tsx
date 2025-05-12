@@ -146,6 +146,20 @@ const SettingsScreen = () => {
         <Divider />
 
         <List.Section>
+          <List.Subheader>Database</List.Subheader>
+          <List.Item
+            title="Database Migrations"
+            description="Run database migrations manually"
+            left={(props) => (
+              <List.Icon {...props} icon="database" color={theme.colors.primary} />
+            )}
+            onPress={() => navigation.navigate('DatabaseMigration')}
+          />
+        </List.Section>
+
+        <Divider />
+
+        <List.Section>
           <List.Subheader>About</List.Subheader>
           <List.Item
             title="Version"

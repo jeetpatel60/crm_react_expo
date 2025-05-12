@@ -69,6 +69,7 @@ export type RootStackParamList = {
   PaymentRequestTemplateDetails: { templateId: number };
   AddPaymentRequestTemplate: undefined;
   EditPaymentRequestTemplate: { template: PaymentRequestTemplate };
+  DatabaseMigration: undefined;
 };
 
 export type DrawerParamList = {

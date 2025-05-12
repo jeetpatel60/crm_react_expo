@@ -11,11 +11,12 @@ import { UnitFlat } from '../database/unitsFlatDb';
 import { UnitCustomerSchedule } from '../database/unitCustomerSchedulesDb';
 import { UnitPaymentRequest } from '../database/unitPaymentRequestsDb';
 import { UnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
-import { getUnitFlatById } from '../database/unitsFlatDb';
+import { getUnitFlatById, getUnitFlatWithDetails } from '../database/unitsFlatDb';
 import { getUnitCustomerSchedules, deleteUnitCustomerSchedule } from '../database/unitCustomerSchedulesDb';
 import { getUnitPaymentRequests, deleteUnitPaymentRequest } from '../database/unitPaymentRequestsDb';
 import { getUnitPaymentReceipts, deleteUnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
 import { getProjectById } from '../database/projectsDb';
+import { getClientById } from '../database/clientsDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
 import { UNIT_STATUS_COLORS, UNIT_CUSTOMER_SCHEDULE_STATUS_COLORS } from '../constants';
 import { formatCurrency, formatDate } from '../utils/formatters';
@@ -33,6 +34,7 @@ const UnitFlatDetailsScreen = () => {
 
   const [unit, setUnit] = useState<UnitFlat | null>(null);
   const [projectName, setProjectName] = useState<string>('');
+  const [clientName, setClientName] = useState<string>('');
   const [customerSchedules, setCustomerSchedules] = useState<UnitCustomerSchedule[]>([]);
   const [paymentRequests, setPaymentRequests] = useState<UnitPaymentRequest[]>([]);
   const [paymentReceipts, setPaymentReceipts] = useState<UnitPaymentReceipt[]>([]);
@@ -46,8 +48,8 @@ const UnitFlatDetailsScreen = () => {
     try {
       setLoading(true);
 
-      // Fetch unit details
-      const unitData = await getUnitFlatById(unitId);
+      // Fetch unit details with project and client names
+      const unitData = await getUnitFlatWithDetails(unitId);
       if (!unitData) {
         Alert.alert('Error', 'Unit not found');
         navigation.goBack();
@@ -55,10 +57,16 @@ const UnitFlatDetailsScreen = () => {
       }
       setUnit(unitData);
 
-      // Fetch project name
-      const project = await getProjectById(unitData.project_id);
-      if (project) {
-        setProjectName(project.name);
+      // Set project name
+      if (unitData.project_name) {
+        setProjectName(unitData.project_name);
+      }
+
+      // Set client name
+      if (unitData.client_name) {
+        setClientName(unitData.client_name);
+      } else {
+        setClientName('');
       }
 
       // Fetch customer schedules
@@ -190,6 +198,17 @@ const UnitFlatDetailsScreen = () => {
   };
 
   const handleExportAgreement = () => {
+    if (!unit) return;
+
+    // Check if unit is sold and has a client
+    if (unit.status !== 'Sold' || !unit.client_id) {
+      Alert.alert(
+        'Cannot Generate Agreement',
+        'Agreement can only be generated for units with status "Sold" and a selected client.'
+      );
+      return;
+    }
+
     setAgreementTemplateModalVisible(true);
   };
 
@@ -206,11 +225,11 @@ const UnitFlatDetailsScreen = () => {
         return;
       }
 
-      // Use the project's company_id for the letterhead
+      // Use the project's company_id for the letterhead and include client_id
       await generateAndShareDocxDocument(
         templateId,
         unit.id,
-        undefined,
+        unit.client_id,
         project.id,
         project.company_id
       );
@@ -291,6 +310,19 @@ const UnitFlatDetailsScreen = () => {
                 Project: {projectName}
               </Text>
             </View>
+
+            {clientName && (
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons
+                  name="account"
+                  size={16}
+                  color={theme.colors.onSurfaceVariant}
+                />
+                <Text variant="bodyMedium" style={styles.infoText}>
+                  Client: {clientName}
+                </Text>
+              </View>
+            )}
 
             {unit.type && (
               <View style={styles.infoRow}>

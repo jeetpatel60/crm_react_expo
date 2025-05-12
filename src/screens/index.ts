@@ -39,5 +39,6 @@ export { default as AgreementTemplateDetailsScreen } from './AgreementTemplateDe
 export { default as PaymentRequestTemplateDetailsScreen } from './PaymentRequestTemplateDetailsScreen';
 export { default as AddAgreementTemplateScreen } from './AddAgreementTemplateScreen';
 export { default as EditAgreementTemplateScreen } from './EditAgreementTemplateScreen';
+export { default as DatabaseMigrationScreen } from './DatabaseMigrationScreen';
 export { default as AddPaymentRequestTemplateScreen } from './AddPaymentRequestTemplateScreen';
 export { default as EditPaymentRequestTemplateScreen } from './EditPaymentRequestTemplateScreen';

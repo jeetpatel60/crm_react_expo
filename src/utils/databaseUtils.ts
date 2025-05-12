@@ -1,4 +1,4 @@
-import { initDatabase, initializeDb, addCompanyIdToProjects, addTemplatesTables } from '../database';
+import { initDatabase, initializeDb, addCompanyIdToProjects, addTemplatesTables, addClientIdToUnitsFlats } from '../database';
 import { Platform, Alert } from 'react-native';
 
 export const initializeDatabase = async (): Promise<void> => {
@@ -33,6 +33,7 @@ export const initializeDatabase = async (): Promise<void> => {
     // Run migrations
     await addCompanyIdToProjects();
     await addTemplatesTables();
+    await addClientIdToUnitsFlats();
     console.log('Database migrations completed successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
