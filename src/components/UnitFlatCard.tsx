@@ -65,7 +65,7 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
                   size={20}
                   onPress={() => onExport(unit)}
                   style={styles.iconButton}
-                  tooltip="Export Agreement"
+                  accessibilityLabel="Export Agreement"
                 />
               )}
               <IconButton
