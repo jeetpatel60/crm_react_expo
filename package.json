@@ -23,6 +23,7 @@
     "expo-dev-client": "~5.1.8",
     "expo-document-picker": "^13.1.5",
     "expo-file-system": "^18.1.10",
+    "expo-linear-gradient": "^14.1.4",
     "expo-print": "^14.1.4",
     "expo-sharing": "^13.1.5",
     "expo-sqlite": "^15.2.10",

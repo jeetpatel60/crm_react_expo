@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, Text, IconButton, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBadge } from '../components';
 
 import { UnitFlat } from '../types';
@@ -37,10 +38,19 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
       style={styles.container}
     >
       <Card
-        style={[styles.card, shadows.md, { backgroundColor: theme.colors.surface }]}
+        style={[styles.card, shadows.md]}
         onPress={() => onPress(unit)}
       >
-        <Card.Content style={styles.content}>
+        <LinearGradient
+          colors={[
+            theme.dark ? theme.colors.surface : '#FFFFFF',
+            theme.dark ? theme.colors.surfaceVariant : '#F5F8FF'
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
+          <Card.Content style={styles.content}>
           <View style={styles.header}>
             <View style={styles.titleContainer}>
               <Text variant="titleMedium" style={styles.title}>
@@ -154,6 +164,7 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
             </View>
           </View>
         </Card.Content>
+        </LinearGradient>
       </Card>
     </Animated.View>
   );
@@ -165,6 +176,11 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: borderRadius.md,
+    overflow: 'hidden',
+  },
+  gradient: {
+    width: '100%',
+    height: '100%',
   },
   content: {
     padding: spacing.xs,
