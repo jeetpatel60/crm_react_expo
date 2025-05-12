@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Card, Button, useTheme, Divider, IconButton, Chip } from 'react-native-paper';
+import { Text, Card, Button, useTheme, Divider, IconButton } from 'react-native-paper';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types';
 import { Lead } from '../types';
 import { getLeadById, deleteLead } from '../database';
-import { LoadingIndicator } from '../components';
+import { LoadingIndicator, StatusChip } from '../components';
 import { spacing, shadows } from '../constants/theme';
 
 type LeadDetailsScreenRouteProp = RouteProp<RootStackParamList, 'LeadDetails'>;
@@ -69,21 +69,7 @@ const LeadDetailsScreen = () => {
     }
   };
 
-  // Status color mapping
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Lead':
-        return '#F59E0B'; // Amber
-      case 'Contacted':
-        return '#3B82F6'; // Blue
-      case 'Quote Given':
-        return '#8B5CF6'; // Purple
-      case 'Converted':
-        return '#10B981'; // Green
-      default:
-        return theme.colors.primary;
-    }
-  };
+
 
   // Format budget as currency
   const formatBudget = (budget?: number) => {
@@ -122,15 +108,7 @@ const LeadDetailsScreen = () => {
                 <Text variant="headlineSmall" style={styles.name}>
                   {lead.name}
                 </Text>
-                <Chip
-                  style={[
-                    styles.statusChip,
-                    { backgroundColor: getStatusColor(lead.status) + '20' },
-                  ]}
-                  textStyle={{ color: getStatusColor(lead.status), fontWeight: '500' }}
-                >
-                  {lead.status}
-                </Chip>
+                <StatusChip status={lead.status} size="medium" />
               </View>
               <View style={styles.headerActions}>
                 <IconButton
@@ -271,6 +249,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     height: 28,
     marginTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+    minWidth: 90,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   divider: {
     marginVertical: spacing.md,

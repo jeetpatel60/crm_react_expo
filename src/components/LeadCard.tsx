@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { Card, Text, Avatar, useTheme, IconButton, Chip } from 'react-native-paper';
+import { Card, Text, Avatar, useTheme, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { Lead } from '../types';
 import { shadows, spacing, borderRadius, animations } from '../constants/theme';
 import { useFadeScaleAnimation, usePressAnimation, useStaggeredAnimation } from '../utils/animationUtils';
 import AnimatedAvatarText from './AnimatedAvatarText';
+import StatusChip from './StatusChip';
 
 interface LeadCardProps {
   lead: Lead;
@@ -35,21 +36,7 @@ const LeadCard = ({ lead, onPress, onEdit, onDelete, index = 0 }: LeadCardProps)
       .substring(0, 2);
   };
 
-  // Status color mapping
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Lead':
-        return '#F59E0B'; // Amber
-      case 'Contacted':
-        return '#3B82F6'; // Blue
-      case 'Quote Given':
-        return '#8B5CF6'; // Purple
-      case 'Converted':
-        return '#10B981'; // Green
-      default:
-        return theme.colors.primary;
-    }
-  };
+
 
   // Format budget as currency
   const formatBudget = (budget?: number) => {
@@ -106,12 +93,7 @@ const LeadCard = ({ lead, onPress, onEdit, onDelete, index = 0 }: LeadCardProps)
           </View>
 
           <View style={styles.rightContent}>
-            <Chip
-              style={[styles.statusChip, { backgroundColor: getStatusColor(lead.status) + '20' }]}
-              textStyle={{ color: getStatusColor(lead.status), fontWeight: '500' }}
-            >
-              {lead.status}
-            </Chip>
+            <StatusChip status={lead.status} size="medium" />
             <View style={styles.actions}>
               {onEdit && (
                 <IconButton
@@ -173,6 +155,10 @@ const styles = StyleSheet.create({
   statusChip: {
     height: 28,
     marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    minWidth: 90,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
