@@ -10,6 +10,7 @@ import { UnitPaymentRequest } from '../database/unitPaymentRequestsDb';
 import { addUnitPaymentRequest, getUnitPaymentRequests } from '../database/unitPaymentRequestsDb';
 import { spacing } from '../constants/theme';
 import { formatDate } from '../utils/formatters';
+import { UnitPaymentReceipt } from '../database/unitPaymentReceiptsDb'; // Import UnitPaymentReceipt type
 
 type AddUnitPaymentRequestScreenRouteProp = RouteProp<RootStackParamList, 'AddUnitPaymentRequest'>;
 type AddUnitPaymentRequestNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -77,10 +78,29 @@ const AddUnitPaymentRequestScreen = () => {
         amount: parseFloat(amount),
       };
 
-      await addUnitPaymentRequest(newRequest);
+      const newPaymentRequestId = await addUnitPaymentRequest(newRequest);
 
-      Alert.alert('Success', 'Payment request added successfully');
-      navigation.goBack();
+      Alert.alert(
+        'Success',
+        'Payment request added successfully. Do you want to create a payment receipt?',
+        [
+          {
+            text: 'No, Go Back',
+            onPress: () => navigation.goBack(),
+            style: 'cancel',
+          },
+          {
+            text: 'Yes, Create Receipt',
+            onPress: () => {
+              navigation.navigate('AddUnitPaymentReceipt', {
+                unitId: unitId,
+                unitPaymentRequestId: newPaymentRequestId,
+              });
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error) {
       console.error('Error adding payment request:', error);
       Alert.alert('Error', 'Failed to add payment request. Please try again.');

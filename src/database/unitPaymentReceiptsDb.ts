@@ -10,6 +10,7 @@ export interface UnitPaymentReceipt {
   amount: number;
   mode?: string;
   remarks?: string;
+  payment_request_id?: number; // Link to UnitPaymentRequest
   created_at?: number;
   updated_at?: number;
 }
@@ -66,8 +67,8 @@ export const addUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Promis
       // Insert the payment receipt
       const result = await db.runAsync(
         `INSERT INTO unit_payment_receipts (
-          unit_id, sr_no, date, description, amount, mode, remarks, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          unit_id, sr_no, date, description, amount, mode, remarks, payment_request_id, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
         [
           receipt.unit_id || null, // Handle optional unit_id
           receipt.sr_no,
@@ -76,6 +77,7 @@ export const addUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Promis
           receipt.amount,
           receipt.mode || null,
           receipt.remarks || null,
+          receipt.payment_request_id || null, // Add payment_request_id
           now,
           now
         ]
@@ -130,6 +132,7 @@ export const updateUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Pro
           amount = ?,
           mode = ?,
           remarks = ?,
+          payment_request_id = ?,
           updated_at = ?
         WHERE id = ?;`,
         [
@@ -140,6 +143,7 @@ export const updateUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Pro
           receipt.amount,
           receipt.mode || null,
           receipt.remarks || null,
+          receipt.payment_request_id || null, // Add payment_request_id
           now,
           receipt.id! // Non-null assertion as ID is checked at function start
         ]

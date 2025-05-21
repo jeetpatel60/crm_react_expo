@@ -1,5 +1,9 @@
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
+import { addClientIdToUnitsFlats } from './migrations/addClientIdToUnitsFlats';
+import { addCompanyIdToProjects } from './migrations/addCompanyIdToProjects';
+import { addTemplatesTables } from './migrations/addTemplatesTables';
+import { addPaymentRequestIdToUnitPaymentReceipts } from './migrations/addPaymentRequestIdToUnitPaymentReceipts';
 
 // Define the database type
 export type DatabaseType = SQLite.SQLiteDatabase;
@@ -355,39 +359,18 @@ export const runMigrations = async (): Promise<void> => {
     // Migration 1: Add client_id column to units_flats table
     await addClientIdToUnitsFlats();
 
+    // Migration 2: Add company_id column to projects table
+    await addCompanyIdToProjects();
+
+    // Migration 3: Add templates tables
+    await addTemplatesTables();
+
+    // Migration 4: Add payment_request_id to unit_payment_receipts table
+    await addPaymentRequestIdToUnitPaymentReceipts();
+
     console.log('Database migrations completed successfully');
   } catch (error) {
     console.error('Error running database migrations:', error);
-    throw error;
-  }
-};
-
-// Migration to add client_id column to units_flats table
-const addClientIdToUnitsFlats = async (): Promise<void> => {
-  try {
-    // Check if the column already exists
-    const tableInfo = await db.getAllAsync(
-      "PRAGMA table_info(units_flats);"
-    );
-
-    const clientIdColumnExists = tableInfo.some(
-      (column: any) => column.name === 'client_id'
-    );
-
-    if (!clientIdColumnExists) {
-      console.log('Adding client_id column to units_flats table...');
-
-      // Add the client_id column
-      await db.execAsync(
-        `ALTER TABLE units_flats ADD COLUMN client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL;`
-      );
-
-      console.log('client_id column added successfully');
-    } else {
-      console.log('client_id column already exists in units_flats table');
-    }
-  } catch (error) {
-    console.error('Error adding client_id column to units_flats table:', error);
     throw error;
   }
 };

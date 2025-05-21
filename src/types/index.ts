@@ -56,7 +56,7 @@ export type RootStackParamList = {
   EditUnitCustomerSchedule: { schedule: UnitCustomerSchedule };
   AddUnitPaymentRequest: { unitId: number };
   EditUnitPaymentRequest: { request: UnitPaymentRequest };
-  AddUnitPaymentReceipt: { unitId: number };
+  AddUnitPaymentReceipt: { unitId: number; unitPaymentRequestId?: number; };
   EditUnitPaymentReceipt: { receipt: UnitPaymentReceipt };
   QuotationDetails: { quotationId: number };
   AddQuotation: undefined;

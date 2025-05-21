@@ -8,6 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { RootStackParamList } from '../types';
 import { UnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
 import { addUnitPaymentReceipt, getUnitPaymentReceipts } from '../database/unitPaymentReceiptsDb';
+import { getUnitPaymentRequestById } from '../database/unitPaymentRequestsDb'; // Import to fetch request details
 import { spacing } from '../constants/theme';
 import { formatDate } from '../utils/formatters';
 
@@ -29,7 +30,7 @@ const AddUnitPaymentReceiptScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<AddUnitPaymentReceiptNavigationProp>();
   const route = useRoute<AddUnitPaymentReceiptScreenRouteProp>();
-  const { unitId } = route.params;
+  const { unitId, unitPaymentRequestId } = route.params; // Destructure unitPaymentRequestId
 
   // Form state
   const [date, setDate] = useState(new Date());
@@ -38,6 +39,7 @@ const AddUnitPaymentReceiptScreen = () => {
   const [mode, setMode] = useState('');
   const [remarks, setRemarks] = useState('');
   const [nextSrNo, setNextSrNo] = useState(1);
+  const [linkedPaymentRequestId, setLinkedPaymentRequestId] = useState<number | undefined>(unitPaymentRequestId);
   
   // UI state
   const [loading, setLoading] = useState(false);
@@ -45,22 +47,33 @@ const AddUnitPaymentReceiptScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [modeMenuVisible, setModeMenuVisible] = useState(false);
 
-  // Load existing payment receipts to determine next sr_no
+  // Load existing payment receipts to determine next sr_no and pre-populate from payment request
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
       try {
+        // Determine next sr_no
         const receipts = await getUnitPaymentReceipts(unitId);
         if (receipts.length > 0) {
           const maxSrNo = Math.max(...receipts.map(r => r.sr_no));
           setNextSrNo(maxSrNo + 1);
         }
+
+        // If coming from a payment request, pre-populate fields
+        if (unitPaymentRequestId) {
+          const paymentRequest = await getUnitPaymentRequestById(unitPaymentRequestId);
+          if (paymentRequest) {
+            setDescription(paymentRequest.description || '');
+            setAmount(paymentRequest.amount.toString());
+            setDate(new Date(paymentRequest.date)); // Pre-populate date from payment request
+          }
+        }
       } catch (error) {
-        console.error('Error loading payment receipts:', error);
+        console.error('Error loading initial data for payment receipt screen:', error);
       }
     };
 
-    loadData();
-  }, [unitId]);
+    loadInitialData();
+  }, [unitId, unitPaymentRequestId]); // Add unitPaymentRequestId to dependencies
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -91,6 +104,7 @@ const AddUnitPaymentReceiptScreen = () => {
         amount: parseFloat(amount),
         mode: mode.trim() || undefined,
         remarks: remarks.trim() || undefined,
+        payment_request_id: linkedPaymentRequestId, // Include linked payment request ID
       };
 
       await addUnitPaymentReceipt(newReceipt);

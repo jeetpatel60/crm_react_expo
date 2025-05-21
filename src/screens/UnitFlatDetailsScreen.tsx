@@ -42,6 +42,7 @@ const UnitFlatDetailsScreen = () => {
   const [templateModalVisible, setTemplateModalVisible] = useState(false);
   const [agreementTemplateModalVisible, setAgreementTemplateModalVisible] = useState(false);
   const [selectedPaymentRequestId, setSelectedPaymentRequestId] = useState<number | null>(null);
+  const [receiptsForRequests, setReceiptsForRequests] = useState<Set<number>>(new Set());
 
   const loadData = useCallback(async () => {
     try {
@@ -79,6 +80,11 @@ const UnitFlatDetailsScreen = () => {
       // Fetch payment receipts
       const receiptsData = await getUnitPaymentReceipts(unitId);
       setPaymentReceipts(receiptsData);
+
+      // Create a set of payment_request_ids that have receipts
+      const receiptRequestIds = new Set(receiptsData.map(r => r.payment_request_id).filter((id): id is number => id !== undefined && id !== null));
+      setReceiptsForRequests(receiptRequestIds);
+
     } catch (error) {
       console.error('Error loading unit details:', error);
       Alert.alert('Error', 'Failed to load unit details');
@@ -478,37 +484,48 @@ const UnitFlatDetailsScreen = () => {
                     <DataTable.Title style={styles.actionsColumn} textStyle={{textAlign: 'center'}}>Actions</DataTable.Title>
                   </DataTable.Header>
 
-                  {paymentRequests.map((request) => (
-                    <DataTable.Row key={request.id} style={styles.tableRow}>
-                      <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{request.sr_no}</DataTable.Cell>
-                      <DataTable.Cell style={styles.dateColumn} textStyle={{textAlign: 'center'}}>{formatDate(request.date)}</DataTable.Cell>
-                      <DataTable.Cell style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>{request.description || '-'}</DataTable.Cell>
-                      <DataTable.Cell style={styles.amountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(request.amount)}</DataTable.Cell>
-                      <DataTable.Cell style={styles.actionsColumn}>
-                        <View style={styles.actionButtons}>
-                          <IconButton
-                            icon="pencil"
-                            size={16}
-                            onPress={() => navigation.navigate('EditUnitPaymentRequest', { request })}
-                            style={styles.actionButton}
-                          />
-                          <IconButton
-                            icon="delete"
-                            size={16}
-                            onPress={() => handleDeletePaymentRequest(request.id!)}
-                            style={styles.actionButton}
-                          />
-                          <IconButton
-                            icon="file-pdf-box"
-                            size={16}
-                            onPress={() => handleExportPaymentRequest(request.id!)}
-                            style={styles.actionButton}
-                            iconColor={theme.colors.primary}
-                          />
-                        </View>
-                      </DataTable.Cell>
-                    </DataTable.Row>
-                  ))}
+                  {paymentRequests.map((request) => {
+                    const hasReceipt = receiptsForRequests.has(request.id!);
+                    return (
+                      <DataTable.Row key={request.id} style={styles.tableRow}>
+                        <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{request.sr_no}</DataTable.Cell>
+                        <DataTable.Cell style={styles.dateColumn} textStyle={{textAlign: 'center'}}>{formatDate(request.date)}</DataTable.Cell>
+                        <DataTable.Cell style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>{request.description || '-'}</DataTable.Cell>
+                        <DataTable.Cell style={styles.amountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(request.amount)}</DataTable.Cell>
+                        <DataTable.Cell style={styles.actionsColumn}>
+                          <View style={styles.actionButtons}>
+                            <IconButton
+                              icon="receipt"
+                              size={16}
+                              onPress={() => navigation.navigate('AddUnitPaymentReceipt', { unitId: unitId, unitPaymentRequestId: request.id! })}
+                              style={styles.actionButton}
+                              iconColor={theme.colors.primary}
+                              disabled={hasReceipt}
+                            />
+                            <IconButton
+                              icon="pencil"
+                              size={16}
+                              onPress={() => navigation.navigate('EditUnitPaymentRequest', { request })}
+                              style={styles.actionButton}
+                            />
+                            <IconButton
+                              icon="delete"
+                              size={16}
+                              onPress={() => handleDeletePaymentRequest(request.id!)}
+                              style={styles.actionButton}
+                            />
+                            <IconButton
+                              icon="file-pdf-box"
+                              size={16}
+                              onPress={() => handleExportPaymentRequest(request.id!)}
+                              style={styles.actionButton}
+                              iconColor={theme.colors.primary}
+                            />
+                          </View>
+                        </DataTable.Cell>
+                      </DataTable.Row>
+                    );
+                  })}
                 </DataTable>
               </ScrollView>
             )}

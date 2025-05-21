@@ -1,6 +1,7 @@
 import { db } from './database';
 import { calculateScheduleAmount } from './unitScheduleHelpers';
 import { getMilestonesByProjectId, Milestone } from './projectSchedulesDb';
+import { UnitFlat } from './unitsFlatDb'; // Import UnitFlat
 
 export type UnitCustomerScheduleStatus = 'Not Started' | 'Payment Requested' | 'Payment Received';
 
@@ -73,7 +74,7 @@ export const addUnitCustomerSchedule = async (schedule: UnitCustomerSchedule): P
         schedule.sr_no,
         schedule.milestone,
         schedule.completion_percentage,
-        scheduleWithAmount.amount || null,
+        scheduleWithAmount.amount as number | null, // Explicitly cast to number | null
         schedule.status,
         now,
         now
@@ -116,7 +117,7 @@ export const updateUnitCustomerSchedule = async (schedule: UnitCustomerSchedule)
         schedule.sr_no,
         schedule.milestone,
         schedule.completion_percentage,
-        scheduleWithAmount.amount || null,
+        scheduleWithAmount.amount as number | null, // Explicitly cast to number | null
         schedule.status,
         now,
         schedule.id
@@ -152,37 +153,45 @@ export const deleteUnitCustomerSchedule = async (id: number): Promise<void> => {
 export const recalculateUnitScheduleAmounts = async (unitId: number): Promise<void> => {
   try {
     // Get unit balance amount
-    const unit = await db.getFirstAsync(
+    const unit = await db.getFirstAsync<UnitFlat>( // Explicitly type unit
       'SELECT balance_amount FROM units_flats WHERE id = ?;',
       [unitId]
     );
 
-    if (!unit || !unit.balance_amount) {
-      console.log(`No balance amount found for unit ID ${unitId}`);
+    if (!unit || unit.balance_amount === undefined || unit.balance_amount === null) {
+      console.log(`No balance amount found for unit ID ${unitId} or it's null/undefined. Cannot recalculate schedule amounts.`);
       return;
     }
 
-    // Get all schedules for this unit
-    const schedules = await getUnitCustomerSchedules(unitId);
+    // Get all schedules for this unit, including completion_percentage
+    const schedules = await db.getAllAsync<UnitCustomerSchedule>(
+      'SELECT * FROM unit_customer_schedules WHERE unit_id = ? ORDER BY sr_no ASC;',
+      [unitId]
+    );
 
     if (schedules.length === 0) {
       console.log(`No schedules found for unit ID ${unitId}`);
       return;
     }
 
-    // Calculate amount per schedule
-    const amountPerSchedule = parseFloat((unit.balance_amount / schedules.length).toFixed(2));
     const now = Date.now();
 
-    // Update all schedules directly with SQL to avoid circular calls
+    // Update all schedules based on their completion percentage and the unit's balance amount
     for (const schedule of schedules) {
+      if (schedule.id === undefined) {
+        console.warn('Skipping schedule update due to undefined schedule.id:', schedule);
+        continue;
+      }
+      const calculatedAmount = (unit.balance_amount * schedule.completion_percentage) / 100;
+      const amountToUpdate = parseFloat(calculatedAmount.toFixed(2));
+
       await db.runAsync(
         `UPDATE unit_customer_schedules SET
           amount = ?,
           updated_at = ?
         WHERE id = ?;`,
         [
-          amountPerSchedule,
+          amountToUpdate,
           now,
           schedule.id
         ]

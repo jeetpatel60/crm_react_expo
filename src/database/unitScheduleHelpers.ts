@@ -1,7 +1,8 @@
 import { db } from './database';
 import { UnitCustomerSchedule, UnitCustomerScheduleStatus } from './unitCustomerSchedulesDb';
 import { UnitPaymentRequest } from './unitPaymentRequestsDb';
-import { getUnitsFlatsByProjectId } from './unitsFlatDb';
+import { getUnitsFlatsByProjectId, UnitFlat } from './unitsFlatDb';
+import { Milestone } from './projectSchedulesDb'; // Import Milestone interface
 
 // Helper function to auto-populate customer schedules from project milestones
 // This function is moved here to break the circular dependency
@@ -14,16 +15,16 @@ export const autoPopulateCustomerSchedulesFromProjectMilestones = async (
 
     // Get project milestones directly from the database
     // Try both project_milestones and milestones tables
-    let milestones;
+    let milestones: Milestone[] = []; // Explicitly type milestones
     try {
-      milestones = await db.getAllAsync(
+      milestones = await db.getAllAsync<Milestone>( // Explicitly type getAllAsync result
         'SELECT * FROM project_milestones WHERE project_schedule_id IN (SELECT id FROM project_schedules WHERE project_id = ?) ORDER BY sr_no ASC;',
         [projectId]
       );
 
       // If no milestones found in project_milestones, try the milestones table
       if (milestones.length === 0) {
-        milestones = await db.getAllAsync(
+        milestones = await db.getAllAsync<Milestone>( // Explicitly type getAllAsync result
           'SELECT m.id, m.sr_no, m.milestone_name, m.completion_percentage, m.status, m.created_at, m.updated_at, ps.id as project_schedule_id ' +
           'FROM milestones m ' +
           'JOIN project_schedules ps ON m.schedule_id = ps.id ' +
@@ -45,14 +46,14 @@ export const autoPopulateCustomerSchedulesFromProjectMilestones = async (
     console.log(`Found ${milestones.length} milestones for the project`);
 
     // Get existing customer schedules for the unit
-    const existingSchedules = await db.getAllAsync(
+    const existingSchedules = await db.getFirstAsync<{ count: number }>( // Explicitly type result
       'SELECT COUNT(*) as count FROM unit_customer_schedules WHERE unit_id = ?;',
       [unitId]
     );
 
     // If there are already schedules, don't overwrite them
-    if (existingSchedules[0]?.count > 0) {
-      console.log(`Unit already has ${existingSchedules[0].count} schedules, skipping auto-population`);
+    if (existingSchedules?.count && existingSchedules.count > 0) { // Safely access count
+      console.log(`Unit already has ${existingSchedules.count} schedules, skipping auto-population`);
       return;
     }
 
@@ -60,20 +61,19 @@ export const autoPopulateCustomerSchedulesFromProjectMilestones = async (
     const now = Date.now();
 
     // Get unit flat value to calculate amount
-    const unitFlat = await db.getFirstAsync(
+    const unitFlat = await db.getFirstAsync<UnitFlat>( // Explicitly type unitFlat
       'SELECT balance_amount FROM units_flats WHERE id = ?;',
       [unitId]
     );
 
     const balanceAmount = unitFlat?.balance_amount || 0;
 
-    // Calculate amount per schedule by dividing balance amount by number of milestones
-    const amountPerSchedule = milestones.length > 0
-      ? parseFloat((balanceAmount / milestones.length).toFixed(2))
-      : 0;
-
     for (const milestone of milestones) {
       const completionPercentage = milestone.completion_percentage || 0;
+
+      // Calculate amount based on completion percentage of the unit's balance amount
+      const calculatedAmount = (balanceAmount * completionPercentage) / 100;
+      const amountToInsert = parseFloat(calculatedAmount.toFixed(2));
 
       // Insert the customer schedule
       await db.runAsync(
@@ -86,7 +86,7 @@ export const autoPopulateCustomerSchedulesFromProjectMilestones = async (
           milestone.sr_no,
           milestone.milestone_name,
           completionPercentage,
-          amountPerSchedule,
+          amountToInsert, // Use the newly calculated amount
           'Not Started',
           now,
           now
@@ -104,31 +104,20 @@ export const autoPopulateCustomerSchedulesFromProjectMilestones = async (
 // Calculate amount by dividing balance amount by number of rows in customer schedule table
 export const calculateScheduleAmount = async (schedule: UnitCustomerSchedule): Promise<number | null> => {
   try {
-    const unit = await db.getFirstAsync(
+    const unit = await db.getFirstAsync<UnitFlat>( // Explicitly type unit
       'SELECT balance_amount FROM units_flats WHERE id = ?;',
       [schedule.unit_id]
     );
 
-    if (!unit || !unit.balance_amount) {
+    if (!unit || unit.balance_amount === undefined || unit.balance_amount === null) {
+      console.warn(`Unit or balance_amount not found for unit ID ${schedule.unit_id}. Cannot calculate schedule amount.`);
       return null;
     }
 
-    // Get the total number of schedules for this unit
-    const schedulesCount = await db.getFirstAsync(
-      'SELECT COUNT(*) as count FROM unit_customer_schedules WHERE unit_id = ?;',
-      [schedule.unit_id]
-    );
+    // Calculate amount based on completion percentage of the unit's balance amount
+    const calculatedAmount = (unit.balance_amount * schedule.completion_percentage) / 100;
 
-    const count = schedulesCount?.count || 0;
-
-    // If there are no schedules yet (this might be the first one being added)
-    // or if count is 0 for some reason, return the full balance amount
-    if (count === 0) {
-      return parseFloat(unit.balance_amount.toFixed(2));
-    }
-
-    // Calculate amount by dividing balance amount by number of rows
-    return parseFloat((unit.balance_amount / count).toFixed(2));
+    return parseFloat(calculatedAmount.toFixed(2));
   } catch (error) {
     console.error('Error calculating schedule amount:', error);
     return null;
@@ -188,7 +177,7 @@ export const updateCustomerSchedulesForCompletedMilestone = async (
         [
           'Payment Requested' as UnitCustomerScheduleStatus,
           now,
-          customerSchedule.id
+          customerSchedule.id ?? null
         ]
       );
 
@@ -211,7 +200,7 @@ export const updateCustomerSchedulesForCompletedMilestone = async (
           nextSrNo,
           now, // Current date/time
           `Payment request for ${milestoneName}`, // Description
-          customerSchedule.amount || 0, // Amount from the customer schedule
+          customerSchedule.amount ?? null, // Amount from the customer schedule, use nullish coalescing to ensure it's number or null
           now,
           now
         ]
