@@ -58,7 +58,7 @@ const ActivityList = ({ title, activities, maxItems = 5 }: ActivityListProps) =>
           ]}
         >
           <MaterialCommunityIcons
-            name={item.icon}
+            name={item.icon as any}
             size={20}
             color={item.iconColor || theme.colors.primary}
           />

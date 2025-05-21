@@ -21,6 +21,7 @@ import { spacing, shadows, borderRadius } from '../constants/theme';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { generateAndSharePaymentRequestPdf } from '../utils/pdfUtils';
 import { generateAndShareDocxDocument } from '../utils/docxUtils';
+import { generateAndShareTemplateDocument } from '../utils/templateUtils'; // Corrected import
 
 type UnitFlatDetailsScreenRouteProp = RouteProp<RootStackParamList, 'UnitFlatDetails'>;
 type UnitFlatDetailsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -42,7 +43,9 @@ const UnitFlatDetailsScreen = () => {
   const [templateModalVisible, setTemplateModalVisible] = useState(false);
   const [agreementTemplateModalVisible, setAgreementTemplateModalVisible] = useState(false);
   const [selectedPaymentRequestId, setSelectedPaymentRequestId] = useState<number | null>(null);
+  const [selectedPaymentReceiptId, setSelectedPaymentReceiptId] = useState<number | null>(null); // Added
   const [receiptsForRequests, setReceiptsForRequests] = useState<Set<number>>(new Set());
+  const [paymentReceiptTemplateModalVisible, setPaymentReceiptTemplateModalVisible] = useState(false); // Added
 
   const loadData = useCallback(async () => {
     try {
@@ -191,13 +194,45 @@ const UnitFlatDetailsScreen = () => {
 
     if (selectedPaymentRequestId) {
       try {
-        await generateAndSharePaymentRequestPdf(
-          selectedPaymentRequestId,
-          templateId
+        await generateAndShareTemplateDocument( // Changed to generic template function
+          templateId,
+          'payment-request', // Specify template type
+          unitId,
+          unit?.client_id,
+          unit?.project_id,
+          unit?.project_id ? (await getProjectById(unit.project_id))?.company_id : undefined,
+          selectedPaymentRequestId
         );
       } catch (error) {
         console.error('Error exporting payment request:', error);
         Alert.alert('Error', 'Failed to export payment request');
+      }
+    }
+  };
+
+  const handleExportPaymentReceipt = (receiptId: number) => { // Added
+    setSelectedPaymentReceiptId(receiptId);
+    setPaymentReceiptTemplateModalVisible(true);
+  };
+
+  const handlePaymentReceiptTemplateSelect = async (templateId: number) => { // Added
+    setPaymentReceiptTemplateModalVisible(false);
+
+    if (selectedPaymentReceiptId) {
+      try {
+        await generateAndShareTemplateDocument(
+          templateId,
+          'payment-receipt', // Specify template type
+          unitId,
+          unit?.client_id,
+          unit?.project_id,
+          unit?.project_id ? (await getProjectById(unit.project_id))?.company_id : undefined,
+          undefined, // No specific payment request for a receipt export
+          selectedPaymentReceiptId // Pass receipt ID for specific receipt export
+        );
+      } catch (error) {
+        console.error('Error exporting payment receipt:', error);
+        Alert.alert('Error', 'Failed to export payment receipt');
       }
     }
   };
@@ -592,6 +627,13 @@ const UnitFlatDetailsScreen = () => {
                             onPress={() => handleDeletePaymentReceipt(receipt.id!)}
                             style={styles.actionButton}
                           />
+                          <IconButton // Added PDF export icon
+                            icon="file-pdf-box"
+                            size={16}
+                            onPress={() => handleExportPaymentReceipt(receipt.id!)}
+                            style={styles.actionButton}
+                            iconColor={theme.colors.primary}
+                          />
                         </View>
                       </DataTable.Cell>
                     </DataTable.Row>
@@ -609,6 +651,14 @@ const UnitFlatDetailsScreen = () => {
         onDismiss={() => setTemplateModalVisible(false)}
         onSelect={handleTemplateSelect}
         title="Select Payment Request Template"
+      />
+
+      {/* Payment Receipt Template Selection Modal */}
+      <TemplateSelectionModal // Reusing TemplateSelectionModal for payment receipts
+        visible={paymentReceiptTemplateModalVisible}
+        onDismiss={() => setPaymentReceiptTemplateModalVisible(false)}
+        onSelect={handlePaymentReceiptTemplateSelect}
+        title="Select Payment Receipt Template"
       />
 
       {/* Agreement Template Selection Modal */}

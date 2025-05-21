@@ -383,7 +383,7 @@ const AddProjectScreen = () => {
                     key={company.id}
                     mode="text"
                     onPress={() => {
-                      setCompanyId(company.id);
+                      setCompanyId(company.id ?? null);
                       setCompanyName(company.name);
                       setCompanyMenuVisible(false);
                     }}

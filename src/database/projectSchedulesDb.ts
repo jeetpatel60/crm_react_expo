@@ -275,7 +275,7 @@ export const updateMilestone = async (milestone: Milestone): Promise<void> => {
           milestone.status,
           milestone.schedule_id,
           now,
-          milestone.id
+          milestone.id!
         ]
       );
 

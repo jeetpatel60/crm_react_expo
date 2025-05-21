@@ -11,6 +11,7 @@ import { Quotation } from '../database/quotationsDb';
 import { QuotationAnnexureItem } from '../database/quotationAnnexuresDb';
 import { AgreementTemplate } from '../database/agreementTemplatesDb';
 import { PaymentRequestTemplate } from '../database/paymentRequestTemplatesDb';
+import { PaymentReceiptTemplate } from '../database/paymentReceiptTemplatesDb';
 
 export type {
   Company,
@@ -26,7 +27,8 @@ export type {
   Quotation,
   QuotationAnnexureItem,
   AgreementTemplate,
-  PaymentRequestTemplate
+  PaymentRequestTemplate,
+  PaymentReceiptTemplate
 };
 
 export type RootStackParamList = {
@@ -69,6 +71,10 @@ export type RootStackParamList = {
   PaymentRequestTemplateDetails: { templateId: number };
   AddPaymentRequestTemplate: undefined;
   EditPaymentRequestTemplate: { template: PaymentRequestTemplate };
+  PaymentReceiptTemplates: undefined;
+  PaymentReceiptTemplateDetails: { templateId: number };
+  AddPaymentReceiptTemplate: undefined;
+  EditPaymentReceiptTemplate: { template: PaymentReceiptTemplate };
   DatabaseMigration: undefined;
 };
 

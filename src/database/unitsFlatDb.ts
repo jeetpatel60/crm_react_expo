@@ -172,7 +172,7 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
     if (projectChanged) {
       try {
         // Get existing customer schedules
-        const existingSchedules = await db.getAllAsync(
+        const existingSchedules = await db.getAllAsync<{ count: number }>(
           'SELECT COUNT(*) as count FROM unit_customer_schedules WHERE unit_id = ?;',
           [unit.id]
         );

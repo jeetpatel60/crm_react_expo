@@ -206,10 +206,10 @@ const AddQuotationScreen = () => {
       const quotation: Quotation = {
         quotation_no: quotationNo,
         date: date.getTime(),
-        project_id: projectId,
-        lead_id: leadId,
-        flat_id: flatId,
-        company_id: companyId,
+        project_id: projectId ?? undefined,
+        lead_id: leadId ?? undefined,
+        flat_id: flatId ?? undefined,
+        company_id: companyId ?? undefined,
         total_amount: totalAmount
       };
 

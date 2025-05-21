@@ -41,6 +41,10 @@ import EditAgreementTemplateScreen from '../screens/EditAgreementTemplateScreen'
 import PaymentRequestTemplateDetailsScreen from '../screens/PaymentRequestTemplateDetailsScreen';
 import AddPaymentRequestTemplateScreen from '../screens/AddPaymentRequestTemplateScreen';
 import EditPaymentRequestTemplateScreen from '../screens/EditPaymentRequestTemplateScreen';
+import PaymentReceiptTemplatesScreen from '../screens/PaymentReceiptTemplatesScreen'; // Added
+import PaymentReceiptTemplateDetailsScreen from '../screens/PaymentReceiptTemplateDetailsScreen'; // Added
+import AddPaymentReceiptTemplateScreen from '../screens/AddPaymentReceiptTemplateScreen'; // Added
+import EditPaymentReceiptTemplateScreen from '../screens/EditPaymentReceiptTemplateScreen'; // Added
 import DatabaseMigrationScreen from '../screens/DatabaseMigrationScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -247,6 +251,27 @@ const AppNavigator = () => {
           name="EditPaymentRequestTemplate"
           component={EditPaymentRequestTemplateScreen}
           options={{ title: 'Edit Payment Request Template' }}
+        />
+        {/* Payment Receipt Template Screens */}
+        <Stack.Screen
+          name="PaymentReceiptTemplates"
+          component={PaymentReceiptTemplatesScreen}
+          options={{ title: 'Payment Receipt Templates' }}
+        />
+        <Stack.Screen
+          name="PaymentReceiptTemplateDetails"
+          component={PaymentReceiptTemplateDetailsScreen}
+          options={{ title: 'Payment Receipt Template' }}
+        />
+        <Stack.Screen
+          name="AddPaymentReceiptTemplate"
+          component={AddPaymentReceiptTemplateScreen}
+          options={{ title: 'Add Payment Receipt Template' }}
+        />
+        <Stack.Screen
+          name="EditPaymentReceiptTemplate"
+          component={EditPaymentReceiptTemplateScreen}
+          options={{ title: 'Edit Payment Receipt Template' }}
         />
         <Stack.Screen
           name="DatabaseMigration"

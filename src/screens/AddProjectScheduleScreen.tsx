@@ -153,7 +153,7 @@ const AddProjectScheduleScreen = () => {
                     key={project.id}
                     mode="text"
                     onPress={() => {
-                      setProjectId(project.id);
+                      setProjectId(project.id ?? null);
                       setProjectName(project.name);
                       setProjectMenuVisible(false);
                     }}

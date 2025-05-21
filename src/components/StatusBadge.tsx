@@ -137,7 +137,7 @@ const StatusBadge = ({ status, size = 'medium', showIcon = true }: StatusBadgePr
     >
       {showIcon && (
         <MaterialCommunityIcons
-          name={statusInfo.icon}
+          name={statusInfo.icon as any}
           size={sizeStyles.iconSize}
           color={statusInfo.color}
           style={styles.icon}

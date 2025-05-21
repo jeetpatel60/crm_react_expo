@@ -55,11 +55,11 @@ const ChartCard = ({
         <View style={[styles.emptyChart, { minHeight: height }]}>
           <MaterialCommunityIcons
             name={
-              type === 'pie'
+              (type === 'pie'
                 ? 'chart-pie'
                 : type === 'bar'
                   ? 'chart-bar'
-                  : 'chart-line'
+                  : 'chart-line') as any
             }
             size={36}
             color={theme.colors.primary}
@@ -184,7 +184,7 @@ const ChartCard = ({
             {icon && (
               <View style={styles.iconContainer}>
                 <MaterialCommunityIcons
-                  name={icon}
+                  name={icon as any}
                   size={20}
                   color={theme.colors.primary}
                 />

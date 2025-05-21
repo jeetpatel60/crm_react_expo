@@ -4,6 +4,7 @@ import { addClientIdToUnitsFlats } from './migrations/addClientIdToUnitsFlats';
 import { addCompanyIdToProjects } from './migrations/addCompanyIdToProjects';
 import { addTemplatesTables } from './migrations/addTemplatesTables';
 import { addPaymentRequestIdToUnitPaymentReceipts } from './migrations/addPaymentRequestIdToUnitPaymentReceipts';
+import { addPaymentReceiptTemplatesTable } from './migrations/addPaymentReceiptTemplatesTable';
 
 // Define the database type
 export type DatabaseType = SQLite.SQLiteDatabase;
@@ -367,6 +368,9 @@ export const runMigrations = async (): Promise<void> => {
 
     // Migration 4: Add payment_request_id to unit_payment_receipts table
     await addPaymentRequestIdToUnitPaymentReceipts();
+
+    // Migration 5: Add payment_receipt_templates table
+    await addPaymentReceiptTemplatesTable();
 
     console.log('Database migrations completed successfully');
   } catch (error) {

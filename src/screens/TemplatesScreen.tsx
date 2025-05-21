@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import { TabView, TabBar, SceneMap } from 'react-native-tab-view';
+import { TabView, TabBar, SceneMap, TabBarProps } from 'react-native-tab-view';
 import { useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import PagerView from 'react-native-pager-view';
 
+interface Route {
+  key: string;
+  title: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+}
+
 import AgreementTemplatesScreen from './AgreementTemplatesScreen';
 import PaymentRequestTemplatesScreen from './PaymentRequestTemplatesScreen';
+import PaymentReceiptTemplatesScreen from './PaymentReceiptTemplatesScreen';
 import { spacing, borderRadius } from '../constants/theme';
 
 const TemplatesScreen: React.FC = () => {
@@ -14,14 +21,16 @@ const TemplatesScreen: React.FC = () => {
   const theme = useTheme();
 
   const [index, setIndex] = useState(0);
-  const [routes] = useState([
+  const [routes] = useState<Route[]>([
     { key: 'agreement', title: 'Agreement', icon: 'file-document-outline' },
-    { key: 'payment', title: 'Payment Request', icon: 'cash-multiple' },
+    { key: 'paymentRequest', title: 'Payment Request', icon: 'cash-multiple' },
+    { key: 'paymentReceipt', title: 'Payment Receipt', icon: 'receipt' },
   ]);
 
   const renderScene = SceneMap({
     agreement: AgreementTemplatesScreen,
-    payment: PaymentRequestTemplatesScreen,
+    paymentRequest: PaymentRequestTemplatesScreen,
+    paymentReceipt: PaymentReceiptTemplatesScreen,
   });
 
   const renderTabBar = (props: any) => (
@@ -32,9 +41,9 @@ const TemplatesScreen: React.FC = () => {
       activeColor={theme.colors.primary}
       inactiveColor={theme.colors.onSurfaceVariant}
       labelStyle={{ textTransform: 'none', fontWeight: '500' }}
-      renderIcon={({ route, focused, color }) => (
+      renderIcon={({ route, focused, color }: { route: Route; focused: boolean; color: string }) => (
         <MaterialCommunityIcons
-          name={route.icon as any}
+          name={route.icon}
           size={20}
           color={color}
         />
@@ -50,8 +59,6 @@ const TemplatesScreen: React.FC = () => {
       initialLayout={{ width: layout.width }}
       renderTabBar={renderTabBar}
       style={styles.container}
-      pagerStyle={{ flex: 1 }}
-      renderPager={(props) => <PagerView {...props} />}
     />
   );
 };

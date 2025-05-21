@@ -6,6 +6,7 @@ import { Alert } from 'react-native';
 import {
   AgreementTemplate,
   PaymentRequestTemplate,
+  PaymentReceiptTemplate, // Added
   UnitFlat,
   Client,
   Project,
@@ -17,6 +18,11 @@ import {
 } from '../types';
 import { formatCurrency, formatDate } from './formatters';
 import { db } from '../database/database';
+
+// Interface for database query results
+interface ProjectScheduleResult {
+  id: number;
+}
 import { getUnitFlatById } from '../database/unitsFlatDb';
 import { getClientById } from '../database/clientsDb';
 import { getProjectById } from '../database/projectsDb';
@@ -25,10 +31,13 @@ import { getMilestonesByScheduleId } from '../database/projectSchedulesDb';
 import { getUnitCustomerSchedules } from '../database/unitCustomerSchedulesDb';
 import { getUnitPaymentRequests } from '../database/unitPaymentRequestsDb';
 import { getUnitPaymentReceipts } from '../database/unitPaymentReceiptsDb';
+import { getPaymentReceiptTemplateById } from '../database/paymentReceiptTemplatesDb'; // Added
+import { getAgreementTemplateById } from '../database/agreementTemplatesDb'; // Added
+import { getPaymentRequestTemplateById } from '../database/paymentRequestTemplatesDb'; // Added
 
 // Interface for template data
 interface TemplateData {
-  template: AgreementTemplate | PaymentRequestTemplate;
+  template: AgreementTemplate | PaymentRequestTemplate | PaymentReceiptTemplate; // Updated
   unitId?: number;
   clientId?: number;
   projectId?: number;
@@ -51,12 +60,13 @@ interface TemplateData {
  */
 export const generateAndShareTemplateDocument = async (
   templateId: number,
-  templateType: 'agreement' | 'payment-request',
+  templateType: 'agreement' | 'payment-request' | 'payment-receipt',
   unitId?: number,
   clientId?: number,
   projectId?: number,
   companyId?: number,
-  specificPaymentRequestId?: number
+  specificPaymentRequestId?: number,
+  specificPaymentReceiptId?: number // Added
 ): Promise<void> => {
   try {
     // Prepare data for document generation
@@ -67,7 +77,8 @@ export const generateAndShareTemplateDocument = async (
       clientId,
       projectId,
       companyId,
-      specificPaymentRequestId
+      specificPaymentRequestId,
+      specificPaymentReceiptId // Pass new argument
     );
 
     // Generate HTML content
@@ -89,31 +100,35 @@ export const generateAndShareTemplateDocument = async (
  */
 const prepareTemplateData = async (
   templateId: number,
-  templateType: 'agreement' | 'payment-request',
+  templateType: 'agreement' | 'payment-request' | 'payment-receipt',
   unitId?: number,
   clientId?: number,
   projectId?: number,
   companyId?: number,
-  specificPaymentRequestId?: number
+  specificPaymentRequestId?: number,
+  specificPaymentReceiptId?: number // Added
 ): Promise<TemplateData> => {
-  // Import required functions here to avoid circular dependencies
-  const { getAgreementTemplateById } = require('../database/agreementTemplatesDb');
-  const { getPaymentRequestTemplateById } = require('../database/paymentRequestTemplatesDb');
-
   // Fetch template data
-  let template;
+  let template: AgreementTemplate | PaymentRequestTemplate | PaymentReceiptTemplate | null;
   if (templateType === 'agreement') {
     template = await getAgreementTemplateById(templateId);
-  } else {
+  } else if (templateType === 'payment-request') {
     template = await getPaymentRequestTemplateById(templateId);
+  } else if (templateType === 'payment-receipt') {
+    template = await getPaymentReceiptTemplateById(templateId);
+  } else {
+    template = null; // Fallback, though type guard should prevent this
   }
 
   if (!template) {
     throw new Error('Template not found');
   }
 
+  // Reassign to a new const to help TypeScript with type narrowing
+  const nonNullTemplate = template;
+
   // Initialize data object
-  const data: TemplateData = { template };
+  const data: TemplateData = { template: nonNullTemplate };
 
   // Fetch related entities if IDs are provided
   if (unitId) {
@@ -141,6 +156,17 @@ const prepareTemplateData = async (
           data.pendingPayments = [specificRequest];
         }
       }
+
+      // If a specific payment receipt ID is provided, filter the payment receipts
+      if (specificPaymentReceiptId) { // Added
+        const { getUnitPaymentReceiptById } = require('../database/unitPaymentReceiptsDb');
+        const specificReceipt = await getUnitPaymentReceiptById(specificPaymentReceiptId);
+
+        if (specificReceipt && specificReceipt.unit_id === unitId) {
+          // Replace the payment receipts array with just the specific receipt
+          data.paymentReceipts = [specificReceipt];
+        }
+      }
     }
   }
 
@@ -164,7 +190,7 @@ const prepareTemplateData = async (
         const scheduleResult = await db.getFirstAsync(
           'SELECT id FROM project_schedules WHERE project_id = ? LIMIT 1;',
           [projectId]
-        );
+        ) as ProjectScheduleResult; // Cast to the defined interface
 
         if (scheduleResult && scheduleResult.id) {
           // Fetch milestones for the schedule
