@@ -12,6 +12,11 @@ export interface Client {
   updated_at?: number;
 }
 
+export interface ClientWithDetails extends Client {
+  project_name?: string;
+  flat_no?: string;
+}
+
 // Get all clients
 export const getClients = async (): Promise<Client[]> => {
   try {
@@ -89,6 +94,25 @@ export const updateClient = async (client: Client): Promise<void> => {
     );
   } catch (error) {
     console.error('Error updating client:', error);
+    throw error;
+  }
+};
+
+// Get clients with project and unit/flat details
+export const getClientsWithDetails = async (): Promise<ClientWithDetails[]> => {
+  try {
+    return await db.getAllAsync<ClientWithDetails>(
+      `SELECT
+        c.*,
+        p.name as project_name,
+        uf.flat_no as flat_no
+      FROM clients c
+      LEFT JOIN units_flats uf ON c.id = uf.client_id
+      LEFT JOIN projects p ON uf.project_id = p.id
+      ORDER BY c.name ASC;`
+    );
+  } catch (error) {
+    console.error('Error fetching clients with details:', error);
     throw error;
   }
 };

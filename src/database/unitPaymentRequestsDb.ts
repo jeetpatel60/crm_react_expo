@@ -29,7 +29,7 @@ export const getUnitPaymentRequestsByClientId = async (clientId: number): Promis
   try {
     return await db.getAllAsync<UnitPaymentRequest>(
       `SELECT upr.* FROM unit_payment_requests upr
-       JOIN units_flat uf ON upr.unit_id = uf.id
+       JOIN units_flats uf ON upr.unit_id = uf.id
        WHERE uf.client_id = ? ORDER BY upr.date ASC;`,
       [clientId]
     );

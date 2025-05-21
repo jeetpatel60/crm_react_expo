@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import { Text, useTheme, ActivityIndicator, Button, Dialog, Portal, List, Searchbar } from 'react-native-paper';
-import { Client } from '../types';
-import { getClients } from '../database/clientsDb';
+import { Text, useTheme, ActivityIndicator, Button, Dialog, Portal, List, Searchbar, Divider, FAB, IconButton } from 'react-native-paper';
+import { Client, Company } from '../types';
+import { getClientsWithDetails, ClientWithDetails } from '../database/clientsDb';
 import { getUnitPaymentRequestsByClientId } from '../database/unitPaymentRequestsDb';
 import { getUnitPaymentReceiptsByClientId } from '../database/unitPaymentReceiptsDb';
 import { UnitPaymentRequest, UnitPaymentReceipt } from '../types';
 import { spacing } from '../constants/theme';
+import { formatCurrency } from '../utils/formatters';
+import { generateAndShareCustomerLedgerPdf } from '../utils/reportUtils';
+import { CompanySelectionModal } from '../components';
 
 interface LedgerEntry {
   id: string;
@@ -18,17 +21,20 @@ interface LedgerEntry {
 
 const CustomerLedgerReportScreen = () => {
   const theme = useTheme();
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientWithDetails[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [ledgerData, setLedgerData] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogVisible, setDialogVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Export PDF related state
+  const [companySelectionVisible, setCompanySelectionVisible] = useState(false);
+
   useEffect(() => {
     const loadClients = async () => {
       try {
-        const fetchedClients = await getClients();
+        const fetchedClients = await getClientsWithDetails();
         setClients(fetchedClients);
       } catch (error) {
         console.error('Error loading clients:', error);
@@ -84,9 +90,40 @@ const CustomerLedgerReportScreen = () => {
   const showDialog = () => setDialogVisible(true);
   const hideDialog = () => setDialogVisible(false);
 
+  const showCompanySelection = () => setCompanySelectionVisible(true);
+  const hideCompanySelection = () => setCompanySelectionVisible(false);
+
+  const handleCompanySelect = async (companyId: number) => {
+    hideCompanySelection();
+
+    if (!selectedClient) {
+      return;
+    }
+
+    try {
+      console.log(`Exporting PDF with company ID: ${companyId}`);
+      await generateAndShareCustomerLedgerPdf(
+        selectedClient,
+        ledgerData,
+        balanceAmount,
+        companyId // Use the companyId parameter directly
+      );
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+    }
+  };
+
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Calculate the balance amount
+  const balanceAmount = useMemo(() => {
+    return ledgerData.reduce((total, item) => {
+      // Add receipts, subtract requests
+      return total + (item.type === 'receipt' ? item.amount : -item.amount);
+    }, 0);
+  }, [ledgerData]);
 
   const renderLedgerItem = ({ item }: { item: LedgerEntry }) => (
     <View style={styles.ledgerItem}>
@@ -98,11 +135,52 @@ const CustomerLedgerReportScreen = () => {
     </View>
   );
 
+  const renderFooter = () => {
+    if (ledgerData.length === 0) return null;
+
+    return (
+      <View style={styles.balanceContainer}>
+        <Divider style={styles.divider} />
+        <View style={styles.balanceRow}>
+          <Text style={styles.balanceLabel}>Balance Amount:</Text>
+          <Text style={[
+            styles.balanceAmount,
+            { color: balanceAmount >= 0 ? theme.colors.primary : theme.colors.error }
+          ]}>
+            {formatCurrency(balanceAmount)}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Button mode="outlined" onPress={showDialog} style={styles.selectClientButton}>
-        {selectedClient ? `Selected Client: ${selectedClient.name}` : 'Select Client'}
-      </Button>
+      <View style={styles.headerButtons}>
+        <Button
+          mode="outlined"
+          onPress={showDialog}
+          style={styles.selectClientButton}
+        >
+          {selectedClient ?
+            `${selectedClient.name}${(selectedClient as ClientWithDetails).project_name ?
+              ` - ${(selectedClient as ClientWithDetails).project_name}` : ''}${
+              (selectedClient as ClientWithDetails).flat_no ?
+              ` - ${(selectedClient as ClientWithDetails).flat_no}` : ''}`
+            : 'Select Client'}
+        </Button>
+
+        {selectedClient && (
+          <Button
+            mode="contained"
+            onPress={showCompanySelection}
+            icon="file-pdf-box"
+            style={styles.exportButton}
+          >
+            Export PDF
+          </Button>
+        )}
+      </View>
 
       {loading ? (
         <ActivityIndicator animating={true} color={theme.colors.primary} style={styles.loadingIndicator} />
@@ -116,6 +194,7 @@ const CustomerLedgerReportScreen = () => {
               <Text style={{ color: theme.colors.onSurfaceVariant }}>No ledger entries found for this client.</Text>
             </View>
           }
+          ListFooterComponent={renderFooter}
           contentContainerStyle={styles.listContentContainer}
         />
       ) : (
@@ -140,6 +219,17 @@ const CustomerLedgerReportScreen = () => {
               renderItem={({ item }) => (
                 <List.Item
                   title={item.name}
+                  titleStyle={{ fontWeight: 'bold' }}
+                  description={
+                    item.project_name && item.flat_no
+                      ? `${item.project_name} - Unit/Flat: ${item.flat_no}`
+                      : item.project_name
+                      ? `${item.project_name}`
+                      : item.flat_no
+                      ? `Unit/Flat: ${item.flat_no}`
+                      : undefined
+                  }
+                  descriptionStyle={{ color: theme.colors.secondary }}
                   onPress={() => {
                     setSelectedClient(item);
                     hideDialog();
@@ -153,6 +243,14 @@ const CustomerLedgerReportScreen = () => {
             <Button onPress={hideDialog}>Cancel</Button>
           </Dialog.Actions>
         </Dialog>
+
+        {/* Company Selection Modal for PDF Export */}
+        <CompanySelectionModal
+          visible={companySelectionVisible}
+          onDismiss={hideCompanySelection}
+          onSelect={handleCompanySelect}
+          title="Select Company for Letterhead"
+        />
       </Portal>
     </View>
   );
@@ -163,8 +261,18 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
   },
-  selectClientButton: {
+  headerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  selectClientButton: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  exportButton: {
+    marginLeft: spacing.sm,
   },
   loadingIndicator: {
     marginTop: spacing.lg,
@@ -203,6 +311,30 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     marginBottom: spacing.sm,
+  },
+  // Balance amount styles
+  balanceContainer: {
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  divider: {
+    height: 1,
+    marginBottom: spacing.md,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  balanceLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  balanceAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'right',
   },
 });
 

@@ -13,6 +13,7 @@ export { default as TemplateCard } from './TemplateCard';
 export { default as TemplateSelectionModal } from './TemplateSelectionModal';
 export { default as DocumentTemplateSelectionModal } from './DocumentTemplateSelectionModal';
 export { default as ClientSelectionModal } from './ClientSelectionModal';
+export { default as CompanySelectionModal } from './CompanySelectionModal';
 export { default as StatusChip } from './StatusChip';
 export { default as StatusBadge } from './StatusBadge';
 export { default as KPICard } from './KPICard';
