@@ -4,7 +4,7 @@ import { Text, Card, Button, IconButton, DataTable, FAB, useTheme, Divider } fro
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { TemplateSelectionModal, AgreementTemplateSelectionModal, StatusBadge } from '../components';
+import { DocumentTemplateSelectionModal, AgreementTemplateSelectionModal, PaymentReceiptTemplateSelectionModal, StatusBadge } from '../components';
 
 import { RootStackParamList } from '../types';
 import { UnitFlat } from '../database/unitsFlatDb';
@@ -194,9 +194,17 @@ const UnitFlatDetailsScreen = () => {
 
     if (selectedPaymentRequestId) {
       try {
-        await generateAndShareTemplateDocument( // Changed to generic template function
+        console.log('Generating payment request PDF with:', {
           templateId,
-          'payment-request', // Specify template type
+          unitId,
+          clientId: unit?.client_id,
+          projectId: unit?.project_id,
+          paymentRequestId: selectedPaymentRequestId
+        });
+
+        await generateAndShareTemplateDocument(
+          templateId,
+          'payment-request',
           unitId,
           unit?.client_id,
           unit?.project_id,
@@ -205,7 +213,7 @@ const UnitFlatDetailsScreen = () => {
         );
       } catch (error) {
         console.error('Error exporting payment request:', error);
-        Alert.alert('Error', 'Failed to export payment request');
+        Alert.alert('Error', 'Failed to export payment request. Please check the console for details.');
       }
     }
   };
@@ -646,15 +654,16 @@ const UnitFlatDetailsScreen = () => {
       </ScrollView>
 
       {/* Payment Request Template Selection Modal */}
-      <TemplateSelectionModal
+      <DocumentTemplateSelectionModal
         visible={templateModalVisible}
         onDismiss={() => setTemplateModalVisible(false)}
         onSelect={handleTemplateSelect}
         title="Select Payment Request Template"
+        templateType="paymentRequest"
       />
 
       {/* Payment Receipt Template Selection Modal */}
-      <TemplateSelectionModal // Reusing TemplateSelectionModal for payment receipts
+      <PaymentReceiptTemplateSelectionModal
         visible={paymentReceiptTemplateModalVisible}
         onDismiss={() => setPaymentReceiptTemplateModalVisible(false)}
         onSelect={handlePaymentReceiptTemplateSelect}

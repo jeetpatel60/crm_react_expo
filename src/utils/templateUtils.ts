@@ -66,9 +66,20 @@ export const generateAndShareTemplateDocument = async (
   projectId?: number,
   companyId?: number,
   specificPaymentRequestId?: number,
-  specificPaymentReceiptId?: number // Added
+  specificPaymentReceiptId?: number
 ): Promise<void> => {
   try {
+    console.log('Starting template document generation with:', {
+      templateId,
+      templateType,
+      unitId,
+      clientId,
+      projectId,
+      companyId,
+      specificPaymentRequestId,
+      specificPaymentReceiptId
+    });
+
     // Prepare data for document generation
     const data = await prepareTemplateData(
       templateId,
@@ -78,20 +89,41 @@ export const generateAndShareTemplateDocument = async (
       projectId,
       companyId,
       specificPaymentRequestId,
-      specificPaymentReceiptId // Pass new argument
+      specificPaymentReceiptId
     );
+
+    console.log('Template data prepared:', {
+      hasTemplate: !!data.template,
+      hasUnitData: !!data.unitData,
+      hasClientData: !!data.clientData,
+      hasProjectData: !!data.projectData,
+      hasCompanyData: !!data.companyData,
+      hasLetterhead: !!data.companyLetterheadBase64,
+      letterheadType: data.companyLetterheadType,
+      paymentRequestsCount: data.paymentRequests?.length || 0
+    });
 
     // Generate HTML content
     const htmlContent = generateTemplateHtml(data);
 
+    console.log('HTML content generated, length:', htmlContent.length);
+
     // Generate PDF file
     const { uri } = await Print.printToFileAsync({ html: htmlContent });
+
+    console.log('PDF generated at:', uri);
 
     // Share the PDF file
     await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
   } catch (error) {
     console.error('Error generating or sharing document:', error);
-    Alert.alert('Error', 'Failed to generate or share document. Please try again.');
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+    }
+    Alert.alert('Error', 'Failed to generate or share document. Please check the console for details.');
   }
 };
 
@@ -106,7 +138,7 @@ const prepareTemplateData = async (
   projectId?: number,
   companyId?: number,
   specificPaymentRequestId?: number,
-  specificPaymentReceiptId?: number // Added
+  specificPaymentReceiptId?: number
 ): Promise<TemplateData> => {
   // Fetch template data
   let template: AgreementTemplate | PaymentRequestTemplate | PaymentReceiptTemplate | null;
@@ -158,7 +190,7 @@ const prepareTemplateData = async (
       }
 
       // If a specific payment receipt ID is provided, filter the payment receipts
-      if (specificPaymentReceiptId) { // Added
+      if (specificPaymentReceiptId) {
         const { getUnitPaymentReceiptById } = require('../database/unitPaymentReceiptsDb');
         const specificReceipt = await getUnitPaymentReceiptById(specificPaymentReceiptId);
 

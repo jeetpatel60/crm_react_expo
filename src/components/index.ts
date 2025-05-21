@@ -19,3 +19,4 @@ export { default as KPICard } from './KPICard';
 export { default as ChartCard } from './ChartCard';
 export { default as ActivityList } from './ActivityList';
 export { default as AgreementTemplateSelectionModal } from './AgreementTemplateSelectionModal';
+export { default as PaymentReceiptTemplateSelectionModal } from './PaymentReceiptTemplateSelectionModal';
