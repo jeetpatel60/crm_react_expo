@@ -7,7 +7,7 @@ import { Project } from '../types';
 import { shadows, spacing, borderRadius } from '../constants/theme';
 import { usePressAnimation, useStaggeredAnimation } from '../utils/animationUtils';
 import { getCompanyById } from '../database/companiesDb';
-import { StatusBadge } from '../components';
+import StatusBadge from './StatusBadge';
 
 interface ProjectCardProps {
   project: Project;

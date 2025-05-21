@@ -1,11 +1,12 @@
-import { db } from '../database';
+import * as SQLite from 'expo-sqlite';
 
 /**
  * Migration to add templates tables
  */
-export const addTemplatesTables = async (): Promise<void> => {
+export const addTemplatesTables = async (getDatabase: () => SQLite.SQLiteDatabase): Promise<void> => {
   try {
     console.log('Creating templates tables...');
+    const db = getDatabase();
 
     // Create agreement_templates table
     await db.execAsync(`

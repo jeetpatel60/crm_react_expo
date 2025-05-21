@@ -12,7 +12,7 @@ import { Project } from '../types';
 import { getUnitsFlats, deleteUnitFlat, getUnitsFlatWithDetails } from '../database/unitsFlatDb';
 import { generateAndShareDocxDocument } from '../utils/docxUtils';
 import { getProjects } from '../database/projectsDb';
-import { UnitFlatCard, LoadingIndicator, EmptyState, AgreementTemplateSelectionModal } from '../components';
+import { UnitFlatCard, LoadingIndicator, EmptyState, DocumentTemplateSelectionModal } from '../components';
 import { spacing, shadows, animations } from '../constants/theme';
 import { UNIT_STATUS_OPTIONS } from '../constants';
 
@@ -39,6 +39,7 @@ const UnitsFlatScreen = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [templateModalVisible, setTemplateModalVisible] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<UnitFlat | null>(null);
+  const [documentType, setDocumentType] = useState<'agreement' | 'paymentRequest' | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -124,24 +125,16 @@ const UnitsFlatScreen = () => {
     );
   };
 
-  const handleExportAgreement = (unit: UnitFlat) => {
-    // Check if unit is sold and has a client
-    if (unit.status !== 'Sold' || !unit.client_id) {
-      Alert.alert(
-        'Cannot Generate Agreement',
-        'Agreement can only be generated for units with status "Sold" and a selected client.'
-      );
-      return;
-    }
-
+  const handleExportDocument = (unit: UnitFlat, type: 'agreement' | 'paymentRequest') => {
     setSelectedUnit(unit);
+    setDocumentType(type);
     setTemplateModalVisible(true);
   };
 
   const handleTemplateSelect = async (templateId: number) => {
     setTemplateModalVisible(false);
 
-    if (selectedUnit) {
+    if (selectedUnit && documentType) {
       try {
         const project = projects.get(selectedUnit.project_id);
 
@@ -150,17 +143,35 @@ const UnitsFlatScreen = () => {
           return;
         }
 
-        // Use the project's company_id for the letterhead and include client_id
-        await generateAndShareDocxDocument(
-          templateId,
-          selectedUnit.id,
-          selectedUnit.client_id,
-          project.id,
-          project.company_id
-        );
+        if (documentType === 'agreement') {
+          // Check if unit is sold and has a client for agreement
+          if (selectedUnit.status !== 'Sold' || !selectedUnit.client_id) {
+            Alert.alert(
+              'Cannot Generate Agreement',
+              'Agreement can only be generated for units with status "Sold" and a selected client.'
+            );
+            return;
+          }
+          await generateAndShareDocxDocument(
+            templateId,
+            selectedUnit.id,
+            selectedUnit.client_id,
+            project.id,
+            project.company_id
+          );
+        } else if (documentType === 'paymentRequest') {
+          // For payment request, we only need unit_id and project_id
+          await generateAndShareDocxDocument(
+            templateId,
+            selectedUnit.id,
+            null, // client_id is not required for payment request
+            project.id,
+            project.company_id
+          );
+        }
       } catch (error) {
-        console.error('Error exporting agreement:', error);
-        Alert.alert('Error', 'Failed to export agreement');
+        console.error(`Error exporting ${documentType}:`, error);
+        Alert.alert('Error', `Failed to export ${documentType}`);
       }
     }
   };
@@ -214,7 +225,8 @@ const UnitsFlatScreen = () => {
                   onPress={(unit) => navigation.navigate('UnitFlatDetails', { unitId: unit.id! })}
                   onEdit={(unit) => navigation.navigate('EditUnitFlat', { unit })}
                   onDelete={(unitId) => handleDeleteUnitFlat(unitId)}
-                  onExport={handleExportAgreement}
+                  onExport={(unit) => handleExportDocument(unit, 'agreement')} // Pass 'agreement' type
+                  onExportPaymentRequest={(unit) => handleExportDocument(unit, 'paymentRequest')} // New prop for payment request
                   index={index}
                 />
               );
@@ -240,12 +252,13 @@ const UnitsFlatScreen = () => {
         onPress={() => navigation.navigate('AddUnitFlat')}
       />
 
-      {/* Agreement Template Selection Modal */}
-      <AgreementTemplateSelectionModal
+      {/* Document Template Selection Modal */}
+      <DocumentTemplateSelectionModal
         visible={templateModalVisible}
         onDismiss={() => setTemplateModalVisible(false)}
         onSelect={handleTemplateSelect}
-        title="Select Agreement Template"
+        title={documentType === 'agreement' ? "Select Agreement Template" : "Select Payment Request Template"}
+        templateType={documentType === 'agreement' ? 'agreement' : 'paymentRequest'}
       />
     </View>
   );

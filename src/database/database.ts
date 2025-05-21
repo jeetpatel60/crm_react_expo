@@ -1,10 +1,5 @@
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
-import { addClientIdToUnitsFlats } from './migrations/addClientIdToUnitsFlats';
-import { addCompanyIdToProjects } from './migrations/addCompanyIdToProjects';
-import { addTemplatesTables } from './migrations/addTemplatesTables';
-import { addPaymentRequestIdToUnitPaymentReceipts } from './migrations/addPaymentRequestIdToUnitPaymentReceipts';
-import { addPaymentReceiptTemplatesTable } from './migrations/addPaymentReceiptTemplatesTable';
 
 // Define the database type
 export type DatabaseType = SQLite.SQLiteDatabase;
@@ -25,7 +20,7 @@ export const initializeDb = async (): Promise<boolean> => {
     }
 
     database = await SQLite.openDatabaseAsync('crm.db');
-    console.log('SUCCESS: Using SQLite database');
+    console.log('SUCCESS: Using SQLite database. Database object:', database);
     return true;
   } catch (error) {
     console.error('Error initializing database:', error);
@@ -37,8 +32,10 @@ export const initializeDb = async (): Promise<boolean> => {
 // This ensures we have a safe way to access the database
 export const getDatabase = (): SQLite.SQLiteDatabase => {
   if (!database) {
+    console.error('ERROR: Database is null when getDatabase() is called.');
     throw new Error('Database not initialized. Call initializeDb() first.');
   }
+  console.log('DEBUG: getDatabase() returning database object:', database);
   return database;
 };
 
@@ -357,20 +354,21 @@ export const runMigrations = async (): Promise<void> => {
   try {
     console.log('Running database migrations...');
 
-    // Migration 1: Add client_id column to units_flats table
-    await addClientIdToUnitsFlats();
+    // Dynamically import and run migrations, passing getDatabase
+    const { addClientIdToUnitsFlats } = await import('./migrations/addClientIdToUnitsFlats');
+    await addClientIdToUnitsFlats(getDatabase);
 
-    // Migration 2: Add company_id column to projects table
-    await addCompanyIdToProjects();
+    const { addCompanyIdToProjects } = await import('./migrations/addCompanyIdToProjects');
+    await addCompanyIdToProjects(getDatabase);
 
-    // Migration 3: Add templates tables
-    await addTemplatesTables();
+    const { addTemplatesTables } = await import('./migrations/addTemplatesTables');
+    await addTemplatesTables(getDatabase);
 
-    // Migration 4: Add payment_request_id to unit_payment_receipts table
-    await addPaymentRequestIdToUnitPaymentReceipts();
+    const { addPaymentRequestIdToUnitPaymentReceipts } = await import('./migrations/addPaymentRequestIdToUnitPaymentReceipts');
+    await addPaymentRequestIdToUnitPaymentReceipts(getDatabase);
 
-    // Migration 5: Add payment_receipt_templates table
-    await addPaymentReceiptTemplatesTable();
+    const { addPaymentReceiptTemplatesTable } = await import('./migrations/addPaymentReceiptTemplatesTable');
+    await addPaymentReceiptTemplatesTable(getDatabase);
 
     console.log('Database migrations completed successfully');
   } catch (error) {

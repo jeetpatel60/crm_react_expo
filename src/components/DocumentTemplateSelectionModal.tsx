@@ -4,24 +4,28 @@ import { Modal, Portal, Text, Button, RadioButton, Card, useTheme, ActivityIndic
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AgreementTemplate } from '../database/agreementTemplatesDb';
+import { PaymentRequestTemplate } from '../database/paymentRequestTemplatesDb';
 import { getAgreementTemplates } from '../database/agreementTemplatesDb';
+import { getPaymentRequestTemplates } from '../database/paymentRequestTemplatesDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
 
-interface AgreementTemplateSelectionModalProps {
+interface DocumentTemplateSelectionModalProps {
   visible: boolean;
   onDismiss: () => void;
   onSelect: (templateId: number) => void;
   title?: string;
+  templateType: 'agreement' | 'paymentRequest';
 }
 
-const AgreementTemplateSelectionModal: React.FC<AgreementTemplateSelectionModalProps> = ({
+const DocumentTemplateSelectionModal: React.FC<DocumentTemplateSelectionModalProps> = ({
   visible,
   onDismiss,
   onSelect,
-  title = 'Select Agreement Template',
+  title = 'Select Document Template',
+  templateType,
 }) => {
   const theme = useTheme();
-  const [templates, setTemplates] = useState<AgreementTemplate[]>([]);
+  const [templates, setTemplates] = useState<(AgreementTemplate | PaymentRequestTemplate)[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,12 +33,17 @@ const AgreementTemplateSelectionModal: React.FC<AgreementTemplateSelectionModalP
     if (visible) {
       loadTemplates();
     }
-  }, [visible]);
+  }, [visible, templateType]); // Add templateType to dependencies
 
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      const data = await getAgreementTemplates();
+      let data: (AgreementTemplate | PaymentRequestTemplate)[] = [];
+      if (templateType === 'agreement') {
+        data = await getAgreementTemplates();
+      } else if (templateType === 'paymentRequest') {
+        data = await getPaymentRequestTemplates();
+      }
       setTemplates(data);
       
       // Select the first template by default if available
@@ -42,8 +51,8 @@ const AgreementTemplateSelectionModal: React.FC<AgreementTemplateSelectionModalP
         setSelectedTemplateId(data[0].id!);
       }
     } catch (error) {
-      console.error('Error loading agreement templates:', error);
-      Alert.alert('Error', 'Failed to load agreement templates');
+      console.error(`Error loading ${templateType} templates:`, error);
+      Alert.alert('Error', `Failed to load ${templateType} templates`);
     } finally {
       setLoading(false);
     }
@@ -57,7 +66,7 @@ const AgreementTemplateSelectionModal: React.FC<AgreementTemplateSelectionModalP
     }
   };
 
-  const renderItem = ({ item }: { item: AgreementTemplate }) => (
+  const renderItem = ({ item }: { item: AgreementTemplate | PaymentRequestTemplate }) => (
     <Card 
       style={[
         styles.templateCard, 
@@ -123,9 +132,9 @@ const AgreementTemplateSelectionModal: React.FC<AgreementTemplateSelectionModalP
               size={48}
               color={theme.colors.onSurfaceVariant}
             />
-            <Text style={styles.emptyText}>No agreement templates available</Text>
+            <Text style={styles.emptyText}>No {templateType} templates available</Text>
             <Text style={styles.emptySubtext}>
-              Please create an agreement template first
+              Please create a {templateType} template first
             </Text>
           </View>
         ) : (
@@ -162,8 +171,8 @@ const AgreementTemplateSelectionModal: React.FC<AgreementTemplateSelectionModalP
 const styles = StyleSheet.create({
   modalContainer: {
     margin: spacing.lg,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
     maxHeight: '80%',
   },
   modalHeader: {
@@ -178,17 +187,14 @@ const styles = StyleSheet.create({
   closeIcon: {
     padding: spacing.xs,
   },
-  listContent: {
-    paddingVertical: spacing.sm,
-  },
   templateCard: {
     marginBottom: spacing.sm,
-    borderRadius: borderRadius.sm,
+    borderRadius: borderRadius.md,
   },
   templateCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.sm,
+    padding: spacing.md,
   },
   templateInfo: {
     flex: 1,
@@ -198,8 +204,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   templatePreview: {
-    color: '#666',
     marginTop: spacing.xs,
+    color: '#666',
+  },
+  listContent: {
+    paddingVertical: spacing.sm,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -235,4 +244,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AgreementTemplateSelectionModal;
+export default DocumentTemplateSelectionModal;

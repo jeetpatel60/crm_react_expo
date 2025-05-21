@@ -1,11 +1,12 @@
-import { db } from '../database';
+import * as SQLite from 'expo-sqlite';
 
 /**
  * Migration to add client_id column to units_flats table
  */
-export const addClientIdToUnitsFlats = async (): Promise<void> => {
+export const addClientIdToUnitsFlats = async (getDatabase: () => SQLite.SQLiteDatabase): Promise<void> => {
   try {
     console.log('Running migration: Adding client_id column to units_flats table...');
+    const db = getDatabase();
 
     // Check if client_id column already exists
     const tableInfo = await db.getAllAsync(

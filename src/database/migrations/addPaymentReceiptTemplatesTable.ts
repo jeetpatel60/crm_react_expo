@@ -1,11 +1,12 @@
-import { db } from '../database';
+import * as SQLite from 'expo-sqlite';
 
 /**
  * Migration to add payment_receipt_templates table
  */
-export const addPaymentReceiptTemplatesTable = async (): Promise<void> => {
+export const addPaymentReceiptTemplatesTable = async (getDatabase: () => SQLite.SQLiteDatabase): Promise<void> => {
   try {
     console.log('Creating payment_receipt_templates table...');
+    const db = getDatabase();
 
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS payment_receipt_templates (

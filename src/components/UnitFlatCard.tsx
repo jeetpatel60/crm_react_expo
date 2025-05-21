@@ -4,7 +4,7 @@ import { Card, Text, IconButton, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBadge } from '../components';
+import StatusBadge from '../components/StatusBadge';
 
 import { UnitFlat } from '../types';
 import { spacing, shadows, borderRadius } from '../constants/theme';
@@ -17,7 +17,8 @@ interface UnitFlatCardProps {
   onPress: (unit: UnitFlat) => void;
   onEdit: (unit: UnitFlat) => void;
   onDelete: (unitId: number) => void;
-  onExport?: (unit: UnitFlat) => void;
+  onExport?: (unit: UnitFlat) => void; // For agreement
+  onExportPaymentRequest?: (unit: UnitFlat) => void; // For payment request
   index: number;
 }
 
@@ -28,6 +29,7 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
   onEdit,
   onDelete,
   onExport,
+  onExportPaymentRequest, // Destructure new prop
   index,
 }) => {
   const theme = useTheme();
@@ -63,6 +65,15 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
               />
             </View>
             <View style={styles.actions}>
+              {onExportPaymentRequest && ( // New button for payment request
+                <IconButton
+                  icon="receipt" // Changed icon for payment request
+                  size={20}
+                  onPress={() => onExportPaymentRequest(unit)}
+                  style={styles.iconButton}
+                  accessibilityLabel="Export Payment Request"
+                />
+              )}
               {onExport && (
                 <IconButton
                   icon="file-document-outline"

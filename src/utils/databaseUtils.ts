@@ -30,11 +30,8 @@ export const initializeDatabase = async (): Promise<void> => {
     await initDatabase();
     console.log('Database tables initialized successfully');
 
-    // Run migrations
-    await addCompanyIdToProjects();
-    await addTemplatesTables();
-    await addClientIdToUnitsFlats();
-    console.log('Database migrations completed successfully');
+    // Migrations are run within initDatabase, no need to call them separately here.
+    // console.log('Database migrations completed successfully');
 
     // Verify units_flats table exists after initialization and migrations
     try {

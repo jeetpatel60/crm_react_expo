@@ -1,7 +1,8 @@
-import { db } from '../database';
+import * as SQLite from 'expo-sqlite';
 
-export const addPaymentRequestIdToUnitPaymentReceipts = async (): Promise<void> => {
+export const addPaymentRequestIdToUnitPaymentReceipts = async (getDatabase: () => SQLite.SQLiteDatabase): Promise<void> => {
   try {
+    const db = getDatabase();
     // Check if the column already exists
     const tableInfo = await db.getAllAsync(
       "PRAGMA table_info(unit_payment_receipts);"

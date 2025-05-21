@@ -46,7 +46,7 @@ interface TemplateData {
 export const generateAndShareDocxDocument = async (
   templateId: number,
   unitId?: number,
-  clientId?: number,
+  clientId?: number | null, // Allow null for clientId
   projectId?: number,
   companyId?: number,
   specificPaymentRequestId?: number
@@ -209,7 +209,7 @@ export const generateAndShareDocxDocument = async (
 const prepareTemplateData = async (
   templateId: number,
   unitId?: number,
-  clientId?: number,
+  clientId?: number | null, // Allow null for clientId
   projectId?: number,
   companyId?: number,
   specificPaymentRequestId?: number

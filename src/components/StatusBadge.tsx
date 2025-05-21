@@ -68,7 +68,7 @@ const StatusBadge = ({ status, size = 'medium', showIcon = true }: StatusBadgePr
       case 'Sold':
         return {
           color: '#3B82F6', // Blue
-          icon: 'home-check'
+          icon: 'check-decagram'
         };
 
       // Customer schedule statuses
