@@ -191,46 +191,47 @@ const UnitsFlatScreen = () => {
         style={styles.segmentedButtons}
       />
 
-      {loading ? (
-        <LoadingIndicator />
-      ) : filteredUnits.length === 0 ? (
-        <EmptyState
-          icon="home-city"
-          title="No Units/Flats"
-          message={searchQuery || statusFilter !== 'all' ? "No units/flats match your search" : "You haven't added any units/flats yet"}
-          buttonText={searchQuery || statusFilter !== 'all' ? undefined : "Add Unit/Flat"}
-          onButtonPress={searchQuery || statusFilter !== 'all' ? undefined : () => navigation.navigate('AddUnitFlat')}
-        />
-      ) : (
-        <FlatList
-          data={filteredUnits}
-          keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-          renderItem={({ item, index }) => {
-            const project = projects.get(item.project_id);
-            return (
-              <UnitFlatCard
-                unit={item}
-                project={project}
-                onPress={(unit) => navigation.navigate('UnitFlatDetails', { unitId: unit.id! })}
-                onEdit={(unit) => navigation.navigate('EditUnitFlat', { unit })}
-                onDelete={(unitId) => handleDeleteUnitFlat(unitId)}
-                onExport={handleExportAgreement}
-                index={index}
+        {loading ? (
+          <LoadingIndicator />
+        ) : filteredUnits.length === 0 ? (
+          <EmptyState
+            icon="home-city"
+            title="No Units/Flats"
+            message={searchQuery || statusFilter !== 'all' ? "No units/flats match your search" : "You haven't added any units/flats yet"}
+            buttonText={searchQuery || statusFilter !== 'all' ? undefined : "Add Unit/Flat"}
+            onButtonPress={searchQuery || statusFilter !== 'all' ? undefined : () => navigation.navigate('AddUnitFlat')}
+          />
+        ) : (
+          <FlatList
+            data={filteredUnits}
+            keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+            renderItem={({ item, index }) => {
+              const project = projects.get(item.project_id);
+              return (
+                <UnitFlatCard
+                  unit={item}
+                  project={project}
+                  onPress={(unit) => navigation.navigate('UnitFlatDetails', { unitId: unit.id! })}
+                  onEdit={(unit) => navigation.navigate('EditUnitFlat', { unit })}
+                  onDelete={(unitId) => handleDeleteUnitFlat(unitId)}
+                  onExport={handleExportAgreement}
+                  index={index}
+                />
+              );
+            }}
+            style={styles.flatList}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[theme.colors.primary]}
+                tintColor={theme.colors.primary}
+                progressBackgroundColor={theme.colors.surface}
               />
-            );
-          }}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[theme.colors.primary]}
-              tintColor={theme.colors.primary}
-              progressBackgroundColor={theme.colors.surface}
-            />
-          }
-        />
-      )}
+            }
+          />
+        )}
 
       <FAB
         icon="plus"
@@ -274,6 +275,9 @@ const styles = StyleSheet.create({
     margin: spacing.md,
     right: 0,
     bottom: 0,
+  },
+  flatList: {
+    flex: 1,
   },
 });
 
