@@ -26,6 +26,7 @@ const PaymentReceiptTemplateSelectionModal: React.FC<PaymentReceiptTemplateSelec
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('PaymentReceiptTemplateSelectionModal - visible changed:', visible);
     if (visible) {
       loadTemplates();
     }
@@ -33,8 +34,10 @@ const PaymentReceiptTemplateSelectionModal: React.FC<PaymentReceiptTemplateSelec
 
   const loadTemplates = async () => {
     try {
+      console.log('Loading payment receipt templates...');
       setLoading(true);
       const data = await getPaymentReceiptTemplates();
+      console.log('Loaded templates:', data);
       setTemplates(data);
       
       // Select the first template by default if available

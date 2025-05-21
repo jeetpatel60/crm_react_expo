@@ -218,25 +218,25 @@ const UnitFlatDetailsScreen = () => {
     }
   };
 
-  const handleExportPaymentReceipt = (receiptId: number) => { // Added
+  const handleExportPaymentReceipt = (receiptId: number) => {
     setSelectedPaymentReceiptId(receiptId);
     setPaymentReceiptTemplateModalVisible(true);
   };
 
-  const handlePaymentReceiptTemplateSelect = async (templateId: number) => { // Added
+  const handlePaymentReceiptTemplateSelect = async (templateId: number) => {
     setPaymentReceiptTemplateModalVisible(false);
 
     if (selectedPaymentReceiptId) {
       try {
         await generateAndShareTemplateDocument(
           templateId,
-          'payment-receipt', // Specify template type
+          'payment-receipt',
           unitId,
           unit?.client_id,
           unit?.project_id,
           unit?.project_id ? (await getProjectById(unit.project_id))?.company_id : undefined,
-          undefined, // No specific payment request for a receipt export
-          selectedPaymentReceiptId // Pass receipt ID for specific receipt export
+          undefined,
+          selectedPaymentReceiptId
         );
       } catch (error) {
         console.error('Error exporting payment receipt:', error);
@@ -635,7 +635,7 @@ const UnitFlatDetailsScreen = () => {
                             onPress={() => handleDeletePaymentReceipt(receipt.id!)}
                             style={styles.actionButton}
                           />
-                          <IconButton // Added PDF export icon
+                          <IconButton
                             icon="file-pdf-box"
                             size={16}
                             onPress={() => handleExportPaymentReceipt(receipt.id!)}

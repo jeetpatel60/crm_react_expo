@@ -53,6 +53,8 @@ interface TemplateData {
   paymentRequests?: UnitPaymentRequest[];
   paymentReceipts?: UnitPaymentReceipt[];
   pendingPayments?: UnitPaymentRequest[];
+  specificPaymentReceiptId?: number;
+  currentDate: string;
 }
 
 /**
@@ -160,7 +162,7 @@ const prepareTemplateData = async (
   const nonNullTemplate = template;
 
   // Initialize data object
-  const data: TemplateData = { template: nonNullTemplate };
+  const data: TemplateData = { template: nonNullTemplate, currentDate: formatDate(Date.now()) };
 
   // Fetch related entities if IDs are provided
   if (unitId) {
@@ -453,6 +455,24 @@ export const replacePlaceholders = (content: string, data: TemplateData): string
 
   // Payment Receipts fields
   if (data.paymentReceipts) {
+    // Handle specific payment receipt placeholders (for single receipt export)
+    if (data.specificPaymentReceiptId) {
+      const specificReceipt = data.paymentReceipts.find(r => r.id === data.specificPaymentReceiptId);
+      if (specificReceipt) {
+        result = result.replace(/\{\{PAYMENT_RECEIPT_SR_NO\}\}/g, specificReceipt.sr_no?.toString() || '');
+        result = result.replace(/\{\{PAYMENT_RECEIPT_DATE\}\}/g, formatDate(specificReceipt.date || 0));
+        result = result.replace(/\{\{PAYMENT_RECEIPT_DESCRIPTION\}\}/g, specificReceipt.description || '');
+        result = result.replace(/\{\{PAYMENT_RECEIPT_AMOUNT\}\}/g, formatCurrency(specificReceipt.amount || 0));
+        result = result.replace(/\{\{PAYMENT_RECEIPT_MODE\}\}/g, specificReceipt.mode || '');
+        result = result.replace(/\{\{PAYMENT_RECEIPT_REMARKS\}\}/g, specificReceipt.remarks || '');
+        // Add shorthand placeholders
+        result = result.replace(/\{\{AMOUNT\}\}/g, formatCurrency(specificReceipt.amount || 0));
+        result = result.replace(/\{\{DATE\}\}/g, formatDate(specificReceipt.date || 0));
+        result = result.replace(/\{\{DESCRIPTION\}\}/g, specificReceipt.description || '');
+      }
+    }
+
+    // Handle indexed payment receipt placeholders
     const receiptRegex = /\{\{PAYMENT_RECEIPT_([A-Z_]+)\[(\d+)\]\}\}/g;
     let match;
 
@@ -669,8 +689,8 @@ const generatePaymentRequestsTable = (data: TemplateData): string => {
     tableHtml += `
       <tr>
         <td>${request.sr_no}</td>
-        <td>${formatDate(request.date)}</td>
-        <td>${request.description || ''}</td>
+        <td>${formatDate(request.date || 0)}</td>
+        <td>${request.description}</td>
         <td>${formatCurrency(request.amount || 0)}</td>
       </tr>
     `;
@@ -711,11 +731,11 @@ const generatePaymentReceiptsTable = (data: TemplateData): string => {
     tableHtml += `
       <tr>
         <td>${receipt.sr_no}</td>
-        <td>${formatDate(receipt.date)}</td>
-        <td>${receipt.description || ''}</td>
+        <td>${formatDate(receipt.date || 0)}</td>
+        <td>${receipt.description}</td>
         <td>${formatCurrency(receipt.amount || 0)}</td>
-        <td>${receipt.mode || ''}</td>
-        <td>${receipt.remarks || ''}</td>
+        <td>${receipt.mode}</td>
+        <td>${receipt.remarks}</td>
       </tr>
     `;
   });
@@ -749,13 +769,13 @@ const generatePendingPaymentsTable = (data: TemplateData): string => {
       <tbody>
   `;
 
-  data.pendingPayments.forEach(request => {
+  data.pendingPayments.forEach(pending => {
     tableHtml += `
       <tr>
-        <td>${request.sr_no}</td>
-        <td>${formatDate(request.date)}</td>
-        <td>${request.description || ''}</td>
-        <td>${formatCurrency(request.amount || 0)}</td>
+        <td>${pending.sr_no}</td>
+        <td>${formatDate(pending.date || 0)}</td>
+        <td>${pending.description}</td>
+        <td>${formatCurrency(pending.amount || 0)}</td>
       </tr>
     `;
   });
@@ -769,80 +789,23 @@ const generatePendingPaymentsTable = (data: TemplateData): string => {
 };
 
 /**
- * Generate HTML content for the template document
+ * Generate HTML content for the template
  */
 const generateTemplateHtml = (data: TemplateData): string => {
-  // Replace placeholders in template content
-  const processedContent = replacePlaceholders(data.template.content, data);
+  // Replace placeholders in template content with actual data
+  const replacedContent = replacePlaceholders(data.template.content, data);
 
-  // Generate letterhead section
-  let letterheadHtml = '';
-  if (data.companyLetterheadBase64 && data.companyLetterheadType === 'image') {
-    letterheadHtml = `
-      <div class="letterhead">
-        <img src="${data.companyLetterheadBase64}" style="max-width: 100%; max-height: 150px;" />
-      </div>
-    `;
-  } else if (data.companyData) {
-    // If no letterhead or PDF letterhead, use company name as header
-    letterheadHtml = `
-      <div class="letterhead-text">
-        <h1>${data.companyData.name || 'Company Name'}</h1>
-        ${data.companyData.salutation ? `<p>${data.companyData.salutation}</p>` : ''}
-      </div>
-    `;
-  }
-
-  // Generate the complete HTML
-  return `
-    <!DOCTYPE html>
+  // Generate HTML content for the template
+  const htmlContent = `
     <html>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
-        <style>
-          body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            padding: 20px;
-            color: #333;
-            line-height: 1.5;
-          }
-          .letterhead {
-            text-align: center;
-            margin-bottom: 20px;
-          }
-          .letterhead-text {
-            text-align: center;
-            margin-bottom: 20px;
-          }
-          .letterhead-text h1 {
-            margin: 0;
-            color: #2c3e50;
-          }
-          .content {
-            margin-top: 20px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-          }
-          th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-          }
-          th {
-            background-color: #f2f2f2;
-          }
-        </style>
+        <title>${data.template.name}</title>
       </head>
       <body>
-        ${letterheadHtml}
-
-        <div class="content">
-          ${processedContent}
-        </div>
+        ${replacedContent}
       </body>
     </html>
   `;
+
+  return htmlContent;
 };
