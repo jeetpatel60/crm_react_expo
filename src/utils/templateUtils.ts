@@ -171,6 +171,11 @@ const prepareTemplateData = async (
       data.unitData = unitData;
       data.unitId = unitId;
 
+      // If projectId is not provided, get it from the unit
+      if (!projectId && unitData.project_id) {
+        projectId = unitData.project_id;
+      }
+
       // Fetch customer schedules, payment requests, and payment receipts for the unit
       data.customerSchedules = await getUnitCustomerSchedules(unitId);
       data.paymentRequests = await getUnitPaymentRequests(unitId);
@@ -199,6 +204,7 @@ const prepareTemplateData = async (
         if (specificReceipt && specificReceipt.unit_id === unitId) {
           // Replace the payment receipts array with just the specific receipt
           data.paymentReceipts = [specificReceipt];
+          data.specificPaymentReceiptId = specificPaymentReceiptId;
         }
       }
     }
@@ -217,6 +223,12 @@ const prepareTemplateData = async (
     if (projectData) {
       data.projectData = projectData;
       data.projectId = projectId;
+
+      // If companyId is not provided, get it from the project
+      if (!companyId && projectData.company_id) {
+        companyId = projectData.company_id;
+        console.log(`Using company ID ${companyId} from project ${projectId}`);
+      }
 
       // Fetch project schedules and milestones
       try {
@@ -237,6 +249,7 @@ const prepareTemplateData = async (
   }
 
   if (companyId) {
+    console.log(`Fetching company data for ID: ${companyId}`);
     const companyData = await getCompanyById(companyId);
     if (companyData) {
       data.companyData = companyData;
@@ -245,6 +258,7 @@ const prepareTemplateData = async (
       // Process letterhead if available
       if (companyData.letterhead_path) {
         try {
+          console.log(`Processing letterhead from path: ${companyData.letterhead_path}`);
           const fileInfo = await FileSystem.getInfoAsync(companyData.letterhead_path);
           if (fileInfo.exists) {
             // Determine file type
@@ -255,16 +269,26 @@ const prepareTemplateData = async (
                 encoding: FileSystem.EncodingType.Base64,
               });
               data.companyLetterheadBase64 = `data:image/${extension};base64,${base64}`;
+              console.log(`Letterhead processed as image/${extension}`);
             } else if (extension === 'pdf') {
               data.companyLetterheadType = 'pdf';
+              console.log('Letterhead is PDF format (cannot be embedded directly in HTML)');
               // We can't embed PDF letterhead directly in HTML
             }
+          } else {
+            console.log(`Letterhead file does not exist at path: ${companyData.letterhead_path}`);
           }
         } catch (error) {
           console.error('Error processing letterhead:', error);
         }
+      } else {
+        console.log('No letterhead path found for company');
       }
+    } else {
+      console.log(`Company with ID ${companyId} not found`);
     }
+  } else {
+    console.log('No company ID provided');
   }
 
   return data;
@@ -795,13 +819,53 @@ const generateTemplateHtml = (data: TemplateData): string => {
   // Replace placeholders in template content with actual data
   const replacedContent = replacePlaceholders(data.template.content, data);
 
-  // Generate HTML content for the template
+  // Generate letterhead section if available
+  let letterheadHtml = '';
+  if (data.companyLetterheadBase64 && data.companyLetterheadType === 'image') {
+    letterheadHtml = `
+      <div class="letterhead" style="text-align: center; margin-bottom: 20px;">
+        <img src="${data.companyLetterheadBase64}" style="max-width: 100%; max-height: 150px;" />
+      </div>
+    `;
+  } else if (data.companyData) {
+    // If no letterhead or PDF letterhead, use company name as header
+    letterheadHtml = `
+      <div class="letterhead-text" style="text-align: center; margin-bottom: 20px;">
+        <h1 style="margin-bottom: 5px;">${data.companyData.name || 'Company Name'}</h1>
+        ${data.companyData.salutation ? `<p style="margin-top: 5px;">${data.companyData.salutation}</p>` : ''}
+      </div>
+    `;
+  }
+
+  // Generate HTML content for the template with letterhead
   const htmlContent = `
     <html>
       <head>
         <title>${data.template.name}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f2f2f2;
+          }
+        </style>
       </head>
       <body>
+        ${letterheadHtml}
         ${replacedContent}
       </body>
     </html>

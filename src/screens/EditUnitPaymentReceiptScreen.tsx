@@ -37,7 +37,7 @@ const EditUnitPaymentReceiptScreen = () => {
   const [amount, setAmount] = useState(receipt.amount.toString());
   const [mode, setMode] = useState(receipt.mode || '');
   const [remarks, setRemarks] = useState(receipt.remarks || '');
-  
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -64,6 +64,7 @@ const EditUnitPaymentReceiptScreen = () => {
 
     try {
       setLoading(true);
+      console.log(`Preparing to update payment receipt ID: ${receipt.id}`);
 
       const updatedReceipt: UnitPaymentReceipt = {
         ...receipt,
@@ -72,15 +73,23 @@ const EditUnitPaymentReceiptScreen = () => {
         amount: parseFloat(amount),
         mode: mode.trim() || undefined,
         remarks: remarks.trim() || undefined,
+        // Explicitly preserve the payment_request_id if it exists
+        payment_request_id: receipt.payment_request_id,
       };
 
+      console.log(`Sending update for receipt:`, JSON.stringify(updatedReceipt));
       await updateUnitPaymentReceipt(updatedReceipt);
 
+      console.log(`Payment receipt updated successfully: ${receipt.id}`);
       Alert.alert('Success', 'Payment receipt updated successfully');
       navigation.goBack();
     } catch (error) {
-      console.error('Error updating payment receipt:', error);
-      Alert.alert('Error', 'Failed to update payment receipt. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error updating payment receipt ID ${receipt.id}:`, error);
+      Alert.alert(
+        'Error',
+        `Failed to update payment receipt: ${errorMessage}. Please check the console for more details.`
+      );
     } finally {
       setLoading(false);
     }

@@ -88,6 +88,10 @@ const UnitFlatDetailsScreen = () => {
       const receiptRequestIds = new Set(receiptsData.map(r => r.payment_request_id).filter((id): id is number => id !== undefined && id !== null));
       setReceiptsForRequests(receiptRequestIds);
 
+      // Log for debugging
+      console.log('Payment receipts loaded:', receiptsData.length);
+      console.log('Payment requests with receipts:', Array.from(receiptRequestIds));
+
     } catch (error) {
       console.error('Error loading unit details:', error);
       Alert.alert('Error', 'Failed to load unit details');
@@ -161,6 +165,9 @@ const UnitFlatDetailsScreen = () => {
   };
 
   const handleDeletePaymentReceipt = (receiptId: number) => {
+    // Find the receipt to check if it's linked to a payment request
+    const receipt = paymentReceipts.find(r => r.id === receiptId);
+
     Alert.alert(
       'Delete Payment Receipt',
       'Are you sure you want to delete this payment receipt? This action cannot be undone.',
@@ -171,12 +178,25 @@ const UnitFlatDetailsScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log(`Initiating delete for payment receipt ID: ${receiptId}`);
               await deleteUnitPaymentReceipt(receiptId);
+              console.log(`Delete operation completed successfully for receipt ID: ${receiptId}`);
+
+              // If this receipt was linked to a payment request, update our tracking
+              if (receipt && receipt.payment_request_id) {
+                console.log(`Receipt was linked to payment request ID: ${receipt.payment_request_id}`);
+                // We'll refresh the data which will update the receiptsForRequests set
+              }
+
               Alert.alert('Success', 'Payment receipt deleted successfully');
               loadData();
             } catch (error) {
-              console.error('Error deleting payment receipt:', error);
-              Alert.alert('Error', 'Failed to delete payment receipt');
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              console.error(`Error deleting payment receipt ID ${receiptId}:`, error);
+              Alert.alert(
+                'Error',
+                `Failed to delete payment receipt: ${errorMessage}. Please check the console for more details.`
+              );
             }
           },
         },
@@ -219,6 +239,7 @@ const UnitFlatDetailsScreen = () => {
   };
 
   const handleExportPaymentReceipt = (receiptId: number) => {
+    console.log(`Setting up export for payment receipt ID: ${receiptId}`);
     setSelectedPaymentReceiptId(receiptId);
     setPaymentReceiptTemplateModalVisible(true);
   };
@@ -228,19 +249,37 @@ const UnitFlatDetailsScreen = () => {
 
     if (selectedPaymentReceiptId) {
       try {
+        console.log(`Generating document for payment receipt ID: ${selectedPaymentReceiptId} with template ID: ${templateId}`);
+
+        // Find the receipt to get additional details if needed
+        const receipt = paymentReceipts.find(r => r.id === selectedPaymentReceiptId);
+        console.log(`Receipt details: ${JSON.stringify(receipt)}`);
+
+        // Get project data to fetch company ID
+        let companyId: number | undefined = undefined;
+        if (unit?.project_id) {
+          const project = await getProjectById(unit.project_id);
+          if (project?.company_id) {
+            companyId = project.company_id;
+            console.log(`Using company ID ${companyId} from project ${project.id} for letterhead`);
+          }
+        }
+
         await generateAndShareTemplateDocument(
           templateId,
           'payment-receipt',
           unitId,
           unit?.client_id,
           unit?.project_id,
-          unit?.project_id ? (await getProjectById(unit.project_id))?.company_id : undefined,
+          companyId, // Pass the company ID for letterhead
           undefined,
           selectedPaymentReceiptId
         );
+
+        console.log(`Document generation completed successfully`);
       } catch (error) {
         console.error('Error exporting payment receipt:', error);
-        Alert.alert('Error', 'Failed to export payment receipt');
+        Alert.alert('Error', 'Failed to export payment receipt. Check console for details.');
       }
     }
   };
@@ -613,39 +652,53 @@ const UnitFlatDetailsScreen = () => {
                     <DataTable.Title style={styles.actionsColumn} textStyle={{textAlign: 'center'}}>Actions</DataTable.Title>
                   </DataTable.Header>
 
-                  {paymentReceipts.map((receipt) => (
-                    <DataTable.Row key={receipt.id} style={styles.tableRow}>
-                      <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{receipt.sr_no}</DataTable.Cell>
-                      <DataTable.Cell style={styles.dateColumn} textStyle={{textAlign: 'center'}}>{formatDate(receipt.date)}</DataTable.Cell>
-                      <DataTable.Cell style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>{receipt.description || '-'}</DataTable.Cell>
-                      <DataTable.Cell style={styles.amountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(receipt.amount)}</DataTable.Cell>
-                      <DataTable.Cell style={styles.modeColumn} textStyle={{textAlign: 'center'}}>{receipt.mode || '-'}</DataTable.Cell>
-                      <DataTable.Cell style={styles.remarksColumn} textStyle={{textAlign: 'center'}}>{receipt.remarks || '-'}</DataTable.Cell>
-                      <DataTable.Cell style={styles.actionsColumn}>
-                        <View style={styles.actionButtons}>
-                          <IconButton
-                            icon="pencil"
-                            size={16}
-                            onPress={() => navigation.navigate('EditUnitPaymentReceipt', { receipt })}
-                            style={styles.actionButton}
-                          />
-                          <IconButton
-                            icon="delete"
-                            size={16}
-                            onPress={() => handleDeletePaymentReceipt(receipt.id!)}
-                            style={styles.actionButton}
-                          />
-                          <IconButton
-                            icon="file-pdf-box"
-                            size={16}
-                            onPress={() => handleExportPaymentReceipt(receipt.id!)}
-                            style={styles.actionButton}
-                            iconColor={theme.colors.primary}
-                          />
-                        </View>
-                      </DataTable.Cell>
-                    </DataTable.Row>
-                  ))}
+                  {paymentReceipts.map((receipt) => {
+                    // Log receipt details for debugging
+                    console.log(`Rendering receipt ID: ${receipt.id}, linked to request ID: ${receipt.payment_request_id || 'none'}`);
+
+                    return (
+                      <DataTable.Row key={receipt.id} style={styles.tableRow}>
+                        <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{receipt.sr_no}</DataTable.Cell>
+                        <DataTable.Cell style={styles.dateColumn} textStyle={{textAlign: 'center'}}>{formatDate(receipt.date)}</DataTable.Cell>
+                        <DataTable.Cell style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>{receipt.description || '-'}</DataTable.Cell>
+                        <DataTable.Cell style={styles.amountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(receipt.amount)}</DataTable.Cell>
+                        <DataTable.Cell style={styles.modeColumn} textStyle={{textAlign: 'center'}}>{receipt.mode || '-'}</DataTable.Cell>
+                        <DataTable.Cell style={styles.remarksColumn} textStyle={{textAlign: 'center'}}>{receipt.remarks || '-'}</DataTable.Cell>
+                        <DataTable.Cell style={styles.actionsColumn}>
+                          <View style={styles.actionButtons}>
+                            <IconButton
+                              icon="pencil"
+                              size={16}
+                              onPress={() => {
+                                console.log(`Editing receipt ID: ${receipt.id}`);
+                                navigation.navigate('EditUnitPaymentReceipt', { receipt });
+                              }}
+                              style={styles.actionButton}
+                            />
+                            <IconButton
+                              icon="delete"
+                              size={16}
+                              onPress={() => {
+                                console.log(`Deleting receipt ID: ${receipt.id}`);
+                                handleDeletePaymentReceipt(receipt.id!);
+                              }}
+                              style={styles.actionButton}
+                            />
+                            <IconButton
+                              icon="file-pdf-box"
+                              size={16}
+                              onPress={() => {
+                                console.log(`Generating PDF for receipt ID: ${receipt.id}`);
+                                handleExportPaymentReceipt(receipt.id!);
+                              }}
+                              style={styles.actionButton}
+                              iconColor={theme.colors.primary}
+                            />
+                          </View>
+                        </DataTable.Cell>
+                      </DataTable.Row>
+                    );
+                  })}
                 </DataTable>
               </ScrollView>
             )}
