@@ -223,6 +223,7 @@ export const initDatabase = async (): Promise<void> => {
         FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE SET NULL
       );
     `);
+    console.log('units_flats table created or already exists.');
 
     // Create unit_customer_schedules table
     await db.execAsync(`
@@ -337,7 +338,9 @@ export const initDatabase = async (): Promise<void> => {
     console.log('Database tables created successfully');
 
     // Run migrations
+    console.log('Calling runMigrations...');
     await runMigrations();
+    console.log('runMigrations completed.');
   } catch (error) {
     console.error('Error initializing database tables:', error);
     throw error;

@@ -83,4 +83,9 @@ export type DrawerParamList = {
   ProjectSchedules: undefined;
   Templates: undefined; // Added Templates option
   Settings: undefined;
+  Reports: undefined;
+};
+
+export type ReportsStackParamList = {
+  CustomerLedgerReport: undefined;
 };

@@ -17,6 +17,7 @@ import ProjectSchedulesScreen from '../screens/ProjectSchedulesScreen';
 import TemplatesScreen from '../screens/TemplatesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CustomDrawerContent from './CustomDrawerContent';
+import ReportsNavigator from './ReportsNavigator';
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
@@ -160,6 +161,16 @@ const DrawerNavigator = () => {
           title: 'Settings',
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="cog" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Reports"
+        component={ReportsNavigator}
+        options={{
+          title: 'Reports',
+          drawerIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="file-chart" color={color} size={size} />
           ),
         }}
       />

@@ -3,7 +3,7 @@ import { getUnitFlatById, updateUnitFlatReceivedAmount } from './unitsFlatDb';
 
 export interface UnitPaymentReceipt {
   id?: number;
-  unit_id: number;
+  unit_id: number; // Revert unit_id to required
   sr_no: number;
   date: number; // timestamp
   description?: string;
@@ -27,6 +27,21 @@ export const getUnitPaymentReceipts = async (unitId: number): Promise<UnitPaymen
   }
 };
 
+// Get all payment receipts for a client
+export const getUnitPaymentReceiptsByClientId = async (clientId: number): Promise<UnitPaymentReceipt[]> => {
+  try {
+    return await db.getAllAsync<UnitPaymentReceipt>(
+      `SELECT upr.* FROM unit_payment_receipts upr
+       JOIN units_flat uf ON upr.unit_id = uf.id
+       WHERE uf.client_id = ? ORDER BY upr.date ASC;`,
+      [clientId]
+    );
+  } catch (error) {
+    console.error(`Error fetching payment receipts for client ID ${clientId}:`, error);
+    throw error;
+  }
+};
+
 // Get a payment receipt by ID
 export const getUnitPaymentReceiptById = async (id: number): Promise<UnitPaymentReceipt | null> => {
   try {
@@ -44,6 +59,7 @@ export const getUnitPaymentReceiptById = async (id: number): Promise<UnitPayment
 export const addUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Promise<number> => {
   try {
     const now = Date.now();
+    let lastInsertId = 0;
 
     // Start a transaction
     await db.withTransactionAsync(async () => {
@@ -53,7 +69,7 @@ export const addUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Promis
           unit_id, sr_no, date, description, amount, mode, remarks, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
         [
-          receipt.unit_id,
+          receipt.unit_id || null, // Handle optional unit_id
           receipt.sr_no,
           receipt.date,
           receipt.description || null,
@@ -64,32 +80,28 @@ export const addUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Promis
           now
         ]
       );
+      lastInsertId = result.lastInsertRowId;
 
       // Update the unit's received amount
-      const unit = await getUnitFlatById(receipt.unit_id);
-      if (unit) {
-        const currentReceived = unit.received_amount || 0;
-        const newReceived = currentReceived + receipt.amount;
-        await updateUnitFlatReceivedAmount(receipt.unit_id, newReceived);
+      if (receipt.unit_id) { // Check if unit_id is defined
+        const unit = await getUnitFlatById(receipt.unit_id);
+        if (unit) {
+          const currentReceived = unit.received_amount || 0;
+          const newReceived = currentReceived + receipt.amount;
+          await updateUnitFlatReceivedAmount(receipt.unit_id, newReceived);
+        }
       }
-
-      return result.lastInsertRowId;
     });
 
     // Get all receipts to calculate the total received amount
-    const receipts = await getUnitPaymentReceipts(receipt.unit_id);
-    const totalReceived = receipts.reduce((sum, r) => sum + r.amount, 0);
+    if (receipt.unit_id) { // Check if unit_id is defined
+      const receipts = await getUnitPaymentReceipts(receipt.unit_id);
+      const totalReceived = receipts.reduce((sum, r) => sum + r.amount, 0);
+      // Update the unit's received amount with the total from all receipts
+      await updateUnitFlatReceivedAmount(receipt.unit_id, totalReceived);
+    }
 
-    // Update the unit's received amount with the total from all receipts
-    await updateUnitFlatReceivedAmount(receipt.unit_id, totalReceived);
-
-    // Return the ID of the last inserted receipt
-    const lastReceipt = await db.getFirstAsync<{ id: number }>(
-      'SELECT id FROM unit_payment_receipts WHERE unit_id = ? ORDER BY id DESC LIMIT 1;',
-      [receipt.unit_id]
-    );
-
-    return lastReceipt?.id || 0;
+    return lastInsertId;
   } catch (error) {
     console.error('Error adding payment receipt:', error);
     throw error;
@@ -121,7 +133,7 @@ export const updateUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Pro
           updated_at = ?
         WHERE id = ?;`,
         [
-          receipt.unit_id,
+          receipt.unit_id || null, // Handle optional unit_id
           receipt.sr_no,
           receipt.date,
           receipt.description || null,
@@ -129,17 +141,19 @@ export const updateUnitPaymentReceipt = async (receipt: UnitPaymentReceipt): Pro
           receipt.mode || null,
           receipt.remarks || null,
           now,
-          receipt.id
+          receipt.id! // Non-null assertion as ID is checked at function start
         ]
       );
     });
 
-    // Get all receipts to recalculate the total received amount
-    const receipts = await getUnitPaymentReceipts(receipt.unit_id);
-    const totalReceived = receipts.reduce((sum, r) => sum + r.amount, 0);
+    if (receipt.unit_id) { // Check if unit_id is defined
+      // Get all receipts to recalculate the total received amount
+      const receipts = await getUnitPaymentReceipts(receipt.unit_id);
+      const totalReceived = receipts.reduce((sum, r) => sum + r.amount, 0);
 
-    // Update the unit's received amount with the total from all receipts
-    await updateUnitFlatReceivedAmount(receipt.unit_id, totalReceived);
+      // Update the unit's received amount with the total from all receipts
+      await updateUnitFlatReceivedAmount(receipt.unit_id, totalReceived);
+    }
   } catch (error) {
     console.error(`Error updating payment receipt with ID ${receipt.id}:`, error);
     throw error;
@@ -154,17 +168,20 @@ export const deleteUnitPaymentReceipt = async (id: number): Promise<void> => {
       throw new Error(`Payment receipt with ID ${id} not found`);
     }
 
-    const unitId = receipt.unit_id;
+    const unitId: number = receipt.unit_id as number; // Force assertion
+    if (unitId === 0) { // Keep this check for invalid IDs (if 0 is considered invalid)
+      throw new Error('Unit ID is missing or invalid for payment receipt.');
+    }
 
     // Delete the payment receipt
     await db.runAsync('DELETE FROM unit_payment_receipts WHERE id = ?;', [id]);
 
     // Get all remaining receipts to recalculate the total received amount
-    const receipts = await getUnitPaymentReceipts(unitId);
+    const receipts = await getUnitPaymentReceipts(unitId as number); // Explicit cast
     const totalReceived = receipts.reduce((sum, r) => sum + r.amount, 0);
 
     // Update the unit's received amount with the total from all receipts
-    await updateUnitFlatReceivedAmount(unitId, totalReceived);
+    await updateUnitFlatReceivedAmount(unitId as number, totalReceived); // Explicit cast
   } catch (error) {
     console.error(`Error deleting payment receipt with ID ${id}:`, error);
     throw error;

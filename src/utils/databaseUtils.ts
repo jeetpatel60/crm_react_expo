@@ -1,4 +1,4 @@
-import { initDatabase, initializeDb, addCompanyIdToProjects, addTemplatesTables, addClientIdToUnitsFlats } from '../database';
+import { db, initDatabase, initializeDb, addCompanyIdToProjects, addTemplatesTables, addClientIdToUnitsFlats } from '../database';
 import { Platform, Alert } from 'react-native';
 
 export const initializeDatabase = async (): Promise<void> => {
@@ -35,6 +35,19 @@ export const initializeDatabase = async (): Promise<void> => {
     await addTemplatesTables();
     await addClientIdToUnitsFlats();
     console.log('Database migrations completed successfully');
+
+    // Verify units_flats table exists after initialization and migrations
+    try {
+      const tableInfo = await db.getAllAsync("PRAGMA table_info(units_flats);");
+      if (tableInfo.length > 0) {
+        console.log('VERIFICATION: units_flats table exists and has columns.');
+      } else {
+        console.error('VERIFICATION ERROR: units_flats table does NOT exist or has no columns after initialization.');
+      }
+    } catch (verifyError) {
+      console.error('VERIFICATION ERROR: Could not query units_flats table info:', verifyError);
+    }
+
   } catch (error) {
     console.error('Error initializing database:', error);
     if (error instanceof Error) {

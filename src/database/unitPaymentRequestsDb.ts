@@ -24,6 +24,21 @@ export const getUnitPaymentRequests = async (unitId: number): Promise<UnitPaymen
   }
 };
 
+// Get all payment requests for a client
+export const getUnitPaymentRequestsByClientId = async (clientId: number): Promise<UnitPaymentRequest[]> => {
+  try {
+    return await db.getAllAsync<UnitPaymentRequest>(
+      `SELECT upr.* FROM unit_payment_requests upr
+       JOIN units_flat uf ON upr.unit_id = uf.id
+       WHERE uf.client_id = ? ORDER BY upr.date ASC;`,
+      [clientId]
+    );
+  } catch (error) {
+    console.error(`Error fetching payment requests for client ID ${clientId}:`, error);
+    throw error;
+  }
+};
+
 // Get a payment request by ID
 export const getUnitPaymentRequestById = async (id: number): Promise<UnitPaymentRequest | null> => {
   try {
