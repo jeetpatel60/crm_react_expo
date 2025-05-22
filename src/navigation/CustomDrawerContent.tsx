@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import {
   DrawerContentScrollView,
-  DrawerItemList,
+  DrawerItem,
   DrawerContentComponentProps,
 } from '@react-navigation/drawer';
 import { Divider, Text, useTheme, Avatar, Button } from 'react-native-paper';
@@ -17,6 +17,96 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 
 const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   const theme = useTheme();
+  const [reportsExpanded, setReportsExpanded] = useState(false);
+
+  // Function to render custom drawer items with submenus
+  const renderDrawerItems = () => {
+    const { state, descriptors, navigation } = props;
+
+    return state.routes.map((route, index) => {
+      const { options } = descriptors[route.key];
+      const label = options.title || route.name;
+      const isFocused = state.index === index;
+
+      // Special handling for Reports menu
+      if (route.name === 'Reports') {
+        return (
+          <View key={route.key}>
+            {/* Main Reports menu item */}
+            <DrawerItem
+              label={label as string}
+              icon={({ color, size }) => (
+                <MaterialCommunityIcons name="file-chart" color={color} size={size} />
+              )}
+              onPress={() => {
+                setReportsExpanded(!reportsExpanded);
+              }}
+              focused={isFocused}
+              activeTintColor={theme.colors.primary}
+              inactiveTintColor={theme.colors.onSurface}
+              activeBackgroundColor={theme.colors.primaryContainer + '40'}
+              style={[
+                styles.drawerItem,
+                isFocused && { backgroundColor: theme.colors.primaryContainer + '40' }
+              ]}
+              labelStyle={styles.drawerLabel}
+            />
+
+            {/* Submenu for Reports */}
+            {reportsExpanded && (
+              <Animated.View
+                entering={FadeIn.duration(300)}
+                style={styles.submenuContainer}
+              >
+                <DrawerItem
+                  label="Customer Ledger Report"
+                  icon={({ color, size }) => (
+                    <MaterialCommunityIcons name="file-document-outline" color={color} size={size} />
+                  )}
+                  onPress={() => {
+                    navigation.navigate('Reports', { screen: 'CustomerLedgerReport' });
+                  }}
+                  activeTintColor={theme.colors.primary}
+                  inactiveTintColor={theme.colors.onSurface}
+                  style={styles.submenuItem}
+                  labelStyle={styles.submenuLabel}
+                />
+                <DrawerItem
+                  label="Flats Availability Report"
+                  icon={({ color, size }) => (
+                    <MaterialCommunityIcons name="home-city-outline" color={color} size={size} />
+                  )}
+                  onPress={() => {
+                    navigation.navigate('Reports', { screen: 'FlatsAvailabilityReport' });
+                  }}
+                  activeTintColor={theme.colors.primary}
+                  inactiveTintColor={theme.colors.onSurface}
+                  style={styles.submenuItem}
+                  labelStyle={styles.submenuLabel}
+                />
+              </Animated.View>
+            )}
+          </View>
+        );
+      }
+
+      // Regular menu items
+      return (
+        <DrawerItem
+          key={route.key}
+          label={label as string}
+          icon={options.drawerIcon}
+          onPress={() => navigation.navigate(route.name)}
+          focused={isFocused}
+          activeTintColor={theme.colors.primary}
+          inactiveTintColor={theme.colors.onSurface}
+          activeBackgroundColor={theme.colors.primaryContainer + '40'}
+          style={styles.drawerItem}
+          labelStyle={styles.drawerLabel}
+        />
+      );
+    });
+  };
 
   return (
     <DrawerContentScrollView
@@ -74,7 +164,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
         style={styles.drawerContent}
         entering={FadeIn.delay(500).duration(animations.duration.standard)}
       >
-        <DrawerItemList {...props} />
+        {renderDrawerItems()}
       </AnimatedView>
 
       <Divider style={styles.divider} />
@@ -146,6 +236,33 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     letterSpacing: 0.5,
+  },
+  // New styles for drawer items and submenus
+  drawerItem: {
+    paddingVertical: spacing.xs,
+    marginVertical: 2,
+    borderRadius: borderRadius.md,
+    marginHorizontal: spacing.sm,
+  },
+  drawerLabel: {
+    marginLeft: spacing.sm,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  submenuContainer: {
+    marginLeft: spacing.lg,
+    marginTop: -spacing.xs,
+  },
+  submenuItem: {
+    paddingVertical: spacing.xs,
+    marginVertical: 1,
+    borderRadius: borderRadius.md,
+    marginHorizontal: spacing.sm,
+  },
+  submenuLabel: {
+    marginLeft: spacing.sm,
+    fontSize: 13,
+    fontWeight: '400',
   },
 });
 

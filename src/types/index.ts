@@ -94,4 +94,5 @@ export type DrawerParamList = {
 
 export type ReportsStackParamList = {
   CustomerLedgerReport: undefined;
+  FlatsAvailabilityReport: undefined;
 };
