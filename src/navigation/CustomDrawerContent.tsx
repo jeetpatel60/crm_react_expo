@@ -39,7 +39,13 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
                 <MaterialCommunityIcons name="file-chart" color={color} size={size} />
               )}
               onPress={() => {
+                // Toggle submenu expansion
                 setReportsExpanded(!reportsExpanded);
+
+                // If submenu is currently collapsed, we're expanding it
+                // If submenu is currently expanded, we're collapsing it
+                // Also navigate to the Reports landing screen
+                navigation.navigate('Reports', { screen: 'ReportsLanding' });
               }}
               focused={isFocused}
               activeTintColor={theme.colors.primary}
@@ -64,6 +70,9 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
                     <MaterialCommunityIcons name="file-document-outline" color={color} size={size} />
                   )}
                   onPress={() => {
+                    // Close drawer after navigation
+                    props.navigation.closeDrawer();
+                    // Navigate to the specific report screen
                     navigation.navigate('Reports', { screen: 'CustomerLedgerReport' });
                   }}
                   activeTintColor={theme.colors.primary}
@@ -77,6 +86,9 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
                     <MaterialCommunityIcons name="home-city-outline" color={color} size={size} />
                   )}
                   onPress={() => {
+                    // Close drawer after navigation
+                    props.navigation.closeDrawer();
+                    // Navigate to the specific report screen
                     navigation.navigate('Reports', { screen: 'FlatsAvailabilityReport' });
                   }}
                   activeTintColor={theme.colors.primary}
@@ -252,15 +264,19 @@ const styles = StyleSheet.create({
   submenuContainer: {
     marginLeft: spacing.lg,
     marginTop: -spacing.xs,
+    backgroundColor: 'rgba(0, 0, 0, 0.03)', // Light background to distinguish submenu
+    borderRadius: borderRadius.md,
+    marginHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   submenuItem: {
     paddingVertical: spacing.xs,
     marginVertical: 1,
     borderRadius: borderRadius.md,
-    marginHorizontal: spacing.sm,
+    marginHorizontal: spacing.xs,
   },
   submenuLabel: {
-    marginLeft: spacing.sm,
+    marginLeft: spacing.xs,
     fontSize: 13,
     fontWeight: '400',
   },

@@ -93,6 +93,7 @@ export type DrawerParamList = {
 };
 
 export type ReportsStackParamList = {
+  ReportsLanding: undefined;
   CustomerLedgerReport: undefined;
   FlatsAvailabilityReport: undefined;
 };
