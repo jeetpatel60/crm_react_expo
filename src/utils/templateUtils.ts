@@ -837,6 +837,9 @@ const generateTemplateHtml = (data: TemplateData): string => {
     `;
   }
 
+  // Format the content for HTML rendering
+  const formattedHtmlContent = formatContentForHtml(replacedContent);
+
   // Generate HTML content for the template with letterhead
   const htmlContent = `
     <html>
@@ -848,6 +851,17 @@ const generateTemplateHtml = (data: TemplateData): string => {
             line-height: 1.6;
             color: #333;
             padding: 20px;
+          }
+          h1, h2, h3 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+          }
+          h1 { font-size: 2em; }
+          h2 { font-size: 1.5em; }
+          h3 { font-size: 1.17em; }
+          p {
+            margin-bottom: 1em;
           }
           table {
             width: 100%;
@@ -866,10 +880,73 @@ const generateTemplateHtml = (data: TemplateData): string => {
       </head>
       <body>
         ${letterheadHtml}
-        ${replacedContent}
+        ${formattedHtmlContent}
       </body>
     </html>
   `;
 
   return htmlContent;
+};
+
+/**
+ * Formats plain text content with markdown-like syntax into HTML.
+ * Supports:
+ * - Headings (#, ##, ###)
+ * - Paragraphs (double line breaks)
+ * - Line breaks (single line breaks)
+ */
+const applyMarkdownFormatting = (text: string): string => {
+  let result = text;
+
+  // Replace headings
+  result = result
+    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.*)$/gm, '<h1>$1</h1>');
+
+  // Replace single line breaks with <br/>
+  result = result.replace(/\n/g, '<br/>');
+
+  return result;
+};
+
+/**
+ * Formats plain text content with markdown-like syntax into HTML.
+ * Supports:
+ * - Headings (#, ##, ###)
+ * - Paragraphs (double line breaks)
+ * - Line breaks (single line breaks)
+ * - Alignment (~left~, ~center~, ~right~)
+ */
+const formatContentForHtml = (content: string): string => {
+  let formattedContent = content;
+
+  // 1. Process alignment blocks first
+  formattedContent = formattedContent.replace(
+    /~(center|right|left)~([\s\S]*?)~\/\1~/g,
+    (match, alignType, innerContent) => {
+      // Apply markdown formatting to the content inside the alignment block
+      const processedInnerContent = applyMarkdownFormatting(innerContent);
+      return `<div style="text-align: ${alignType};">${processedInnerContent}</div>`;
+    }
+  );
+
+  // 2. Split by double newlines to get paragraphs for the remaining content
+  const paragraphs = formattedContent.split(/\n\s*\n/);
+
+  formattedContent = paragraphs.map(p => {
+    const trimmedP = p.trim();
+    if (trimmedP === '') {
+      return ''; // Skip empty paragraphs
+    }
+    // If the paragraph is already wrapped in a block-level element (like div for alignment), don't wrap in <p>
+    // Headings not inside alignment blocks will be handled by applyMarkdownFormatting on the full content later.
+    if (trimmedP.startsWith('<div style="text-align: center;"') || trimmedP.startsWith('<div style="text-align: right;"') || trimmedP.startsWith('<div style="text-align: left;"')) {
+      return trimmedP; // Already formatted, just return
+    }
+    // For regular paragraphs, apply markdown formatting (headings, line breaks) and wrap in <p>
+    return `<p>${applyMarkdownFormatting(trimmedP)}</p>`;
+  }).join('\n');
+
+  return formattedContent;
 };

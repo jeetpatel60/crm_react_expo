@@ -196,6 +196,54 @@ const AddPaymentRequestTemplateScreen: React.FC = () => {
               <Text style={styles.placeholder}>{"{{PENDING_PAYMENTS_COUNT}}"} - Number of pending payments</Text>
             </View>
           </View>
+
+          <Text style={[styles.placeholdersTitle, { color: theme.colors.onSurface, marginTop: spacing.md }]}>
+            Formatting Rules:
+          </Text>
+          <View style={styles.formattingContainer}>
+            <Text style={styles.formattingRule}>
+              <Text style={{ fontWeight: 'bold' }}>Headings:</Text> Use `#` for Heading 1, `##` for Heading 2, `###` for Heading 3.
+            </Text>
+            <Text style={styles.formattingExample}>
+              Example: `# Main Title`, `## Section Title`, `### Sub-section`
+            </Text>
+            <Text style={styles.formattingRule}>
+              <Text style={{ fontWeight: 'bold' }}>Paragraphs:</Text> Use a blank line (double line break) to separate paragraphs.
+            </Text>
+            <Text style={styles.formattingExample}>
+              Example: {"Line 1 of paragraph.\n\nLine 1 of new paragraph."}
+            </Text>
+            <Text style={styles.formattingRule}>
+              <Text style={{ fontWeight: 'bold' }}>Line Breaks:</Text> Use a single line break for a new line within the same paragraph.
+            </Text>
+            <Text style={styles.formattingExample}>
+              Example: {"Line 1 of text.\nLine 2 of text."}
+            </Text>
+            <Text style={styles.formattingRule}>
+              <Text style={{ fontWeight: 'bold' }}>Center Alignment:</Text> Wrap content with `~center~` and `~/center~` tags.
+            </Text>
+            <Text style={styles.formattingExample}>
+              Example: `~center~This text will be centered.~/center~`
+            </Text>
+            <Text style={styles.formattingRule}>
+              <Text style={{ fontWeight: 'bold' }}>Right Alignment:</Text> Wrap content with `~right~` and `~/right~` tags.
+            </Text>
+            <Text style={styles.formattingExample}>
+              Example: `~right~This text will be right-aligned.~/right~`
+            </Text>
+            <Text style={styles.formattingRule}>
+              <Text style={{ fontWeight: 'bold' }}>Left Alignment:</Text> Wrap content with `~left~` and `~/left~` tags.
+            </Text>
+            <Text style={styles.formattingExample}>
+              Example: `~left~This text will be left-aligned.~/left~`
+            </Text>
+            <Text style={styles.formattingRule}>
+              <Text style={{ fontWeight: 'bold' }}>Combinations:</Text> Formatting rules can be combined. For example, a heading can be centered.
+            </Text>
+            <Text style={styles.formattingExample}>
+              Example: `~center~# Centered Heading 1~/center~`
+            </Text>
+          </View>
         </Card.Content>
       </Card>
 
@@ -262,6 +310,26 @@ const styles = StyleSheet.create({
   },
   button: {
     padding: spacing.xs,
+  },
+  formattingContainer: {
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    backgroundColor: '#f9f9f9', // A light background to distinguish it
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  formattingRule: {
+    fontSize: 14,
+    marginBottom: spacing.xs / 2,
+    lineHeight: 20,
+  },
+  formattingExample: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#555',
+    marginBottom: spacing.sm,
+    marginLeft: spacing.sm, // Indent examples slightly
   },
 });
 
