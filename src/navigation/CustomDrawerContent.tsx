@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import {
-  DrawerContentScrollView,
-  DrawerItem,
-  DrawerContentComponentProps,
-} from '@react-navigation/drawer';
-import { Divider, Text, useTheme, Avatar, Button } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { DrawerContentComponentProps } from '@react-navigation/drawer';
+import { Divider, Text, useTheme, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { APP_NAME } from '../constants';
@@ -18,10 +14,53 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 const CustomDrawerContent = (props: DrawerContentComponentProps) => {
   const theme = useTheme();
   const [reportsExpanded, setReportsExpanded] = useState(false);
+  const { state, descriptors, navigation } = props;
 
-  // Function to render custom drawer items with submenus
+  // Custom drawer item component
+  const DrawerItemCustom = ({
+    label,
+    icon,
+    onPress,
+    isFocused = false,
+    isSubmenuItem = false
+  }: {
+    label: string;
+    icon: React.ReactNode;
+    onPress: () => void;
+    isFocused?: boolean;
+    isSubmenuItem?: boolean;
+  }) => {
+    return (
+      <TouchableOpacity
+        style={[
+          styles.drawerItemContainer,
+          isSubmenuItem ? styles.submenuItemContainer : null,
+          isFocused && { backgroundColor: theme.colors.primaryContainer + '40' }
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+        // Ensure touch events are captured properly
+        delayPressIn={0}
+        pressRetentionOffset={{ top: 30, left: 30, bottom: 30, right: 30 }}
+        hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
+      >
+        <View style={styles.drawerItemContent}>
+          <View style={styles.iconContainer}>{icon}</View>
+          <Text
+            style={[
+              isSubmenuItem ? styles.submenuLabel : styles.drawerLabel,
+              { color: isFocused ? theme.colors.primary : theme.colors.onSurface }
+            ]}
+          >
+            {label}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Function to render drawer items
   const renderDrawerItems = () => {
-    const { state, descriptors, navigation } = props;
 
     return state.routes.map((route, index) => {
       const { options } = descriptors[route.key];
@@ -33,29 +72,28 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
         return (
           <View key={route.key}>
             {/* Main Reports menu item */}
-            <DrawerItem
-              label={label as string}
-              icon={({ color, size }) => (
-                <MaterialCommunityIcons name="file-chart" color={color} size={size} />
-              )}
+            <DrawerItemCustom
+              label={label}
+              icon={
+                <MaterialCommunityIcons
+                  name="file-chart"
+                  color={isFocused ? theme.colors.primary : theme.colors.onSurface}
+                  size={24}
+                />
+              }
               onPress={() => {
                 // Toggle submenu expansion
                 setReportsExpanded(!reportsExpanded);
 
-                // If submenu is currently collapsed, we're expanding it
-                // If submenu is currently expanded, we're collapsing it
-                // Also navigate to the Reports landing screen
-                navigation.navigate('Reports', { screen: 'ReportsLanding' });
+                // Close drawer first
+                props.navigation.closeDrawer();
+
+                // Navigate with delay
+                setTimeout(() => {
+                  navigation.navigate('Reports', { screen: 'ReportsLanding' });
+                }, 500);
               }}
-              focused={isFocused}
-              activeTintColor={theme.colors.primary}
-              inactiveTintColor={theme.colors.onSurface}
-              activeBackgroundColor={theme.colors.primaryContainer + '40'}
-              style={[
-                styles.drawerItem,
-                isFocused && { backgroundColor: theme.colors.primaryContainer + '40' }
-              ]}
-              labelStyle={styles.drawerLabel}
+              isFocused={isFocused}
             />
 
             {/* Submenu for Reports */}
@@ -64,37 +102,45 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
                 entering={FadeIn.duration(300)}
                 style={styles.submenuContainer}
               >
-                <DrawerItem
+                <DrawerItemCustom
                   label="Customer Ledger Report"
-                  icon={({ color, size }) => (
-                    <MaterialCommunityIcons name="file-document-outline" color={color} size={size} />
-                  )}
+                  icon={
+                    <MaterialCommunityIcons
+                      name="file-document-outline"
+                      color={theme.colors.onSurface}
+                      size={22}
+                    />
+                  }
                   onPress={() => {
-                    // Close drawer after navigation
+                    // Close drawer first
                     props.navigation.closeDrawer();
-                    // Navigate to the specific report screen
-                    navigation.navigate('Reports', { screen: 'CustomerLedgerReport' });
+
+                    // Navigate with delay
+                    setTimeout(() => {
+                      navigation.navigate('Reports', { screen: 'CustomerLedgerReport' });
+                    }, 500);
                   }}
-                  activeTintColor={theme.colors.primary}
-                  inactiveTintColor={theme.colors.onSurface}
-                  style={styles.submenuItem}
-                  labelStyle={styles.submenuLabel}
+                  isSubmenuItem={true}
                 />
-                <DrawerItem
+                <DrawerItemCustom
                   label="Flats Availability Report"
-                  icon={({ color, size }) => (
-                    <MaterialCommunityIcons name="home-city-outline" color={color} size={size} />
-                  )}
+                  icon={
+                    <MaterialCommunityIcons
+                      name="home-city-outline"
+                      color={theme.colors.onSurface}
+                      size={22}
+                    />
+                  }
                   onPress={() => {
-                    // Close drawer after navigation
+                    // Close drawer first
                     props.navigation.closeDrawer();
-                    // Navigate to the specific report screen
-                    navigation.navigate('Reports', { screen: 'FlatsAvailabilityReport' });
+
+                    // Navigate with delay
+                    setTimeout(() => {
+                      navigation.navigate('Reports', { screen: 'FlatsAvailabilityReport' });
+                    }, 500);
                   }}
-                  activeTintColor={theme.colors.primary}
-                  inactiveTintColor={theme.colors.onSurface}
-                  style={styles.submenuItem}
-                  labelStyle={styles.submenuLabel}
+                  isSubmenuItem={true}
                 />
               </Animated.View>
             )}
@@ -104,31 +150,45 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
 
       // Regular menu items
       return (
-        <DrawerItem
+        <DrawerItemCustom
           key={route.key}
-          label={label as string}
-          icon={options.drawerIcon}
-          onPress={() => navigation.navigate(route.name)}
-          focused={isFocused}
-          activeTintColor={theme.colors.primary}
-          inactiveTintColor={theme.colors.onSurface}
-          activeBackgroundColor={theme.colors.primaryContainer + '40'}
-          style={styles.drawerItem}
-          labelStyle={styles.drawerLabel}
+          label={label}
+          icon={
+            options.drawerIcon ?
+              options.drawerIcon({
+                color: isFocused ? theme.colors.primary : theme.colors.onSurface,
+                size: 24,
+                focused: isFocused
+              }) :
+              <MaterialCommunityIcons
+                name="circle"
+                color={isFocused ? theme.colors.primary : theme.colors.onSurface}
+                size={24}
+              />
+          }
+          onPress={() => {
+            // Close drawer first
+            props.navigation.closeDrawer();
+
+            // Navigate with delay
+            setTimeout(() => {
+              navigation.navigate(route.name);
+            }, 500);
+          }}
+          isFocused={isFocused}
         />
       );
     });
   };
 
   return (
-    <DrawerContentScrollView
-      {...props}
-      contentContainerStyle={{ flexGrow: 1 }} // Changed from flex: 1 to flexGrow: 1 to allow scrolling
+    <View
       style={[
-        { backgroundColor: theme.colors.surface },
-        styles.scrollView
+        { backgroundColor: theme.colors.surface, flex: 1 },
+        styles.container
       ]}
     >
+      {/* Fixed Header */}
       <AnimatedView
         style={[
           styles.header,
@@ -139,7 +199,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
       >
         <View style={styles.userInfo}>
           <AnimatedAvatarText
-            size={60} // Reduced from 70 to 60
+            size={60}
             label="CRM"
             style={[
               { backgroundColor: theme.colors.primaryContainer },
@@ -172,13 +232,22 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
 
       <Divider style={styles.topDivider} />
 
-      <AnimatedView
-        style={styles.drawerContent}
-        entering={FadeIn.delay(500).duration(animations.duration.standard)}
+      {/* Scrollable Menu Items */}
+      <ScrollView
+        style={styles.scrollableArea}
+        contentContainerStyle={styles.scrollableContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        {renderDrawerItems()}
-      </AnimatedView>
+        <AnimatedView
+          style={styles.drawerContent}
+          entering={FadeIn.delay(500).duration(animations.duration.standard)}
+        >
+          {renderDrawerItems()}
+        </AnimatedView>
+      </ScrollView>
 
+      {/* Fixed Footer */}
       <Divider style={styles.divider} />
 
       <AnimatedView
@@ -189,20 +258,27 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
           © 2025 CRM App
         </Text>
       </AnimatedView>
-    </DrawerContentScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollView: {
-    borderTopRightRadius: borderRadius.lg,
+  container: {
+    borderTopRightRadius: borderRadius.xs,
+    borderBottomRightRadius: borderRadius.xs,
+  },
+  scrollableArea: {
+    flex: 1,
+  },
+  scrollableContent: {
+    paddingBottom: spacing.md,
   },
   header: {
     padding: spacing.md,
     paddingTop: spacing.xl,
-    paddingBottom: spacing.md, // Reduced from lg to md
-    borderBottomRightRadius: borderRadius.lg,
-    marginBottom: spacing.sm, // Reduced from xl to sm
+    paddingBottom: spacing.md,
+    borderBottomRightRadius: borderRadius.xs,
+    marginBottom: 0,
   },
   userInfo: {
     flexDirection: 'row',
@@ -215,70 +291,80 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   appName: {
-    fontSize: 18, // Reduced from 20 to 18
+    fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   version: {
-    fontSize: 12, // Reduced from 14 to 12
+    fontSize: 12,
     marginTop: spacing.xs,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   profileButton: {
     borderRadius: borderRadius.md,
     marginTop: spacing.xs,
   },
   drawerContent: {
-    flex: 1,
-    paddingTop: spacing.sm, // Reduced from lg to sm
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
   },
   topDivider: {
-    marginBottom: spacing.xs, // Reduced from md to xs
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     height: 1,
   },
   divider: {
-    marginVertical: spacing.md,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    height: 1,
   },
   footer: {
-    padding: spacing.md, // Reduced from lg to md
-    paddingBottom: spacing.lg, // Keep bottom padding larger
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
     alignItems: 'center',
   },
   footerText: {
     fontSize: 12,
     letterSpacing: 0.5,
   },
-  // New styles for drawer items and submenus
-  drawerItem: {
-    paddingVertical: spacing.xs,
+  // Drawer item styles
+  drawerItemContainer: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     marginVertical: 2,
     borderRadius: borderRadius.md,
     marginHorizontal: spacing.sm,
+    minHeight: 54,
+  },
+  submenuItemContainer: {
+    paddingVertical: spacing.xs,
+    marginVertical: 2,
+    paddingHorizontal: spacing.xs,
+    minHeight: 48,
+  },
+  drawerItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    marginRight: spacing.sm,
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   drawerLabel: {
-    marginLeft: spacing.sm,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
+  },
+  submenuLabel: {
+    fontSize: 14,
+    fontWeight: '400',
   },
   submenuContainer: {
     marginLeft: spacing.lg,
-    marginTop: -spacing.xs,
-    backgroundColor: 'rgba(0, 0, 0, 0.03)', // Light background to distinguish submenu
+    marginTop: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     borderRadius: borderRadius.md,
     marginHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-  },
-  submenuItem: {
-    paddingVertical: spacing.xs,
-    marginVertical: 1,
-    borderRadius: borderRadius.md,
-    marginHorizontal: spacing.xs,
-  },
-  submenuLabel: {
-    marginLeft: spacing.xs,
-    fontSize: 13,
-    fontWeight: '400',
   },
 });
 

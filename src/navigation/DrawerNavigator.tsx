@@ -27,6 +27,7 @@ const DrawerNavigator = () => {
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
+      detachInactiveScreens={true}
       screenOptions={{
         headerShown: true,
         headerStyle: {
@@ -44,21 +45,23 @@ const DrawerNavigator = () => {
         drawerInactiveTintColor: theme.colors.onSurface,
         drawerActiveBackgroundColor: theme.colors.primaryContainer + '40', // 25% opacity
         drawerLabelStyle: {
-          marginLeft: spacing.sm, // Reduced from md to sm
-          fontSize: 14, // Reduced from 15 to 14
+          marginLeft: spacing.sm,
+          fontSize: 14,
           fontWeight: '500',
         },
         drawerItemStyle: {
-          paddingVertical: spacing.xs, // Reduced back to xs
-          marginVertical: 2, // Reduced to a fixed small value
+          paddingVertical: spacing.md, // Increased for better touch area
+          marginVertical: 3, // Increased for better spacing
           borderRadius: borderRadius.md,
           marginHorizontal: spacing.sm,
+          minHeight: 48, // Ensure minimum touch target height
         },
         drawerStyle: {
           width: 300,
           borderTopRightRadius: borderRadius.lg,
           borderBottomRightRadius: borderRadius.lg,
           ...shadows.lg,
+          overflow: 'hidden',
         },
       }}
     >
