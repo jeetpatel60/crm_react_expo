@@ -132,16 +132,7 @@ const DrawerNavigator = () => {
           ),
         }}
       />
-      <Drawer.Screen
-        name="ProjectSchedules"
-        component={ProjectSchedulesScreen}
-        options={{
-          title: 'Project Schedules',
-          drawerIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar-clock" color={color} size={size} />
-          ),
-        }}
-      />
+      {/* Project Schedules menu item hidden as requested */}
 
       <Drawer.Screen
         name="Templates"

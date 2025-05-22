@@ -202,6 +202,7 @@ const UnitsFlatScreen = () => {
         style={styles.segmentedButtons}
       />
 
+      <View style={styles.listContainer}>
         {loading ? (
           <LoadingIndicator />
         ) : filteredUnits.length === 0 ? (
@@ -244,6 +245,7 @@ const UnitsFlatScreen = () => {
             }
           />
         )}
+      </View>
 
       <FAB
         icon="plus"
@@ -278,6 +280,10 @@ const styles = StyleSheet.create({
   segmentedButtons: {
     marginHorizontal: spacing.md,
     marginBottom: spacing.md,
+  },
+  listContainer: {
+    flex: 1,
+    flexGrow: 1,
   },
   listContent: {
     padding: spacing.md,
