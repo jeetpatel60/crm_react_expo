@@ -76,6 +76,8 @@ export type RootStackParamList = {
   AddPaymentReceiptTemplate: undefined;
   EditPaymentReceiptTemplate: { template: PaymentReceiptTemplate };
   DatabaseMigration: undefined;
+  BackupManagement: undefined;
+  HowToUseGuide: undefined;
 };
 
 export type DrawerParamList = {

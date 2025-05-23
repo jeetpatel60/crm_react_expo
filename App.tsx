@@ -15,6 +15,7 @@ import { AppNavigator } from './src/navigation';
 import { useThemeManager } from './src/hooks';
 import { initializeDatabase } from './src/utils';
 import { addSampleAgreementTemplate } from './src/utils/sampleTemplateUtils';
+import { initializeBackupSystem } from './src/utils/backupUtils';
 import { LoadingIndicator } from './src/components';
 import { ThemeProvider, useThemeContext } from './src/context';
 import { animations, shadows } from './src/constants/theme';
@@ -83,6 +84,15 @@ export default function App() {
         } catch (templateError) {
           console.warn('Failed to add sample agreement template:', templateError);
           // Continue even if template creation fails
+        }
+
+        // Initialize backup system
+        try {
+          await initializeBackupSystem();
+          console.log('Backup system initialized successfully');
+        } catch (backupError) {
+          console.warn('Failed to initialize backup system:', backupError);
+          // Continue even if backup initialization fails
         }
       } catch (err) {
         console.error('Failed to initialize the app', err);

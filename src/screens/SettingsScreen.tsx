@@ -20,6 +20,12 @@ import { ThemeMode } from '../hooks/useThemeManager';
 import { useThemeContext } from '../context';
 import { ThemeIndicator } from '../components';
 import { RootStackParamList, DrawerParamList } from '../types';
+import {
+  getBackupStatus,
+  getDatabaseLocation,
+  getBackupLocation,
+  BackupStatus
+} from '../utils/backupUtils';
 
 type SettingsScreenNavigationProp = CompositeNavigationProp<
   DrawerNavigationProp<DrawerParamList, 'Settings'>,
@@ -34,12 +40,32 @@ const SettingsScreen = () => {
   const [notifications, setNotifications] = useState(true);
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [resetDialogVisible, setResetDialogVisible] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<BackupStatus>({
+    isEnabled: false,
+    lastBackup: null,
+    nextBackup: null,
+    backupCount: 0,
+  });
 
   // Log theme changes
   useEffect(() => {
     console.log('SettingsScreen - Theme mode changed:', themeMode);
     console.log('SettingsScreen - Is dark mode:', isDarkMode);
   }, [themeMode, isDarkMode]);
+
+  // Load backup status
+  useEffect(() => {
+    const loadBackupStatus = async () => {
+      try {
+        const status = await getBackupStatus();
+        setBackupStatus(status);
+      } catch (error) {
+        console.error('Error loading backup status:', error);
+      }
+    };
+
+    loadBackupStatus();
+  }, []);
 
   const toggleNotifications = () => setNotifications(!notifications);
   const toggleSync = () => setSyncEnabled(!syncEnabled);
@@ -148,12 +174,48 @@ const SettingsScreen = () => {
         <List.Section>
           <List.Subheader>Database</List.Subheader>
           <List.Item
+            title="Backup & Restore"
+            description={`Auto backup: ${backupStatus.isEnabled ? 'ON' : 'OFF'} • ${backupStatus.backupCount} backups`}
+            left={(props) => (
+              <List.Icon {...props} icon="backup-restore" color={theme.colors.primary} />
+            )}
+            onPress={() => navigation.navigate('BackupManagement')}
+          />
+          <List.Item
+            title="Database Location"
+            description="View database file location"
+            left={(props) => (
+              <List.Icon {...props} icon="folder-open" color={theme.colors.primary} />
+            )}
+            onPress={() => {
+              Alert.alert(
+                'Database Location',
+                `Database file is located at:\n\n${getDatabaseLocation()}\n\nBackups are stored at:\n\n${getBackupLocation()}`,
+                [{ text: 'OK' }]
+              );
+            }}
+          />
+          <List.Item
             title="Database Migrations"
             description="Run database migrations manually"
             left={(props) => (
               <List.Icon {...props} icon="database" color={theme.colors.primary} />
             )}
             onPress={() => navigation.navigate('DatabaseMigration')}
+          />
+        </List.Section>
+
+        <Divider />
+
+        <List.Section>
+          <List.Subheader>How to Use</List.Subheader>
+          <List.Item
+            title="Getting Started Guide"
+            description="Learn how to use the CRM app step by step"
+            left={(props) => (
+              <List.Icon {...props} icon="help-circle-outline" color={theme.colors.primary} />
+            )}
+            onPress={() => navigation.navigate('HowToUseGuide')}
           />
         </List.Section>
 

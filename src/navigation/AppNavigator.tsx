@@ -46,6 +46,8 @@ import PaymentReceiptTemplateDetailsScreen from '../screens/PaymentReceiptTempla
 import AddPaymentReceiptTemplateScreen from '../screens/AddPaymentReceiptTemplateScreen'; // Added
 import EditPaymentReceiptTemplateScreen from '../screens/EditPaymentReceiptTemplateScreen'; // Added
 import DatabaseMigrationScreen from '../screens/DatabaseMigrationScreen';
+import BackupManagementScreen from '../screens/BackupManagementScreen';
+import HowToUseGuideScreen from '../screens/HowToUseGuideScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -277,6 +279,16 @@ const AppNavigator = () => {
           name="DatabaseMigration"
           component={DatabaseMigrationScreen}
           options={{ title: 'Database Migration' }}
+        />
+        <Stack.Screen
+          name="BackupManagement"
+          component={BackupManagementScreen}
+          options={{ title: 'Backup & Restore' }}
+        />
+        <Stack.Screen
+          name="HowToUseGuide"
+          component={HowToUseGuideScreen}
+          options={{ title: 'How to Use' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

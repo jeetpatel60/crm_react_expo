@@ -149,22 +149,23 @@ const DrawerNavigator = () => {
       />
 
       <Drawer.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          title: 'Settings',
-          drawerIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog" color={color} size={size} />
-          ),
-        }}
-      />
-      <Drawer.Screen
         name="Reports"
         component={ReportsNavigator}
         options={{
           title: 'Reports',
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="file-chart" color={color} size={size} />
+          ),
+        }}
+      />
+
+      <Drawer.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          title: 'Settings',
+          drawerIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cog" color={color} size={size} />
           ),
         }}
       />

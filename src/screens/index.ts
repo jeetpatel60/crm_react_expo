@@ -42,3 +42,4 @@ export { default as EditAgreementTemplateScreen } from './EditAgreementTemplateS
 export { default as DatabaseMigrationScreen } from './DatabaseMigrationScreen';
 export { default as AddPaymentRequestTemplateScreen } from './AddPaymentRequestTemplateScreen';
 export { default as EditPaymentRequestTemplateScreen } from './EditPaymentRequestTemplateScreen';
+export { default as HowToUseGuideScreen } from './HowToUseGuideScreen';
