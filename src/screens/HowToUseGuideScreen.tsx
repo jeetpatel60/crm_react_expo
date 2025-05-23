@@ -23,16 +23,16 @@ const HowToUseGuideScreen = () => {
     }));
   };
 
-  const GuideSection = ({ 
-    title, 
-    icon, 
-    sectionKey, 
-    children 
-  }: { 
-    title: string; 
-    icon: string; 
-    sectionKey: string; 
-    children: React.ReactNode; 
+  const GuideSection = ({
+    title,
+    icon,
+    sectionKey,
+    children
+  }: {
+    title: string;
+    icon: string;
+    sectionKey: string;
+    children: React.ReactNode;
   }) => (
     <Card style={[styles.sectionCard, shadows.sm]}>
       <List.Item
@@ -75,10 +75,10 @@ const HowToUseGuideScreen = () => {
         <Card style={[styles.welcomeCard, shadows.md]}>
           <Card.Content>
             <View style={styles.welcomeHeader}>
-              <MaterialCommunityIcons 
-                name="rocket-launch" 
-                size={48} 
-                color={theme.colors.primary} 
+              <MaterialCommunityIcons
+                name="rocket-launch"
+                size={48}
+                color={theme.colors.primary}
               />
               <Text variant="headlineSmall" style={styles.welcomeTitle}>
                 Welcome to CRM App
@@ -186,7 +186,7 @@ const HowToUseGuideScreen = () => {
           <StepItem step="1" description="Access Settings to configure app preferences" />
           <StepItem step="2" description="Enable automatic database backups (every 2 hours)" />
           <StepItem step="3" description="Manage backup files and restore when needed" />
-          <StepItem step="4" description="Customize app theme and notifications" />
+          <StepItem step="4" description="Use the theme switcher at the top of Settings to customize app appearance" />
           <StepItem step="5" description="Export/import data for backup purposes" />
           <StepItem step="6" description="View database location for manual backups" />
         </GuideSection>
@@ -194,10 +194,10 @@ const HowToUseGuideScreen = () => {
         <Card style={[styles.tipsCard, shadows.sm]}>
           <Card.Content>
             <View style={styles.tipsHeader}>
-              <MaterialCommunityIcons 
-                name="lightbulb-on" 
-                size={24} 
-                color={theme.colors.primary} 
+              <MaterialCommunityIcons
+                name="lightbulb-on"
+                size={24}
+                color={theme.colors.primary}
               />
               <Text variant="titleMedium" style={styles.tipsTitle}>
                 Pro Tips

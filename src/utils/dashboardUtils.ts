@@ -35,6 +35,21 @@ export interface DashboardData {
   }[];
 }
 
+// Function to generate units by status data with project filtering
+export const generateUnitsByStatusData = (units: UnitFlat[], projectId?: number): { x: string; y: number; label?: string }[] => {
+  return groupUnitsByStatus(units, projectId);
+};
+
+// Function to generate units sold weekly data with project filtering
+export const generateUnitsSoldWeeklyData = (units: UnitFlat[], projectId?: number): { x: string; y: number }[] => {
+  return generateUnitsSoldPast6Weeks(units, projectId);
+};
+
+// Function to generate units sold monthly data with project filtering
+export const generateUnitsSoldMonthlyData = (units: UnitFlat[], projectId?: number): { x: string; y: number }[] => {
+  return generateUnitsSoldPast6Months(units, projectId);
+};
+
 export const fetchDashboardData = async (): Promise<DashboardData> => {
   try {
     // Fetch data from database
@@ -69,8 +84,39 @@ export const fetchDashboardData = async (): Promise<DashboardData> => {
     const totalClients = clients.length;
     const totalUnits = units.length;
 
-    // Calculate total revenue (sum of all received amounts)
-    const totalRevenue = units.reduce((sum, unit) => sum + (unit.received_amount || 0), 0);
+    // Calculate monthly revenue (sum of received amounts + payment receipts for current month from all projects)
+    let totalRevenue = 0;
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    for (const unit of units) {
+      if (unit.id) {
+        try {
+          // Get payment receipts for this unit
+          const receipts = await getUnitPaymentReceipts(unit.id);
+
+          // Add payment receipts from current month
+          receipts.forEach((receipt) => {
+            const receiptDate = new Date(receipt.date);
+            if (receiptDate.getMonth() === currentMonth && receiptDate.getFullYear() === currentYear) {
+              totalRevenue += receipt.amount || 0;
+            }
+          });
+
+          // Add received amount if unit was sold in current month
+          if (unit.status === 'Sold' && unit.updated_at) {
+            const soldDate = new Date(unit.updated_at);
+            if (soldDate.getMonth() === currentMonth && soldDate.getFullYear() === currentYear) {
+              totalRevenue += unit.received_amount || 0;
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching payment data for unit ${unit.id}:`, error);
+          // Continue with other units even if one fails
+        }
+      }
+    }
 
     // Calculate total pending amount (sum of all balance amounts)
     const totalPendingAmount = units.reduce((sum, unit) => sum + (unit.balance_amount || 0), 0);
@@ -161,17 +207,33 @@ const groupProjectsByStatus = (projects: Project[]) => {
   }));
 };
 
-const groupUnitsByStatus = (units: UnitFlat[]) => {
+const groupUnitsByStatus = (units: UnitFlat[], projectId?: number) => {
+  // Filter units by project if projectId is provided
+  const filteredUnits = projectId
+    ? units.filter(unit => unit.project_id === projectId)
+    : units;
+
+  // Define the specific statuses we want to show in order
+  const targetStatuses = ['Sold', 'Available', 'Booked'];
   const statusCounts: Record<string, number> = {};
 
-  units.forEach((unit) => {
-    statusCounts[unit.status] = (statusCounts[unit.status] || 0) + 1;
+  // Initialize all target statuses with 0
+  targetStatuses.forEach(status => {
+    statusCounts[status] = 0;
   });
 
-  return Object.entries(statusCounts).map(([status, count]) => ({
+  // Count units for each status
+  filteredUnits.forEach((unit) => {
+    if (targetStatuses.includes(unit.status)) {
+      statusCounts[unit.status] = (statusCounts[unit.status] || 0) + 1;
+    }
+  });
+
+  // Return in the specified order: Sold, Available, Booked
+  return targetStatuses.map(status => ({
     x: status,
-    y: count,
-    label: `${status}: ${count}`,
+    y: statusCounts[status],
+    label: `${status}: ${statusCounts[status]}`,
   }));
 };
 
@@ -225,25 +287,19 @@ const generateUnitsSoldPast6Weeks = (units: UnitFlat[], projectId?: number): { x
   const sixWeeksAgo = new Date();
   sixWeeksAgo.setDate(now.getDate() - 42); // 6 weeks = 42 days
 
-  // Initialize all weeks with 0
+  // Initialize all weeks with 0 and create week labels
+  const weekLabels: string[] = [];
   for (let i = 0; i < 6; i++) {
     const weekStart = new Date(sixWeeksAgo);
     weekStart.setDate(sixWeeksAgo.getDate() + (i * 7));
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
 
-    const weekKey = `Week ${i + 1}`;
-    weeklySales[weekKey] = 0;
+    // Create a more descriptive week label with date range
+    const weekLabel = `${weekStart.getDate()}/${weekStart.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`;
+    weekLabels.push(weekLabel);
+    weeklySales[weekLabel] = 0;
   }
-
-  // For demo purposes, let's add some sample data
-  // In a real implementation, we would filter units based on their updated_at date
-  weeklySales['Week 1'] = 2;
-  weeklySales['Week 2'] = 1;
-  weeklySales['Week 3'] = 3;
-  weeklySales['Week 4'] = 2;
-  weeklySales['Week 5'] = 4;
-  weeklySales['Week 6'] = 3;
 
   // Filter units that were sold in the past 6 weeks
   const filteredUnits = units.filter(unit => {
@@ -258,25 +314,23 @@ const generateUnitsSoldPast6Weeks = (units: UnitFlat[], projectId?: number): { x
     return updatedDate && updatedDate >= sixWeeksAgo;
   });
 
-  // Group units by week - this would be used in a real implementation
-  // For now, we'll use the sample data above
-  /*
+  // Group units by week based on their updated_at timestamp
   filteredUnits.forEach(unit => {
     if (!unit.updated_at) return;
 
     const updatedDate = new Date(unit.updated_at);
-    const weeksSinceStart = Math.floor((updatedDate.getTime() - sixWeeksAgo.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const daysSinceStart = Math.floor((updatedDate.getTime() - sixWeeksAgo.getTime()) / (24 * 60 * 60 * 1000));
+    const weekIndex = Math.floor(daysSinceStart / 7);
 
-    if (weeksSinceStart >= 0 && weeksSinceStart < 6) {
-      const weekKey = `Week ${weeksSinceStart + 1}`;
-      weeklySales[weekKey] = (weeklySales[weekKey] || 0) + 1;
+    if (weekIndex >= 0 && weekIndex < 6) {
+      const weekLabel = weekLabels[weekIndex];
+      weeklySales[weekLabel] = (weeklySales[weekLabel] || 0) + 1;
     }
   });
-  */
 
-  return Object.entries(weeklySales).map(([week, count]) => ({
-    x: week,
-    y: count
+  return weekLabels.map(weekLabel => ({
+    x: weekLabel,
+    y: weeklySales[weekLabel]
   }));
 };
 
@@ -287,23 +341,15 @@ const generateUnitsSoldPast6Months = (units: UnitFlat[], projectId?: number): { 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(now.getMonth() - 5);
 
-  // Initialize all months with 0
+  // Initialize all months with 0 and create month labels
+  const monthLabels: string[] = [];
   for (let i = 0; i < 6; i++) {
     const date = new Date(sixMonthsAgo);
     date.setMonth(sixMonthsAgo.getMonth() + i);
-    const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+    const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    monthLabels.push(monthKey);
     monthlySales[monthKey] = 0;
   }
-
-  // For demo purposes, let's add some sample data
-  // In a real implementation, we would filter units based on their updated_at date
-  const months = Object.keys(monthlySales);
-  monthlySales[months[0]] = 5;
-  monthlySales[months[1]] = 3;
-  monthlySales[months[2]] = 7;
-  monthlySales[months[3]] = 4;
-  monthlySales[months[4]] = 8;
-  monthlySales[months[5]] = 6;
 
   // Filter units that were sold in the past 6 months
   const filteredUnits = units.filter(unit => {
@@ -318,24 +364,21 @@ const generateUnitsSoldPast6Months = (units: UnitFlat[], projectId?: number): { 
     return updatedDate && updatedDate >= sixMonthsAgo;
   });
 
-  // Group units by month - this would be used in a real implementation
-  // For now, we'll use the sample data above
-  /*
+  // Group units by month based on their updated_at timestamp
   filteredUnits.forEach(unit => {
     if (!unit.updated_at) return;
 
     const updatedDate = new Date(unit.updated_at);
-    const monthKey = updatedDate.toLocaleDateString('en-US', { month: 'short' });
+    const monthKey = updatedDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
     if (monthlySales.hasOwnProperty(monthKey)) {
       monthlySales[monthKey] = (monthlySales[monthKey] || 0) + 1;
     }
   });
-  */
 
-  return Object.entries(monthlySales).map(([month, count]) => ({
-    x: month,
-    y: count
+  return monthLabels.map(monthKey => ({
+    x: monthKey,
+    y: monthlySales[monthKey]
   }));
 };
 

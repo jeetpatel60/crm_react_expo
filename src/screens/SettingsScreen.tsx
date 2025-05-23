@@ -15,9 +15,8 @@ import { useNavigation, CompositeNavigationProp } from '@react-navigation/native
 import { StackNavigationProp } from '@react-navigation/stack';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { spacing } from '../constants/theme';
-import { APP_NAME } from '../constants';
-import { ThemeMode } from '../hooks/useThemeManager';
-import { useThemeContext } from '../context';
+
+
 import { ThemeIndicator } from '../components';
 import { RootStackParamList, DrawerParamList } from '../types';
 import {
@@ -33,11 +32,9 @@ type SettingsScreenNavigationProp = CompositeNavigationProp<
 >;
 
 const SettingsScreen = () => {
-  const { themeMode, setThemeMode, isDarkMode } = useThemeContext();
   const theme = useTheme();
   const navigation = useNavigation<SettingsScreenNavigationProp>();
 
-  const [notifications, setNotifications] = useState(true);
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [resetDialogVisible, setResetDialogVisible] = useState(false);
   const [backupStatus, setBackupStatus] = useState<BackupStatus>({
@@ -46,12 +43,6 @@ const SettingsScreen = () => {
     nextBackup: null,
     backupCount: 0,
   });
-
-  // Log theme changes
-  useEffect(() => {
-    console.log('SettingsScreen - Theme mode changed:', themeMode);
-    console.log('SettingsScreen - Is dark mode:', isDarkMode);
-  }, [themeMode, isDarkMode]);
 
   // Load backup status
   useEffect(() => {
@@ -67,7 +58,6 @@ const SettingsScreen = () => {
     loadBackupStatus();
   }, []);
 
-  const toggleNotifications = () => setNotifications(!notifications);
   const toggleSync = () => setSyncEnabled(!syncEnabled);
 
   const handleResetData = () => {
@@ -80,47 +70,6 @@ const SettingsScreen = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ThemeIndicator />
       <ScrollView>
-        <List.Section>
-          <List.Subheader>Appearance</List.Subheader>
-          <List.Item
-            title="Theme"
-            description="Customize the app's appearance"
-            left={(props) => (
-              <List.Icon
-                {...props}
-                icon="theme-light-dark"
-                color={theme.colors.primary}
-              />
-            )}
-            onPress={() => {
-              // The ThemeIndicator at the top of the screen already handles theme switching
-              // This is just an informational item now
-            }}
-          />
-        </List.Section>
-
-        <Divider />
-
-        <List.Section>
-          <List.Subheader>Notifications</List.Subheader>
-          <List.Item
-            title="Enable Notifications"
-            description="Receive reminders for upcoming tasks"
-            left={(props) => (
-              <List.Icon {...props} icon="bell-outline" color={theme.colors.primary} />
-            )}
-            right={(props) => (
-              <Switch
-                value={notifications}
-                onValueChange={toggleNotifications}
-                color={theme.colors.primary}
-              />
-            )}
-          />
-        </List.Section>
-
-        <Divider />
-
         <List.Section>
           <List.Subheader>Data</List.Subheader>
           <List.Item
@@ -195,14 +144,7 @@ const SettingsScreen = () => {
               );
             }}
           />
-          <List.Item
-            title="Database Migrations"
-            description="Run database migrations manually"
-            left={(props) => (
-              <List.Icon {...props} icon="database" color={theme.colors.primary} />
-            )}
-            onPress={() => navigation.navigate('DatabaseMigration')}
-          />
+
         </List.Section>
 
         <Divider />

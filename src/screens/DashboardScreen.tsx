@@ -10,7 +10,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { RootStackParamList, DrawerParamList } from '../types';
 import { LoadingIndicator, KPICard, ChartCard, ActivityList } from '../components';
 import { spacing, shadows, borderRadius } from '../constants/theme';
-import { fetchDashboardData, DashboardData } from '../utils/dashboardUtils';
+import { fetchDashboardData, DashboardData, generateUnitsByStatusData, generateUnitsSoldWeeklyData, generateUnitsSoldMonthlyData } from '../utils/dashboardUtils';
+import { getUnitsFlats, UnitFlat } from '../database/unitsFlatDb';
 import { formatCurrency } from '../utils/formatters';
 
 type DashboardScreenNavigationProp = CompositeNavigationProp<
@@ -25,24 +26,31 @@ const DashboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [unitsData, setUnitsData] = useState<UnitFlat[]>([]);
 
   // State for project filtering
   const [selectedWeeklyProjectId, setSelectedWeeklyProjectId] = useState<number | null>(null);
   const [selectedMonthlyProjectId, setSelectedMonthlyProjectId] = useState<number | null>(null);
+  const [selectedUnitsStatusProjectId, setSelectedUnitsStatusProjectId] = useState<number | null>(null);
 
   // State for filtered chart data
   const [filteredWeeklyData, setFilteredWeeklyData] = useState<{ x: string; y: number }[]>([]);
   const [filteredMonthlyData, setFilteredMonthlyData] = useState<{ x: string; y: number }[]>([]);
+  const [filteredUnitsStatusData, setFilteredUnitsStatusData] = useState<{ x: string; y: number; label?: string }[]>([]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const data = await fetchDashboardData();
+      const units = await getUnitsFlats();
+
       setDashboardData(data);
+      setUnitsData(units);
 
       // Initialize filtered data
       setFilteredWeeklyData(data.unitsSoldPast6Weeks);
       setFilteredMonthlyData(data.unitsSoldPast6Months);
+      setFilteredUnitsStatusData(data.unitsByStatus);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -58,34 +66,20 @@ const DashboardScreen = () => {
 
   // Update filtered data when project selection or dashboard data changes
   useEffect(() => {
-    if (!dashboardData) return;
+    if (!dashboardData || unitsData.length === 0) return;
 
-    // Filter weekly data by project
-    if (selectedWeeklyProjectId === null) {
-      setFilteredWeeklyData(dashboardData.unitsSoldPast6Weeks);
-    } else {
-      // In a real implementation, we would call a function to filter by project
-      // For now, we'll just simulate filtered data by reducing counts
-      const filteredData = dashboardData.unitsSoldPast6Weeks.map(item => ({
-        x: item.x,
-        y: Math.max(0, Math.floor(item.y * 0.5)) // Simulate filtered data
-      }));
-      setFilteredWeeklyData(filteredData);
-    }
+    // Filter weekly data by project using actual units data
+    const weeklyData = generateUnitsSoldWeeklyData(unitsData, selectedWeeklyProjectId || undefined);
+    setFilteredWeeklyData(weeklyData);
 
-    // Filter monthly data by project
-    if (selectedMonthlyProjectId === null) {
-      setFilteredMonthlyData(dashboardData.unitsSoldPast6Months);
-    } else {
-      // In a real implementation, we would call a function to filter by project
-      // For now, we'll just simulate filtered data by reducing counts
-      const filteredData = dashboardData.unitsSoldPast6Months.map(item => ({
-        x: item.x,
-        y: Math.max(0, Math.floor(item.y * 0.5)) // Simulate filtered data
-      }));
-      setFilteredMonthlyData(filteredData);
-    }
-  }, [dashboardData, selectedWeeklyProjectId, selectedMonthlyProjectId]);
+    // Filter monthly data by project using actual units data
+    const monthlyData = generateUnitsSoldMonthlyData(unitsData, selectedMonthlyProjectId || undefined);
+    setFilteredMonthlyData(monthlyData);
+
+    // Filter units status data by project
+    const statusData = generateUnitsByStatusData(unitsData, selectedUnitsStatusProjectId || undefined);
+    setFilteredUnitsStatusData(statusData);
+  }, [dashboardData, unitsData, selectedWeeklyProjectId, selectedMonthlyProjectId, selectedUnitsStatusProjectId]);
 
   // Load initial data
   useEffect(() => {
@@ -164,7 +158,7 @@ const DashboardScreen = () => {
               value={formatCurrency(dashboardData.totalRevenue)}
               icon="cash-multiple"
               iconColor="#10B981"
-              subtitle="Total received amount"
+              subtitle="Revenue for this month"
               gradientColors={['#ECFDF5', '#D1FAE5']}
             />
 
@@ -214,9 +208,15 @@ const DashboardScreen = () => {
           <ChartCard
             title="Units by Status"
             subtitle="Distribution of units/flats by status"
-            data={dashboardData.unitsByStatus}
+            data={filteredUnitsStatusData}
             type="bar"
             icon="chart-bar"
+            onProjectSelect={setSelectedUnitsStatusProjectId}
+            projectOptions={[
+              { label: 'All Projects', value: null },
+              ...dashboardData.projects.map(p => ({ label: p.name, value: p.id }))
+            ]}
+            selectedProjectId={selectedUnitsStatusProjectId}
           />
 
           <ChartCard

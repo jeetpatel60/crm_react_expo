@@ -75,7 +75,7 @@ export type RootStackParamList = {
   PaymentReceiptTemplateDetails: { templateId: number };
   AddPaymentReceiptTemplate: undefined;
   EditPaymentReceiptTemplate: { template: PaymentReceiptTemplate };
-  DatabaseMigration: undefined;
+
   BackupManagement: undefined;
   HowToUseGuide: undefined;
 };

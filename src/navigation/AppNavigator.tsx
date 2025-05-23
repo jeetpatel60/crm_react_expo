@@ -45,7 +45,7 @@ import PaymentReceiptTemplatesScreen from '../screens/PaymentReceiptTemplatesScr
 import PaymentReceiptTemplateDetailsScreen from '../screens/PaymentReceiptTemplateDetailsScreen'; // Added
 import AddPaymentReceiptTemplateScreen from '../screens/AddPaymentReceiptTemplateScreen'; // Added
 import EditPaymentReceiptTemplateScreen from '../screens/EditPaymentReceiptTemplateScreen'; // Added
-import DatabaseMigrationScreen from '../screens/DatabaseMigrationScreen';
+
 import BackupManagementScreen from '../screens/BackupManagementScreen';
 import HowToUseGuideScreen from '../screens/HowToUseGuideScreen';
 
@@ -275,11 +275,7 @@ const AppNavigator = () => {
           component={EditPaymentReceiptTemplateScreen}
           options={{ title: 'Edit Payment Receipt Template' }}
         />
-        <Stack.Screen
-          name="DatabaseMigration"
-          component={DatabaseMigrationScreen}
-          options={{ title: 'Database Migration' }}
-        />
+
         <Stack.Screen
           name="BackupManagement"
           component={BackupManagementScreen}
