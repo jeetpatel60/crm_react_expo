@@ -370,6 +370,9 @@ export const runMigrations = async (): Promise<void> => {
     const { addPaymentReceiptTemplatesTable } = await import('./migrations/addPaymentReceiptTemplatesTable');
     await addPaymentReceiptTemplatesTable(getDatabase);
 
+    const { addUnitFlatIdToLeads } = await import('./migrations/addUnitFlatIdToLeads');
+    await addUnitFlatIdToLeads(getDatabase);
+
     console.log('Database migrations completed successfully');
   } catch (error) {
     console.error('Error running database migrations:', error);

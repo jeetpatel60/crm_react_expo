@@ -6,6 +6,7 @@ export interface Lead {
   id?: number;
   name: string;
   enquiry_for?: string;
+  unit_flat_id?: number;
   budget?: number;
   reference?: string;
   lead_source?: string;
@@ -43,11 +44,12 @@ export const addLead = async (lead: Lead): Promise<number> => {
     const now = Date.now();
 
     const result = await db.runAsync(
-      `INSERT INTO leads (name, enquiry_for, budget, reference, lead_source, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+      `INSERT INTO leads (name, enquiry_for, unit_flat_id, budget, reference, lead_source, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         lead.name,
         lead.enquiry_for || null,
+        lead.unit_flat_id || null,
         lead.budget || null,
         lead.reference || null,
         lead.lead_source || null,
@@ -75,11 +77,12 @@ export const updateLead = async (lead: Lead): Promise<void> => {
 
     await db.runAsync(
       `UPDATE leads
-       SET name = ?, enquiry_for = ?, budget = ?, reference = ?, lead_source = ?, status = ?, updated_at = ?
+       SET name = ?, enquiry_for = ?, unit_flat_id = ?, budget = ?, reference = ?, lead_source = ?, status = ?, updated_at = ?
        WHERE id = ?;`,
       [
         lead.name,
         lead.enquiry_for || null,
+        lead.unit_flat_id || null,
         lead.budget || null,
         lead.reference || null,
         lead.lead_source || null,

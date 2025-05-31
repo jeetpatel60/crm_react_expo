@@ -79,7 +79,11 @@ const PaymentRequestTemplateDetailsScreen: React.FC = () => {
           undefined,
           undefined,
           undefined,
-          companyId
+          undefined, // project company ID
+          undefined, // specificPaymentRequestId
+          undefined, // specificPaymentReceiptId
+          companyId ? 'company' : 'none', // letterheadOption
+          companyId // letterheadCompanyId
         );
       } catch (error) {
         console.error('Error exporting template:', error);

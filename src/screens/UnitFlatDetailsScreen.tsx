@@ -4,7 +4,7 @@ import { Text, Card, Button, IconButton, DataTable, FAB, useTheme, Divider } fro
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { DocumentTemplateSelectionModal, AgreementTemplateSelectionModal, PaymentReceiptTemplateSelectionModal, StatusBadge } from '../components';
+import { TemplateSelectionModal, AgreementTemplateSelectionModal, PaymentReceiptTemplateSelectionModal, StatusBadge } from '../components';
 
 import { RootStackParamList } from '../types';
 import { UnitFlat } from '../database/unitsFlatDb';
@@ -209,7 +209,7 @@ const UnitFlatDetailsScreen = () => {
     setTemplateModalVisible(true);
   };
 
-  const handleTemplateSelect = async (templateId: number) => {
+  const handleTemplateSelect = async (templateId: number, letterheadOption: 'none' | 'company', companyId?: number) => {
     setTemplateModalVisible(false);
 
     if (selectedPaymentRequestId) {
@@ -219,8 +219,13 @@ const UnitFlatDetailsScreen = () => {
           unitId,
           clientId: unit?.client_id,
           projectId: unit?.project_id,
-          paymentRequestId: selectedPaymentRequestId
+          paymentRequestId: selectedPaymentRequestId,
+          letterheadOption,
+          letterheadCompanyId: companyId
         });
+
+        // Get project company ID as fallback
+        const projectCompanyId = unit?.project_id ? (await getProjectById(unit.project_id))?.company_id : undefined;
 
         await generateAndShareTemplateDocument(
           templateId,
@@ -228,8 +233,11 @@ const UnitFlatDetailsScreen = () => {
           unitId,
           unit?.client_id,
           unit?.project_id,
-          unit?.project_id ? (await getProjectById(unit.project_id))?.company_id : undefined,
-          selectedPaymentRequestId
+          projectCompanyId,
+          selectedPaymentRequestId,
+          undefined,
+          letterheadOption,
+          companyId
         );
       } catch (error) {
         console.error('Error exporting payment request:', error);
@@ -244,24 +252,27 @@ const UnitFlatDetailsScreen = () => {
     setPaymentReceiptTemplateModalVisible(true);
   };
 
-  const handlePaymentReceiptTemplateSelect = async (templateId: number) => {
+  const handlePaymentReceiptTemplateSelect = async (templateId: number, letterheadOption: 'none' | 'company', companyId?: number) => {
     setPaymentReceiptTemplateModalVisible(false);
 
     if (selectedPaymentReceiptId) {
       try {
-        console.log(`Generating document for payment receipt ID: ${selectedPaymentReceiptId} with template ID: ${templateId}`);
+        console.log(`Generating document for payment receipt ID: ${selectedPaymentReceiptId} with template ID: ${templateId}`, {
+          letterheadOption,
+          letterheadCompanyId: companyId
+        });
 
         // Find the receipt to get additional details if needed
         const receipt = paymentReceipts.find(r => r.id === selectedPaymentReceiptId);
         console.log(`Receipt details: ${JSON.stringify(receipt)}`);
 
-        // Get project data to fetch company ID
-        let companyId: number | undefined = undefined;
+        // Get project data to fetch company ID as fallback
+        let projectCompanyId: number | undefined = undefined;
         if (unit?.project_id) {
           const project = await getProjectById(unit.project_id);
           if (project?.company_id) {
-            companyId = project.company_id;
-            console.log(`Using company ID ${companyId} from project ${project.id} for letterhead`);
+            projectCompanyId = project.company_id;
+            console.log(`Using project company ID ${projectCompanyId} from project ${project.id}`);
           }
         }
 
@@ -271,9 +282,11 @@ const UnitFlatDetailsScreen = () => {
           unitId,
           unit?.client_id,
           unit?.project_id,
-          companyId, // Pass the company ID for letterhead
+          projectCompanyId,
           undefined,
-          selectedPaymentReceiptId
+          selectedPaymentReceiptId,
+          letterheadOption,
+          companyId
         );
 
         console.log(`Document generation completed successfully`);
@@ -707,12 +720,11 @@ const UnitFlatDetailsScreen = () => {
       </ScrollView>
 
       {/* Payment Request Template Selection Modal */}
-      <DocumentTemplateSelectionModal
+      <TemplateSelectionModal
         visible={templateModalVisible}
         onDismiss={() => setTemplateModalVisible(false)}
         onSelect={handleTemplateSelect}
         title="Select Payment Request Template"
-        templateType="paymentRequest"
       />
 
       {/* Payment Receipt Template Selection Modal */}

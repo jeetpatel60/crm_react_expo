@@ -1,26 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { TextInput, Button, useTheme, Text, SegmentedButtons, Menu, Divider } from 'react-native-paper';
+import { TextInput, Button, useTheme, Text, SegmentedButtons, Menu, Divider, Portal, Modal } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 import { RootStackParamList } from '../types';
 import { Lead, LeadStatus } from '../database/leadsDb';
 import { addLead } from '../database';
+import { Project, getProjects } from '../database/projectsDb';
+import { UnitFlat, getUnitsFlatsByProjectId } from '../database/unitsFlatDb';
 import { convertLeadToClient } from '../utils/conversionUtils';
 import { spacing } from '../constants/theme';
 
 type AddLeadNavigationProp = StackNavigationProp<RootStackParamList>;
-
-// Define dropdown options
-const ENQUIRY_OPTIONS = [
-  'Residential Apartment',
-  'Commercial Space',
-  'Office Space',
-  'Land/Plot',
-  'Villa/Independent House',
-  'Other'
-];
 
 const LEAD_STATUS_OPTIONS = [
   { label: 'Lead', value: 'Lead' },
@@ -29,8 +21,6 @@ const LEAD_STATUS_OPTIONS = [
   { label: 'Converted', value: 'Converted' },
 ];
 
-// Lead Status options defined in constants
-
 const AddLeadScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation<AddLeadNavigationProp>();
@@ -38,16 +28,63 @@ const AddLeadScreen = () => {
   // Form state
   const [name, setName] = useState('');
   const [enquiryFor, setEnquiryFor] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedUnitFlatId, setSelectedUnitFlatId] = useState<number | null>(null);
   const [budget, setBudget] = useState('');
   const [reference, setReference] = useState('');
   const [leadSource, setLeadSource] = useState('');
   const [status, setStatus] = useState<LeadStatus>('Lead');
 
+  // Data state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [unitsFlats, setUnitsFlats] = useState<UnitFlat[]>([]);
+
   // Dropdown menus state
   const [enquiryMenuVisible, setEnquiryMenuVisible] = useState(false);
+  const [unitsMenuVisible, setUnitsMenuVisible] = useState(false);
 
   // Validation state
   const [nameError, setNameError] = useState('');
+
+  // Load projects on component mount
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        console.log('Loading projects...');
+        const projectsData = await getProjects();
+        console.log('Projects loaded:', projectsData.length, 'projects');
+        setProjects(projectsData);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+        Alert.alert('Error', 'Failed to load projects');
+      }
+    };
+
+    loadProjects();
+  }, []);
+
+  // Load units when project is selected
+  useEffect(() => {
+    const loadUnits = async () => {
+      if (selectedProjectId) {
+        try {
+          const unitsData = await getUnitsFlatsByProjectId(selectedProjectId);
+          // Filter to only show available units
+          const availableUnits = unitsData.filter(unit => unit.status === 'Available');
+          console.log('Available units for project:', availableUnits.length, 'out of', unitsData.length);
+          setUnitsFlats(availableUnits);
+        } catch (error) {
+          console.error('Error loading units:', error);
+          Alert.alert('Error', 'Failed to load units');
+        }
+      } else {
+        setUnitsFlats([]);
+        setSelectedUnitFlatId(null);
+      }
+    };
+
+    loadUnits();
+  }, [selectedProjectId]);
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -77,6 +114,7 @@ const AddLeadScreen = () => {
       const newLead: Lead = {
         name: name.trim(),
         enquiry_for: enquiryFor,
+        unit_flat_id: selectedUnitFlatId || undefined,
         budget: budget ? parseFloat(budget) : undefined,
         reference,
         lead_source: leadSource,
@@ -156,38 +194,123 @@ const AddLeadScreen = () => {
 
         <View style={styles.dropdownContainer}>
           <TextInput
-            label="Enquiry For"
+            label="Enquiry For (Project)"
             value={enquiryFor}
-            onChangeText={setEnquiryFor}
             mode="outlined"
             style={styles.input}
             outlineColor={theme.colors.outline}
             activeOutlineColor={theme.colors.primary}
+            editable={false}
             right={
               <TextInput.Icon
                 icon="menu-down"
                 onPress={() => setEnquiryMenuVisible(true)}
               />
             }
+            onPress={() => {
+              console.log('Opening project modal, projects count:', projects.length);
+              setEnquiryMenuVisible(true);
+            }}
           />
-          <Menu
-            visible={enquiryMenuVisible}
-            onDismiss={() => setEnquiryMenuVisible(false)}
-            anchor={{ x: 0, y: 0 }}
-            style={[styles.menu, { marginTop: 60 }]}
-          >
-            {ENQUIRY_OPTIONS.map((option) => (
-              <Menu.Item
-                key={option}
-                onPress={() => {
-                  setEnquiryFor(option);
-                  setEnquiryMenuVisible(false);
-                }}
-                title={option}
-              />
-            ))}
-          </Menu>
+          <Portal>
+            <Modal
+              visible={enquiryMenuVisible}
+              onDismiss={() => setEnquiryMenuVisible(false)}
+              contentContainerStyle={[
+                styles.modalContainer,
+                { backgroundColor: theme.colors.surface }
+              ]}
+            >
+              <Text style={styles.modalTitle}>Select Project</Text>
+              <ScrollView style={styles.modalScrollView}>
+                {projects.length === 0 ? (
+                  <Text style={styles.emptyText}>No projects available</Text>
+                ) : (
+                  projects.map((project) => (
+                    <Button
+                      key={project.id}
+                      mode="text"
+                      onPress={() => {
+                        setEnquiryFor(project.name);
+                        setSelectedProjectId(project.id!);
+                        setEnquiryMenuVisible(false);
+                      }}
+                      style={styles.modalButton}
+                    >
+                      {project.name}
+                    </Button>
+                  ))
+                )}
+              </ScrollView>
+              <Button
+                mode="contained"
+                onPress={() => setEnquiryMenuVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                Close
+              </Button>
+            </Modal>
+          </Portal>
         </View>
+
+        {selectedProjectId && (
+          <View style={styles.dropdownContainer}>
+            <TextInput
+              label="Flats / Units"
+              value={selectedUnitFlatId ? unitsFlats.find(unit => unit.id === selectedUnitFlatId)?.flat_no || '' : ''}
+              mode="outlined"
+              style={styles.input}
+              outlineColor={theme.colors.outline}
+              activeOutlineColor={theme.colors.primary}
+              editable={false}
+              right={
+                <TextInput.Icon
+                  icon="menu-down"
+                  onPress={() => setUnitsMenuVisible(true)}
+                />
+              }
+              onPress={() => setUnitsMenuVisible(true)}
+            />
+            <Portal>
+              <Modal
+                visible={unitsMenuVisible}
+                onDismiss={() => setUnitsMenuVisible(false)}
+                contentContainerStyle={[
+                  styles.modalContainer,
+                  { backgroundColor: theme.colors.surface }
+                ]}
+              >
+                <Text style={styles.modalTitle}>Select Unit/Flat</Text>
+                <ScrollView style={styles.modalScrollView}>
+                  {unitsFlats.length === 0 ? (
+                    <Text style={styles.emptyText}>No available units for this project</Text>
+                  ) : (
+                    unitsFlats.map((unit) => (
+                      <Button
+                        key={unit.id}
+                        mode="text"
+                        onPress={() => {
+                          setSelectedUnitFlatId(unit.id!);
+                          setUnitsMenuVisible(false);
+                        }}
+                        style={styles.modalButton}
+                      >
+                        {unit.flat_no}
+                      </Button>
+                    ))
+                  )}
+                </ScrollView>
+                <Button
+                  mode="contained"
+                  onPress={() => setUnitsMenuVisible(false)}
+                  style={styles.modalCloseButton}
+                >
+                  Close
+                </Button>
+              </Modal>
+            </Portal>
+          </View>
+        )}
 
         <TextInput
           label="Budget"
@@ -262,6 +385,38 @@ const styles = StyleSheet.create({
   },
   menu: {
     width: '100%',
+  },
+  menuContent: {
+    backgroundColor: 'white',
+    maxHeight: 200,
+  },
+  modalContainer: {
+    margin: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: 8,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  modalScrollView: {
+    maxHeight: 300,
+    marginBottom: spacing.md,
+  },
+  modalButton: {
+    justifyContent: 'flex-start',
+    marginBottom: spacing.xs,
+  },
+  modalCloseButton: {
+    marginTop: spacing.sm,
+  },
+  emptyText: {
+    textAlign: 'center',
+    padding: spacing.lg,
+    color: '#666',
   },
   label: {
     fontSize: 14,

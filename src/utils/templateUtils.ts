@@ -68,7 +68,9 @@ export const generateAndShareTemplateDocument = async (
   projectId?: number,
   companyId?: number,
   specificPaymentRequestId?: number,
-  specificPaymentReceiptId?: number
+  specificPaymentReceiptId?: number,
+  letterheadOption?: 'none' | 'company',
+  letterheadCompanyId?: number
 ): Promise<void> => {
   try {
     console.log('Starting template document generation with:', {
@@ -79,8 +81,18 @@ export const generateAndShareTemplateDocument = async (
       projectId,
       companyId,
       specificPaymentRequestId,
-      specificPaymentReceiptId
+      specificPaymentReceiptId,
+      letterheadOption,
+      letterheadCompanyId
     });
+
+    // Determine the effective company ID for letterhead
+    let effectiveCompanyId = companyId;
+    if (letterheadOption === 'company' && letterheadCompanyId) {
+      effectiveCompanyId = letterheadCompanyId;
+    } else if (letterheadOption === 'none') {
+      effectiveCompanyId = undefined; // Don't load any company data for letterhead
+    }
 
     // Prepare data for document generation
     const data = await prepareTemplateData(
@@ -89,9 +101,10 @@ export const generateAndShareTemplateDocument = async (
       unitId,
       clientId,
       projectId,
-      companyId,
+      effectiveCompanyId,
       specificPaymentRequestId,
-      specificPaymentReceiptId
+      specificPaymentReceiptId,
+      letterheadOption
     );
 
     console.log('Template data prepared:', {
@@ -140,7 +153,8 @@ const prepareTemplateData = async (
   projectId?: number,
   companyId?: number,
   specificPaymentRequestId?: number,
-  specificPaymentReceiptId?: number
+  specificPaymentReceiptId?: number,
+  letterheadOption?: 'none' | 'company'
 ): Promise<TemplateData> => {
   // Fetch template data
   let template: AgreementTemplate | PaymentRequestTemplate | PaymentReceiptTemplate | null;
@@ -248,7 +262,8 @@ const prepareTemplateData = async (
     }
   }
 
-  if (companyId) {
+  // Only load company data if letterhead option is not 'none'
+  if (companyId && letterheadOption !== 'none') {
     console.log(`Fetching company data for ID: ${companyId}`);
     const companyData = await getCompanyById(companyId);
     if (companyData) {
@@ -288,7 +303,11 @@ const prepareTemplateData = async (
       console.log(`Company with ID ${companyId} not found`);
     }
   } else {
-    console.log('No company ID provided');
+    if (letterheadOption === 'none') {
+      console.log('Letterhead option is set to none, skipping company data loading');
+    } else {
+      console.log('No company ID provided');
+    }
   }
 
   return data;
@@ -335,6 +354,10 @@ export const replacePlaceholders = (content: string, data: TemplateData): string
   if (data.companyData) {
     result = result.replace(/\{\{COMPANY_NAME\}\}/g, data.companyData.name || '');
     result = result.replace(/\{\{COMPANY_SALUTATION\}\}/g, data.companyData.salutation || '');
+  } else {
+    // If no company data is loaded (e.g., letterhead option is 'none'), replace with empty strings
+    result = result.replace(/\{\{COMPANY_NAME\}\}/g, '');
+    result = result.replace(/\{\{COMPANY_SALUTATION\}\}/g, '');
   }
 
   // Replace date placeholders
@@ -819,7 +842,7 @@ const generateTemplateHtml = (data: TemplateData): string => {
   // Replace placeholders in template content with actual data
   const replacedContent = replacePlaceholders(data.template.content, data);
 
-  // Generate letterhead section if available
+  // Generate letterhead section if available and letterhead is enabled
   let letterheadHtml = '';
   if (data.companyLetterheadBase64 && data.companyLetterheadType === 'image') {
     letterheadHtml = `
@@ -827,8 +850,8 @@ const generateTemplateHtml = (data: TemplateData): string => {
         <img src="${data.companyLetterheadBase64}" style="max-width: 100%; max-height: 150px;" />
       </div>
     `;
-  } else if (data.companyData) {
-    // If no letterhead or PDF letterhead, use company name as header
+  } else if (data.companyData && data.companyLetterheadBase64) {
+    // Only add company name as header if we have letterhead data (meaning letterhead was requested)
     letterheadHtml = `
       <div class="letterhead-text" style="text-align: center; margin-bottom: 20px;">
         <h1 style="margin-bottom: 5px;">${data.companyData.name || 'Company Name'}</h1>
@@ -836,6 +859,7 @@ const generateTemplateHtml = (data: TemplateData): string => {
       </div>
     `;
   }
+  // If letterhead option is 'none', letterheadHtml will remain empty
 
   // Format the content for HTML rendering
   const formattedHtmlContent = formatContentForHtml(replacedContent);
@@ -851,6 +875,7 @@ const generateTemplateHtml = (data: TemplateData): string => {
             line-height: 1.6;
             color: #333;
             padding: 20px;
+            ${letterheadHtml ? '' : 'padding-top: 170px;'} /* Add 150px + 20px existing padding when no letterhead */
           }
           h1, h2, h3 {
             margin-top: 1em;

@@ -388,7 +388,10 @@ export const generateAndSharePaymentRequestPdf = async (
       undefined,
       project.id,
       effectiveCompanyId,
-      paymentRequestId  // Pass the specific payment request ID
+      paymentRequestId,  // Pass the specific payment request ID
+      undefined, // specificPaymentReceiptId
+      'company', // letterheadOption - default to company for backward compatibility
+      effectiveCompanyId // letterheadCompanyId
     );
   } catch (error) {
     console.error('Error generating or sharing payment request PDF:', error);
