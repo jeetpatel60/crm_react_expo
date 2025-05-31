@@ -128,8 +128,21 @@ export const generateAndShareTemplateDocument = async (
 
     console.log('PDF generated at:', uri);
 
-    // Share the PDF file
-    await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    // Generate appropriate filename
+    const filename = generatePdfFilename(data, templateType);
+    console.log('Generated filename:', filename);
+
+    // Create a new file with the appropriate name
+    const newUri = `${FileSystem.cacheDirectory}${filename}`;
+    await FileSystem.copyAsync({
+      from: uri,
+      to: newUri
+    });
+
+    console.log('PDF saved with filename at:', newUri);
+
+    // Share the PDF file with the proper filename
+    await shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf' });
   } catch (error) {
     console.error('Error generating or sharing document:', error);
     if (error instanceof Error) {
@@ -311,6 +324,69 @@ const prepareTemplateData = async (
   }
 
   return data;
+};
+
+/**
+ * Generate appropriate filename for PDF based on template data and type
+ */
+const generatePdfFilename = (data: TemplateData, templateType: 'agreement' | 'payment-request' | 'payment-receipt'): string => {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0]; // YYYY-MM-DD format
+  const time = new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].split('.')[0]; // HH-MM-SS format
+
+  let baseFilename = '';
+
+  switch (templateType) {
+    case 'agreement':
+      baseFilename = 'Agreement';
+      break;
+    case 'payment-request':
+      baseFilename = 'PaymentRequest';
+      break;
+    case 'payment-receipt':
+      baseFilename = 'PaymentReceipt';
+      break;
+  }
+
+  // Add specific identifiers based on available data
+  const parts = [baseFilename];
+
+  // Add project name if available
+  if (data.projectData?.name) {
+    const projectName = data.projectData.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+    parts.push(projectName);
+  }
+
+  // Add flat/unit number if available
+  if (data.unitData?.flat_no) {
+    const flatNo = data.unitData.flat_no.replace(/[^a-zA-Z0-9]/g, '_');
+    parts.push(`Flat${flatNo}`);
+  }
+
+  // Add client name if available
+  if (data.clientData?.name) {
+    const clientName = data.clientData.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 15);
+    parts.push(clientName);
+  }
+
+  // Add specific payment request/receipt info
+  if (templateType === 'payment-request' && data.paymentRequests && data.paymentRequests.length > 0) {
+    const request = data.paymentRequests[0];
+    if (request.sr_no) {
+      parts.push(`SR${request.sr_no}`);
+    }
+  }
+
+  if (templateType === 'payment-receipt' && data.paymentReceipts && data.paymentReceipts.length > 0) {
+    const receipt = data.paymentReceipts[0];
+    if (receipt.sr_no) {
+      parts.push(`SR${receipt.sr_no}`);
+    }
+  }
+
+  // Add timestamp
+  parts.push(`${timestamp}_${time}`);
+
+  return `${parts.join('_')}.pdf`;
 };
 
 /**
@@ -949,7 +1025,7 @@ const formatContentForHtml = (content: string): string => {
   // 1. Process alignment blocks first
   formattedContent = formattedContent.replace(
     /~(center|right|left)~([\s\S]*?)~\/\1~/g,
-    (match, alignType, innerContent) => {
+    (_match, alignType, innerContent) => {
       // Apply markdown formatting to the content inside the alignment block
       const processedInnerContent = applyMarkdownFormatting(innerContent);
       return `<div style="text-align: ${alignType};">${processedInnerContent}</div>`;
