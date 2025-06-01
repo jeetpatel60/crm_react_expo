@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "CRM App",
+    "name": "SAMVIDA",
     "slug": "crm_react_expo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -30,19 +30,18 @@
       "package": "com.crmapp.mobile",
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "android.permission.WAKE_LOCK"
+        "android.permission.WAKE_LOCK",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.FOREGROUND_SERVICE"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-sqlite",
-        {
-          "disableWasmAsync": false
-        }
-      ]
+      "expo-sqlite",
+      "expo-background-fetch",
+      "expo-task-manager"
     ],
     "extra": {
       "eas": {

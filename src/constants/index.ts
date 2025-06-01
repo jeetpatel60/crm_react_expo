@@ -1,6 +1,6 @@
 export * from './theme';
 
-export const APP_NAME = 'CRM App';
+export const APP_NAME = 'SAMVIDA';
 
 export const TASK_STATUS_OPTIONS = [
   { label: 'Pending', value: 'pending' },

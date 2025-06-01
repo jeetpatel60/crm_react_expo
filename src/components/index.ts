@@ -21,3 +21,5 @@ export { default as ChartCard } from './ChartCard';
 export { default as ActivityList } from './ActivityList';
 export { default as AgreementTemplateSelectionModal } from './AgreementTemplateSelectionModal';
 export { default as PaymentReceiptTemplateSelectionModal } from './PaymentReceiptTemplateSelectionModal';
+export { default as FallbackScreen } from './FallbackScreen';
+export { default as ErrorBoundary } from './ErrorBoundary';

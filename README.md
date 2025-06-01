@@ -1,4 +1,4 @@
-# CRM App
+# SAMVIDA
 
 A modern CRM (Customer Relationship Management) mobile application built with React Native, Expo, and SQLite for local data storage.
 

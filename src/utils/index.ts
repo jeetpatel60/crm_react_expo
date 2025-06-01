@@ -5,3 +5,4 @@ export * from './animationUtils';
 export * from './migrationUtils';
 export * from './dashboardUtils';
 export * from './reportUtils';
+export * from './debugUtils';

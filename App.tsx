@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, LogBox } from 'react-native';
+import { StyleSheet, View, Text, LogBox, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
+import { PaperProvider, MD3DarkTheme, MD3LightTheme, Button } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Animated, {
@@ -16,7 +16,8 @@ import { useThemeManager } from './src/hooks';
 import { initializeDatabase } from './src/utils';
 import { addSampleAgreementTemplate } from './src/utils/sampleTemplateUtils';
 import { initializeBackupSystem } from './src/utils/backupUtils';
-import { LoadingIndicator } from './src/components';
+import { DebugLogger, PerformanceMonitor, getSystemInfo } from './src/utils/debugUtils';
+import { LoadingIndicator, FallbackScreen, ErrorBoundary } from './src/components';
 import { ThemeProvider, useThemeContext } from './src/context';
 import { animations, shadows } from './src/constants/theme';
 
@@ -65,55 +66,108 @@ export default function App() {
   const themeManager = useThemeManager();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [initializationStep, setInitializationStep] = useState('Starting...');
+  const [retryCount, setRetryCount] = useState(0);
+
+  const initializeApp = async () => {
+    try {
+      PerformanceMonitor.startTimer('app_initialization');
+
+      setInitializationStep('Checking platform compatibility...');
+      DebugLogger.info('=== APP INITIALIZATION START ===');
+
+      const systemInfo = getSystemInfo();
+      DebugLogger.info(`System Info: ${JSON.stringify(systemInfo)}`);
+
+      setInitializationStep('Initializing database...');
+      PerformanceMonitor.startTimer('database_initialization');
+      DebugLogger.info('Starting database initialization...');
+      await initializeDatabase();
+      PerformanceMonitor.endTimer('database_initialization');
+      DebugLogger.info('Database initialization completed successfully');
+
+      // Add a sample agreement template only if no templates exist
+      setInitializationStep('Setting up templates...');
+      try {
+        const templateId = await addSampleAgreementTemplate();
+        if (templateId > 0) {
+          console.log('Sample agreement template added successfully with ID:', templateId);
+        } else {
+          console.log('Sample agreement template not added - templates already exist');
+        }
+      } catch (templateError) {
+        console.warn('Failed to add sample agreement template:', templateError);
+        // Continue even if template creation fails
+      }
+
+      // Initialize backup system
+      setInitializationStep('Initializing backup system...');
+      try {
+        await initializeBackupSystem();
+        console.log('Backup system initialized successfully');
+      } catch (backupError) {
+        console.warn('Failed to initialize backup system:', backupError);
+        // Continue even if backup initialization fails
+      }
+
+      setInitializationStep('Finalizing...');
+      PerformanceMonitor.endTimer('app_initialization');
+      DebugLogger.info('=== APP INITIALIZATION COMPLETE ===');
+    } catch (err) {
+      PerformanceMonitor.endTimer('app_initialization');
+      DebugLogger.error('=== APP INITIALIZATION FAILED ===', err);
+
+      const errorMessage = `Failed to initialize the app: ${err instanceof Error ? err.message : String(err)}`;
+      setError(errorMessage);
+
+      // Show alert for critical errors with debug option
+      if (Platform.OS !== 'web') {
+        Alert.alert(
+          'Initialization Error',
+          errorMessage,
+          [
+            { text: 'Show Debug Info', onPress: () => DebugLogger.showDebugInfo() },
+            { text: 'Retry', onPress: () => handleRetry() },
+            { text: 'Continue Anyway', onPress: () => setLoading(false) }
+          ]
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    setError(null);
+    setLoading(true);
+    setInitializationStep('Retrying...');
+    console.log(`=== RETRY ATTEMPT ${retryCount + 1} ===`);
+    initializeApp();
+  };
 
   useEffect(() => {
-    const setup = async () => {
-      try {
-        console.log('Starting database initialization...');
-        await initializeDatabase();
-        console.log('Database initialization completed successfully');
+    // Add a small delay to ensure all components are mounted
+    const timer = setTimeout(() => {
+      initializeApp();
+    }, 100);
 
-        // Add a sample agreement template only if no templates exist
-        try {
-          const templateId = await addSampleAgreementTemplate();
-          if (templateId > 0) {
-            console.log('Sample agreement template added successfully with ID:', templateId);
-          } else {
-            console.log('Sample agreement template not added - templates already exist');
-          }
-        } catch (templateError) {
-          console.warn('Failed to add sample agreement template:', templateError);
-          // Continue even if template creation fails
-        }
-
-        // Initialize backup system
-        try {
-          await initializeBackupSystem();
-          console.log('Backup system initialized successfully');
-        } catch (backupError) {
-          console.warn('Failed to initialize backup system:', backupError);
-          // Continue even if backup initialization fails
-        }
-      } catch (err) {
-        console.error('Failed to initialize the app', err);
-        setError(`Failed to initialize the database: ${err instanceof Error ? err.message : String(err)}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    setup();
+    return () => clearTimeout(timer);
   }, []);
 
   if (loading) {
     return (
       <PaperProvider theme={themeManager.theme}>
-        <AnimatedView
-          style={styles.container}
-          entering={FadeIn.duration(animations.duration.standard)}
-        >
-          <LoadingIndicator message="Initializing app..." />
-        </AnimatedView>
+        <SafeAreaProvider>
+          <AnimatedView
+            style={styles.container}
+            entering={FadeIn.duration(animations.duration.standard)}
+          >
+            <LoadingIndicator
+              message={`${initializationStep}${retryCount > 0 ? ` (Attempt ${retryCount + 1})` : ''}`}
+            />
+          </AnimatedView>
+        </SafeAreaProvider>
       </PaperProvider>
     );
   }
@@ -121,26 +175,27 @@ export default function App() {
   if (error) {
     return (
       <PaperProvider theme={themeManager.theme}>
-        <AnimatedView
-          style={styles.container}
-          entering={SlideInUp.duration(animations.duration.standard)}
-        >
-          <View style={[styles.errorContainer, shadows.md]}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        </AnimatedView>
+        <SafeAreaProvider>
+          <FallbackScreen
+            error={error}
+            onRetry={retryCount < 3 ? handleRetry : undefined}
+            onShowDebug={() => DebugLogger.showDebugInfo()}
+          />
+        </SafeAreaProvider>
       </PaperProvider>
     );
   }
 
   // Wrap everything in GestureHandlerRootView for gesture support
   return (
-    <GestureHandlerRootView style={styles.container}>
-      {/* ThemeProvider must be rendered before any component that uses useThemeContext */}
-      <ThemeProvider>
-        <MainApp />
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={styles.container}>
+        {/* ThemeProvider must be rendered before any component that uses useThemeContext */}
+        <ThemeProvider>
+          <MainApp />
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 
@@ -149,6 +204,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     margin: 20,
     padding: 20,
     backgroundColor: '#FEF2F2',
@@ -156,9 +214,30 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#EF4444',
   },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#d32f2f',
+    marginBottom: 12,
+  },
   errorText: {
     fontSize: 16,
     color: '#B91C1C',
     textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  errorActions: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  retryButton: {
+    minWidth: 120,
+  },
+  continueButton: {
+    minWidth: 120,
   },
 });
