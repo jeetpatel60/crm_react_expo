@@ -998,6 +998,8 @@ const FlatsAvailabilityReportScreen = () => {
               buttons={ALL_STATUS_OPTIONS.map(option => ({
                 value: option.value,
                 label: option.label,
+                style: styles.segmentedButton,
+                labelStyle: styles.segmentedButtonLabel,
               }))}
               style={styles.segmentedButtons}
             />
@@ -1257,6 +1259,15 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   segmentedButtons: {
     flex: 1,
+  },
+  segmentedButton: {
+    flex: 1,
+    minHeight: 40,
+  },
+  segmentedButtonLabel: {
+    fontSize: 11,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   viewModeButtons: {
     marginTop: spacing.sm,

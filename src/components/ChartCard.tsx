@@ -52,7 +52,7 @@ const ChartCard = ({
   const renderChart = () => {
     if (data.length === 0) {
       return (
-        <View style={[styles.emptyChart, { minHeight: height }]}>
+        <View style={[styles.emptyChart, { minHeight: height, backgroundColor: `${theme.colors.onSurface}05` }]}>
           <MaterialCommunityIcons
             name={
               (type === 'pie'
@@ -64,7 +64,7 @@ const ChartCard = ({
             size={36}
             color={theme.colors.primary}
           />
-          <Text style={styles.emptyText}>No data available</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No data available</Text>
         </View>
       );
     }
@@ -75,7 +75,7 @@ const ChartCard = ({
     switch (type) {
       case 'pie':
         return (
-          <View style={styles.chartContent}>
+          <View style={[styles.chartContent, { backgroundColor: `${theme.colors.onSurface}05` }]}>
             <View style={styles.pieContainer}>
               <View style={styles.pieChart}>
                 {data.map((item, index) => {
@@ -94,7 +94,7 @@ const ChartCard = ({
                   );
                 })}
               </View>
-              <Text style={styles.chartText}>
+              <Text style={[styles.chartText, { color: theme.colors.onSurface }]}>
                 Total: {total}
               </Text>
             </View>
@@ -103,7 +103,7 @@ const ChartCard = ({
 
       case 'bar':
         return (
-          <View style={styles.chartContent}>
+          <View style={[styles.chartContent, { backgroundColor: `${theme.colors.onSurface}05` }]}>
             <View style={styles.barContainer}>
               {data.map((item, index) => {
                 // Find the max value to scale bars
@@ -113,7 +113,7 @@ const ChartCard = ({
                 return (
                   <View key={index} style={styles.barItem}>
                     <View style={styles.barLabelContainer}>
-                      <Text style={styles.barLabel} numberOfLines={1} ellipsizeMode="tail">
+                      <Text style={[styles.barLabel, { color: theme.colors.onSurface }]} numberOfLines={1} ellipsizeMode="tail">
                         {item.x}
                       </Text>
                     </View>
@@ -127,7 +127,7 @@ const ChartCard = ({
                           }
                         ]}
                       />
-                      <Text style={styles.barValue}>{item.y}</Text>
+                      <Text style={[styles.barValue, { color: theme.colors.onSurface }]}>{item.y}</Text>
                     </View>
                   </View>
                 );
@@ -138,15 +138,15 @@ const ChartCard = ({
 
       case 'line':
         return (
-          <View style={styles.chartContent}>
-            <Text style={styles.chartText}>
+          <View style={[styles.chartContent, { backgroundColor: `${theme.colors.onSurface}05` }]}>
+            <Text style={[styles.chartText, { color: theme.colors.onSurface }]}>
               Revenue trend over time
             </Text>
             <View style={styles.lineContainer}>
               {data.map((item, index) => (
-                <View key={index} style={styles.lineItem}>
-                  <Text style={styles.lineLabel}>{item.x}</Text>
-                  <Text style={styles.lineValue}>{item.y}</Text>
+                <View key={index} style={[styles.lineItem, { borderBottomColor: `${theme.colors.onSurface}10` }]}>
+                  <Text style={[styles.lineLabel, { color: theme.colors.onSurface }]}>{item.x}</Text>
+                  <Text style={[styles.lineValue, { color: theme.colors.onSurface }]}>{item.y}</Text>
                 </View>
               ))}
             </View>
@@ -158,18 +158,23 @@ const ChartCard = ({
     }
   };
 
+  const gradientColors = [
+    `${theme.colors.surface}CC`, // 80% opacity
+    `${theme.colors.surfaceVariant}99`, // 60% opacity
+  ];
+
   return (
     <Card style={[styles.card, shadows.md]}>
       <LinearGradient
-        colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.6)']}
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
         <Card.Content style={styles.cardContent}>
-          <View style={styles.header}>
+          <View style={[styles.header, { borderBottomColor: `${theme.colors.onSurface}10` }]}>
             <View style={styles.titleContainer}>
-              <Text variant="titleMedium" style={styles.title}>
+              <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
                 {title}
               </Text>
               {subtitle && (
@@ -182,7 +187,7 @@ const ChartCard = ({
               )}
             </View>
             {icon && (
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, { backgroundColor: `${theme.colors.onSurface}08` }]}>
                 <MaterialCommunityIcons
                   name={icon as any}
                   size={20}
@@ -195,12 +200,12 @@ const ChartCard = ({
           {/* Project filter dropdown */}
           {projectOptions && projectOptions.length > 0 && onProjectSelect && (
             <View style={styles.filterContainer}>
-              <Text variant="bodySmall" style={styles.filterLabel}>Filter by project:</Text>
+              <Text variant="bodySmall" style={[styles.filterLabel, { color: theme.colors.onSurface }]}>Filter by project:</Text>
               <View style={styles.pickerContainer}>
                 <MaterialCommunityIcons name="filter-variant" size={16} color={theme.colors.primary} style={styles.filterIcon} />
-                <View style={styles.picker}>
+                <View style={[styles.picker, { backgroundColor: `${theme.colors.onSurface}08` }]}>
                   <Text
-                    style={styles.pickerText}
+                    style={[styles.pickerText, { color: theme.colors.onSurface }]}
                     onPress={() => {
                       // Show project selection modal or dropdown
                       // For simplicity, we'll just cycle through options
@@ -225,7 +230,7 @@ const ChartCard = ({
 
           {/* Legend */}
           {data.length > 0 && (
-            <View style={styles.legendContainer}>
+            <View style={[styles.legendContainer, { backgroundColor: `${theme.colors.onSurface}05` }]}>
               {data.map((item, index) => (
                 <View key={index} style={styles.legendItem}>
                   <View
@@ -234,7 +239,7 @@ const ChartCard = ({
                       { backgroundColor: colors[index % colors.length] }
                     ]}
                   />
-                  <Text style={styles.legendText} numberOfLines={1} ellipsizeMode="tail">
+                  <Text style={[styles.legendText, { color: theme.colors.onSurface }]} numberOfLines={1} ellipsizeMode="tail">
                     {item.x}: {item.y} {type === 'pie' && `(${Math.round((item.y / total) * 100)}%)`}
                   </Text>
                 </View>
@@ -266,7 +271,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingBottom: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   titleContainer: {
     flex: 1,
@@ -281,7 +285,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.03)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -293,7 +296,6 @@ const styles = StyleSheet.create({
   chartContent: {
     width: '100%',
     minHeight: 200,
-    backgroundColor: 'rgba(0,0,0,0.02)',
     borderRadius: borderRadius.md,
     padding: spacing.md,
     alignItems: 'center',
@@ -303,13 +305,11 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.02)',
     borderRadius: borderRadius.md,
     padding: spacing.md,
   },
   emptyText: {
     marginTop: spacing.sm,
-    color: 'rgba(0,0,0,0.5)',
   },
   chartText: {
     marginTop: spacing.sm,
@@ -385,7 +385,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   lineLabel: {
     fontSize: 12,
@@ -397,7 +396,6 @@ const styles = StyleSheet.create({
   legendContainer: {
     width: '100%',
     marginTop: spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.02)',
     borderRadius: borderRadius.md,
     padding: spacing.sm,
   },
@@ -437,7 +435,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.03)',
     borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,

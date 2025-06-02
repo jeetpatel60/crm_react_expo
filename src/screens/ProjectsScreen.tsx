@@ -114,8 +114,8 @@ const ProjectsScreen = () => {
 
           // Small delay to ensure state updates before fetching new data
           setTimeout(async () => {
-            // Use direct SQL query to get fresh data
-            const projectsData = await db.getAllAsync(
+            // Use direct SQL query to get fresh data with proper typing
+            const projectsData = await db.getAllAsync<Project>(
               `SELECT * FROM projects ORDER BY name ASC;`
             );
             console.log(`Focus FORCE refresh completed with DIRECT SQL: ${projectsData.length} projects`);
@@ -249,6 +249,8 @@ const ProjectsScreen = () => {
         buttons={ALL_PROJECT_STATUS_OPTIONS.map(option => ({
           value: option.value,
           label: option.label,
+          style: styles.segmentedButton,
+          labelStyle: styles.segmentedButtonLabel,
         }))}
         style={styles.segmentedButtons}
       />
@@ -317,8 +319,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   segmentedButtons: {
-    marginHorizontal: spacing.md,
+    marginHorizontal: spacing.sm,
     marginBottom: spacing.md,
+  },
+  segmentedButton: {
+    flex: 1,
+    minHeight: 40,
+  },
+  segmentedButtonLabel: {
+    fontSize: 11,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   listContent: {
     paddingBottom: 80, // Space for FAB

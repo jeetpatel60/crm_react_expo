@@ -106,16 +106,28 @@ const QuotationScreen = () => {
       setFilteredQuotations(quotations);
     } else {
       const filtered = quotations.filter(
-        (quotation) =>
-          quotation.quotation_no.toLowerCase().includes(query.toLowerCase()) ||
-          (quotationDetails[quotation.id!]?.projectName &&
-            quotationDetails[quotation.id!].projectName.toLowerCase().includes(query.toLowerCase())) ||
-          (quotationDetails[quotation.id!]?.leadName &&
-            quotationDetails[quotation.id!].leadName.toLowerCase().includes(query.toLowerCase())) ||
-          (quotationDetails[quotation.id!]?.flatNo &&
-            quotationDetails[quotation.id!].flatNo.toLowerCase().includes(query.toLowerCase())) ||
-          (quotationDetails[quotation.id!]?.companyName &&
-            quotationDetails[quotation.id!].companyName.toLowerCase().includes(query.toLowerCase()))
+        (quotation) => {
+          const lowerQuery = query.toLowerCase();
+
+          // Check quotation number
+          if (quotation.quotation_no.toLowerCase().includes(lowerQuery)) {
+            return true;
+          }
+
+          // Check related details if quotation has an ID
+          if (quotation.id && quotationDetails[quotation.id]) {
+            const details = quotationDetails[quotation.id];
+
+            return (
+              (details.projectName && details.projectName.toLowerCase().includes(lowerQuery)) ||
+              (details.leadName && details.leadName.toLowerCase().includes(lowerQuery)) ||
+              (details.flatNo && details.flatNo.toLowerCase().includes(lowerQuery)) ||
+              (details.companyName && details.companyName.toLowerCase().includes(lowerQuery))
+            );
+          }
+
+          return false;
+        }
       );
       setFilteredQuotations(filtered);
     }

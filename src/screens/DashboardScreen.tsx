@@ -129,8 +129,8 @@ const DashboardScreen = () => {
 
         {/* KPI Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
+          <View style={[styles.sectionHeader, { borderBottomColor: `${theme.colors.onBackground}10` }]}>
+            <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
               Key Performance Indicators
             </Text>
           </View>
@@ -142,6 +142,10 @@ const DashboardScreen = () => {
               icon="account-convert"
               iconColor={theme.colors.primary}
               subtitle="Active leads in pipeline"
+              gradientColors={[
+                theme.colors.surfaceVariant,
+                `${theme.colors.surfaceVariant}CC`
+              ]}
             />
 
             <KPICard
@@ -150,7 +154,10 @@ const DashboardScreen = () => {
               icon="briefcase"
               iconColor="#8B5CF6"
               subtitle="Ongoing and completed"
-              gradientColors={['#EDE9FE', '#DDD6FE']}
+              gradientColors={[
+                theme.colors.surfaceVariant,
+                `${theme.colors.surfaceVariant}CC`
+              ]}
             />
 
             <KPICard
@@ -159,7 +166,10 @@ const DashboardScreen = () => {
               icon="cash-multiple"
               iconColor="#10B981"
               subtitle="Revenue for this month"
-              gradientColors={['#ECFDF5', '#D1FAE5']}
+              gradientColors={[
+                theme.colors.surfaceVariant,
+                `${theme.colors.surfaceVariant}CC`
+              ]}
             />
 
             <KPICard
@@ -168,15 +178,18 @@ const DashboardScreen = () => {
               icon="clock-outline"
               iconColor="#F59E0B"
               subtitle="Total balance amount"
-              gradientColors={['#FEF3C7', '#FDE68A']}
+              gradientColors={[
+                theme.colors.surfaceVariant,
+                `${theme.colors.surfaceVariant}CC`
+              ]}
             />
           </View>
         </View>
 
         {/* Analytics Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
+          <View style={[styles.sectionHeader, { borderBottomColor: `${theme.colors.onBackground}10` }]}>
+            <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
               Analytics
             </Text>
           </View>
@@ -250,8 +263,8 @@ const DashboardScreen = () => {
 
         {/* Recent Activities Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
+          <View style={[styles.sectionHeader, { borderBottomColor: `${theme.colors.onBackground}10` }]}>
+            <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
               Recent Activities
             </Text>
           </View>
@@ -264,8 +277,8 @@ const DashboardScreen = () => {
 
         {/* Quick Links Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
+          <View style={[styles.sectionHeader, { borderBottomColor: `${theme.colors.onBackground}10` }]}>
+            <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
               Quick Access
             </Text>
           </View>
@@ -276,14 +289,14 @@ const DashboardScreen = () => {
               onPress={() => navigation.navigate('Clients')}
             >
               <LinearGradient
-                colors={['#F0F9FF', '#E0F2FE']}
+                colors={[theme.colors.surfaceVariant, `${theme.colors.surfaceVariant}CC`]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.quickLinkGradient}
               >
                 <Card.Content style={styles.quickLinkContent}>
                   <MaterialCommunityIcons name="account-tie" size={32} color="#0284C7" />
-                  <Text variant="bodyLarge" style={styles.quickLinkText}>Clients</Text>
+                  <Text variant="bodyLarge" style={[styles.quickLinkText, { color: theme.colors.onSurface }]}>Clients</Text>
                 </Card.Content>
               </LinearGradient>
             </Card>
@@ -293,14 +306,14 @@ const DashboardScreen = () => {
               onPress={() => navigation.navigate('Projects')}
             >
               <LinearGradient
-                colors={['#F5F3FF', '#EDE9FE']}
+                colors={[theme.colors.surfaceVariant, `${theme.colors.surfaceVariant}CC`]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.quickLinkGradient}
               >
                 <Card.Content style={styles.quickLinkContent}>
                   <MaterialCommunityIcons name="briefcase" size={32} color="#8B5CF6" />
-                  <Text variant="bodyLarge" style={styles.quickLinkText}>Projects</Text>
+                  <Text variant="bodyLarge" style={[styles.quickLinkText, { color: theme.colors.onSurface }]}>Projects</Text>
                 </Card.Content>
               </LinearGradient>
             </Card>
@@ -310,14 +323,14 @@ const DashboardScreen = () => {
               onPress={() => navigation.navigate('Leads')}
             >
               <LinearGradient
-                colors={['#FEF2F2', '#FEE2E2']}
+                colors={[theme.colors.surfaceVariant, `${theme.colors.surfaceVariant}CC`]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.quickLinkGradient}
               >
                 <Card.Content style={styles.quickLinkContent}>
                   <MaterialCommunityIcons name="account-convert" size={32} color="#EF4444" />
-                  <Text variant="bodyLarge" style={styles.quickLinkText}>Leads</Text>
+                  <Text variant="bodyLarge" style={[styles.quickLinkText, { color: theme.colors.onSurface }]}>Leads</Text>
                 </Card.Content>
               </LinearGradient>
             </Card>
@@ -327,14 +340,14 @@ const DashboardScreen = () => {
               onPress={() => navigation.navigate('UnitsFlats')}
             >
               <LinearGradient
-                colors={['#ECFDF5', '#D1FAE5']}
+                colors={[theme.colors.surfaceVariant, `${theme.colors.surfaceVariant}CC`]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.quickLinkGradient}
               >
                 <Card.Content style={styles.quickLinkContent}>
                   <MaterialCommunityIcons name="home" size={32} color="#10B981" />
-                  <Text variant="bodyLarge" style={styles.quickLinkText}>Units/Flats</Text>
+                  <Text variant="bodyLarge" style={[styles.quickLinkText, { color: theme.colors.onSurface }]}>Units/Flats</Text>
                 </Card.Content>
               </LinearGradient>
             </Card>
@@ -375,7 +388,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     paddingBottom: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   sectionTitle: {
     fontWeight: '600',

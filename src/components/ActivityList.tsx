@@ -64,7 +64,7 @@ const ActivityList = ({ title, activities, maxItems = 5 }: ActivityListProps) =>
           />
         </View>
         <View style={styles.activityContent}>
-          <Text variant="bodyMedium" style={styles.activityTitle}>
+          <Text variant="bodyMedium" style={[styles.activityTitle, { color: theme.colors.onSurface }]}>
             {item.title}
           </Text>
           {item.description && (
@@ -91,8 +91,8 @@ const ActivityList = ({ title, activities, maxItems = 5 }: ActivityListProps) =>
   return (
     <Card style={[styles.card, shadows.md]}>
       <Card.Content style={styles.cardContent}>
-        <View style={styles.header}>
-          <Text variant="titleMedium" style={styles.title}>
+        <View style={[styles.header, { borderBottomColor: `${theme.colors.onSurface}10` }]}>
+          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
             {title}
           </Text>
           <MaterialCommunityIcons name="bell-outline" size={20} color={theme.colors.primary} />
@@ -133,7 +133,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingBottom: spacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   title: {
     fontWeight: '600',

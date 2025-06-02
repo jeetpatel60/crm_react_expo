@@ -169,7 +169,7 @@ const EditQuotationScreen = () => {
   }, [initialQuotation.id, projectId, leadId, flatId, companyId]);
 
   // Date picker handlers
-  const onDateChange = (event: any, selectedDate?: Date) => {
+  const onDateChange = (_event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
       setDate(selectedDate);
@@ -339,10 +339,10 @@ const EditQuotationScreen = () => {
         id: initialQuotation.id,
         quotation_no: quotationNo,
         date: date.getTime(),
-        project_id: projectId,
-        lead_id: leadId,
-        flat_id: flatId,
-        company_id: companyId,
+        project_id: projectId || undefined,
+        lead_id: leadId || undefined,
+        flat_id: flatId || undefined,
+        company_id: companyId || undefined,
         total_amount: totalAmount
       };
 
@@ -435,11 +435,11 @@ const EditQuotationScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Text style={[styles.title, { color: theme.colors.primary }]}>Edit Quotation</Text>
 
       {/* Quotation No */}
-      <Text style={styles.sectionTitle}>Quotation No *</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Quotation No *</Text>
       <TextInput
         label="Quotation No"
         value={quotationNo}
@@ -457,7 +457,7 @@ const EditQuotationScreen = () => {
       )}
 
       {/* Date */}
-      <Text style={styles.sectionTitle}>Date *</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Date *</Text>
       <Button
         mode="outlined"
         onPress={() => setShowDatePicker(true)}
@@ -478,7 +478,7 @@ const EditQuotationScreen = () => {
       )}
 
       {/* Project */}
-      <Text style={styles.sectionTitle}>Project</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Project</Text>
       <View style={styles.dropdownContainer}>
         <TextInput
           label="Select Project"
@@ -504,7 +504,7 @@ const EditQuotationScreen = () => {
               { backgroundColor: theme.colors.surface }
             ]}
           >
-            <Text style={styles.modalTitle}>Select Project</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>Select Project</Text>
             <ScrollView style={styles.modalScrollView}>
               {projects.map((project) => (
                 <Button
@@ -537,7 +537,7 @@ const EditQuotationScreen = () => {
       </View>
 
       {/* Lead */}
-      <Text style={styles.sectionTitle}>Lead</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Lead</Text>
       <View style={styles.dropdownContainer}>
         <TextInput
           label="Select Lead"
@@ -563,7 +563,7 @@ const EditQuotationScreen = () => {
               { backgroundColor: theme.colors.surface }
             ]}
           >
-            <Text style={styles.modalTitle}>Select Lead</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>Select Lead</Text>
             <ScrollView style={styles.modalScrollView}>
               {leads.map((lead) => (
                 <Button
@@ -596,7 +596,7 @@ const EditQuotationScreen = () => {
       </View>
 
       {/* Flat */}
-      <Text style={styles.sectionTitle}>Flat</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Flat</Text>
       <View style={styles.dropdownContainer}>
         <TextInput
           label="Select Flat"
@@ -622,7 +622,7 @@ const EditQuotationScreen = () => {
               { backgroundColor: theme.colors.surface }
             ]}
           >
-            <Text style={styles.modalTitle}>Select Flat</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>Select Flat</Text>
             <ScrollView style={styles.modalScrollView}>
               {flats
                 .filter(flat => !projectId || flat.project_id === projectId)
@@ -657,7 +657,7 @@ const EditQuotationScreen = () => {
       </View>
 
       {/* Company */}
-      <Text style={styles.sectionTitle}>Company</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Company</Text>
       <View style={styles.dropdownContainer}>
         <TextInput
           label="Select Company"
@@ -683,7 +683,7 @@ const EditQuotationScreen = () => {
               { backgroundColor: theme.colors.surface }
             ]}
           >
-            <Text style={styles.modalTitle}>Select Company</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>Select Company</Text>
             <ScrollView style={styles.modalScrollView}>
               {companies.map((company) => (
                 <Button
@@ -718,7 +718,7 @@ const EditQuotationScreen = () => {
       {/* Annexure A */}
       <View style={styles.annexureContainer}>
         <View style={styles.annexureHeader}>
-          <Text style={styles.annexureTitle}>Annexure A</Text>
+          <Text style={[styles.annexureTitle, { color: theme.colors.onSurface }]}>Annexure A</Text>
           <Button
             mode="contained"
             onPress={() => {
@@ -733,22 +733,24 @@ const EditQuotationScreen = () => {
         </View>
 
         {annexureA.length === 0 ? (
-          <Text style={styles.emptyText}>No items added yet.</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No items added yet.</Text>
         ) : (
-          <ScrollView horizontal style={styles.tableContainer}>
+          <ScrollView horizontal style={[styles.tableContainer, { borderColor: theme.colors.outline }]}>
             <DataTable style={styles.table}>
-              <DataTable.Header style={styles.tableHeader}>
-                <DataTable.Title style={styles.srNoColumn}>Sr No</DataTable.Title>
-                <DataTable.Title style={styles.descriptionColumn}>Description</DataTable.Title>
-                <DataTable.Title style={styles.amountColumn}>Amount</DataTable.Title>
-                <DataTable.Title style={styles.actionsColumn}>Actions</DataTable.Title>
+              <DataTable.Header style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
+                <DataTable.Title style={[styles.srNoColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'center' }} numeric>Sr No</DataTable.Title>
+                <DataTable.Title style={[styles.descriptionColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'left' }}>Description</DataTable.Title>
+                <DataTable.Title style={[styles.amountColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'right' }} numeric>Amount</DataTable.Title>
+                <DataTable.Title style={styles.actionsColumn} textStyle={{ textAlign: 'center' }}>Actions</DataTable.Title>
               </DataTable.Header>
 
               {annexureA.map((item, index) => (
-                <DataTable.Row key={index} style={styles.tableRow}>
-                  <DataTable.Cell style={styles.srNoColumn}>{item.sr_no}</DataTable.Cell>
-                  <DataTable.Cell style={styles.descriptionColumn}>{item.description}</DataTable.Cell>
-                  <DataTable.Cell style={styles.amountColumn}>{formatCurrency(item.amount)}</DataTable.Cell>
+                <DataTable.Row key={index} style={[styles.tableRow, { borderBottomColor: theme.colors.outline }]}>
+                  <DataTable.Cell style={[styles.srNoColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} numeric>{item.sr_no}</DataTable.Cell>
+                  <DataTable.Cell style={[styles.descriptionColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]}>
+                    <Text style={styles.descriptionText}>{item.description}</Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={[styles.amountColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} numeric>{formatCurrency(item.amount)}</DataTable.Cell>
                   <DataTable.Cell style={styles.actionsColumn}>
                     <View style={styles.actionButtons}>
                       <IconButton
@@ -775,7 +777,7 @@ const EditQuotationScreen = () => {
       {/* Annexure B */}
       <View style={styles.annexureContainer}>
         <View style={styles.annexureHeader}>
-          <Text style={styles.annexureTitle}>Annexure B</Text>
+          <Text style={[styles.annexureTitle, { color: theme.colors.onSurface }]}>Annexure B</Text>
           <Button
             mode="contained"
             onPress={() => {
@@ -790,22 +792,24 @@ const EditQuotationScreen = () => {
         </View>
 
         {annexureB.length === 0 ? (
-          <Text style={styles.emptyText}>No items added yet.</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No items added yet.</Text>
         ) : (
-          <ScrollView horizontal style={styles.tableContainer}>
+          <ScrollView horizontal style={[styles.tableContainer, { borderColor: theme.colors.outline }]}>
             <DataTable style={styles.table}>
-              <DataTable.Header style={styles.tableHeader}>
-                <DataTable.Title style={styles.srNoColumn}>Sr No</DataTable.Title>
-                <DataTable.Title style={styles.descriptionColumn}>Description</DataTable.Title>
-                <DataTable.Title style={styles.amountColumn}>Amount</DataTable.Title>
-                <DataTable.Title style={styles.actionsColumn}>Actions</DataTable.Title>
+              <DataTable.Header style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
+                <DataTable.Title style={[styles.srNoColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'center' }} numeric>Sr No</DataTable.Title>
+                <DataTable.Title style={[styles.descriptionColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'left' }}>Description</DataTable.Title>
+                <DataTable.Title style={[styles.amountColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'right' }} numeric>Amount</DataTable.Title>
+                <DataTable.Title style={styles.actionsColumn} textStyle={{ textAlign: 'center' }}>Actions</DataTable.Title>
               </DataTable.Header>
 
               {annexureB.map((item, index) => (
-                <DataTable.Row key={index} style={styles.tableRow}>
-                  <DataTable.Cell style={styles.srNoColumn}>{item.sr_no}</DataTable.Cell>
-                  <DataTable.Cell style={styles.descriptionColumn}>{item.description}</DataTable.Cell>
-                  <DataTable.Cell style={styles.amountColumn}>{formatCurrency(item.amount)}</DataTable.Cell>
+                <DataTable.Row key={index} style={[styles.tableRow, { borderBottomColor: theme.colors.outline }]}>
+                  <DataTable.Cell style={[styles.srNoColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} numeric>{item.sr_no}</DataTable.Cell>
+                  <DataTable.Cell style={[styles.descriptionColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]}>
+                    <Text style={styles.descriptionText}>{item.description}</Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={[styles.amountColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} numeric>{formatCurrency(item.amount)}</DataTable.Cell>
                   <DataTable.Cell style={styles.actionsColumn}>
                     <View style={styles.actionButtons}>
                       <IconButton
@@ -832,7 +836,7 @@ const EditQuotationScreen = () => {
       {/* Annexure C */}
       <View style={styles.annexureContainer}>
         <View style={styles.annexureHeader}>
-          <Text style={styles.annexureTitle}>Annexure C</Text>
+          <Text style={[styles.annexureTitle, { color: theme.colors.onSurface }]}>Annexure C</Text>
           <Button
             mode="contained"
             onPress={() => {
@@ -847,22 +851,24 @@ const EditQuotationScreen = () => {
         </View>
 
         {annexureC.length === 0 ? (
-          <Text style={styles.emptyText}>No items added yet.</Text>
+          <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No items added yet.</Text>
         ) : (
-          <ScrollView horizontal style={styles.tableContainer}>
+          <ScrollView horizontal style={[styles.tableContainer, { borderColor: theme.colors.outline }]}>
             <DataTable style={styles.table}>
-              <DataTable.Header style={styles.tableHeader}>
-                <DataTable.Title style={styles.srNoColumn}>Sr No</DataTable.Title>
-                <DataTable.Title style={styles.descriptionColumn}>Description</DataTable.Title>
-                <DataTable.Title style={styles.amountColumn}>Amount</DataTable.Title>
-                <DataTable.Title style={styles.actionsColumn}>Actions</DataTable.Title>
+              <DataTable.Header style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
+                <DataTable.Title style={[styles.srNoColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'center' }} numeric>Sr No</DataTable.Title>
+                <DataTable.Title style={[styles.descriptionColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'left' }}>Description</DataTable.Title>
+                <DataTable.Title style={[styles.amountColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} textStyle={{ textAlign: 'right' }} numeric>Amount</DataTable.Title>
+                <DataTable.Title style={styles.actionsColumn} textStyle={{ textAlign: 'center' }}>Actions</DataTable.Title>
               </DataTable.Header>
 
               {annexureC.map((item, index) => (
-                <DataTable.Row key={index} style={styles.tableRow}>
-                  <DataTable.Cell style={styles.srNoColumn}>{item.sr_no}</DataTable.Cell>
-                  <DataTable.Cell style={styles.descriptionColumn}>{item.description}</DataTable.Cell>
-                  <DataTable.Cell style={styles.amountColumn}>{formatCurrency(item.amount)}</DataTable.Cell>
+                <DataTable.Row key={index} style={[styles.tableRow, { borderBottomColor: theme.colors.outline }]}>
+                  <DataTable.Cell style={[styles.srNoColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} numeric>{item.sr_no}</DataTable.Cell>
+                  <DataTable.Cell style={[styles.descriptionColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]}>
+                    <Text style={styles.descriptionText}>{item.description}</Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={[styles.amountColumn, styles.cellBorder, { borderRightColor: theme.colors.outline }]} numeric>{formatCurrency(item.amount)}</DataTable.Cell>
                   <DataTable.Cell style={styles.actionsColumn}>
                     <View style={styles.actionButtons}>
                       <IconButton
@@ -888,7 +894,7 @@ const EditQuotationScreen = () => {
 
       {/* Total Amount */}
       <View style={styles.totalContainer}>
-        <Text style={styles.totalLabel}>Total Amount:</Text>
+        <Text style={[styles.totalLabel, { color: theme.colors.onSurface }]}>Total Amount:</Text>
         <Text style={[styles.totalAmount, { color: theme.colors.primary }]}>
           {formatCurrency(totalAmount)}
         </Text>
@@ -904,7 +910,7 @@ const EditQuotationScreen = () => {
             { backgroundColor: theme.colors.surface }
           ]}
         >
-          <Text style={styles.modalTitle}>
+          <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
             Add Item to Annexure {newItemType}
           </Text>
 
@@ -959,7 +965,7 @@ const EditQuotationScreen = () => {
             { backgroundColor: theme.colors.surface }
           ]}
         >
-          <Text style={styles.modalTitle}>
+          <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
             Edit Item in Annexure {editItemType}
           </Text>
 
@@ -1094,31 +1100,51 @@ const styles = StyleSheet.create({
   },
   tableContainer: {
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 4,
   },
   table: {
-    minWidth: '100%',
+    minWidth: 640, // Set minimum width for proper column alignment (wider for edit/delete actions)
   },
   tableHeader: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    // backgroundColor will be set dynamically
+    height: 48,
   },
   tableRow: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    minHeight: 48,
+    // borderBottomColor will be set dynamically
   },
   srNoColumn: {
-    flex: 0.5,
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   descriptionColumn: {
-    flex: 2,
+    width: 280,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  descriptionText: {
+    width: '100%',
+    lineHeight: 18,
+    fontSize: 14,
+    textAlign: 'left',
   },
   amountColumn: {
-    flex: 1,
+    width: 150,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingRight: 8,
   },
   actionsColumn: {
-    flex: 0.8,
+    width: 120,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cellBorder: {
+    borderRightWidth: 1,
   },
   actionButtons: {
     flexDirection: 'row',

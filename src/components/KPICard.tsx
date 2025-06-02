@@ -44,11 +44,11 @@ const KPICard = ({
       >
         <Card.Content style={styles.content}>
           <View style={styles.header}>
-            <Text variant="titleMedium" style={styles.title}>
+            <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
               {title}
             </Text>
 
-            <View style={styles.iconContainer}>
+            <View style={[styles.iconContainer, { backgroundColor: `${theme.colors.onSurface}20` }]}>
               <MaterialCommunityIcons
                 name={icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']}
                 size={24}
@@ -57,7 +57,7 @@ const KPICard = ({
             </View>
           </View>
 
-          <Text variant="headlineMedium" style={styles.value}>
+          <Text variant="headlineMedium" style={[styles.value, { color: theme.colors.onSurface }]}>
             {value}
           </Text>
 
@@ -75,13 +75,13 @@ const KPICard = ({
               <MaterialCommunityIcons
                 name={trend.isPositive ? 'arrow-up' : 'arrow-down'}
                 size={16}
-                color={trend.isPositive ? '#10B981' : '#EF4444'}
+                color={trend.isPositive ? theme.colors.success : theme.colors.error}
               />
               <Text
                 style={[
                   styles.trendText,
                   {
-                    color: trend.isPositive ? '#10B981' : '#EF4444',
+                    color: trend.isPositive ? theme.colors.success : theme.colors.error,
                   },
                 ]}
               >
@@ -122,7 +122,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
