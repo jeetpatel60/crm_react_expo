@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal, Card, Divider, DataTable, IconButton, Chip } from 'react-native-paper';
 import { RouteProp, useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useCallback } from 'react';
 
 import { RootStackParamList } from '../types';
 import { Project, ProjectStatus, getProjectById } from '../database/projectsDb';
@@ -34,10 +33,10 @@ const EditProjectScreen = () => {
     project.end_date ? new Date(project.end_date) : null
   );
   const [progress, setProgress] = useState(
-    project.progress !== undefined ? project.progress.toString() : '0'
+    project.progress !== undefined && project.progress !== null ? project.progress.toString() : '0'
   );
   const [totalBudget, setTotalBudget] = useState(
-    project.total_budget !== undefined ? project.total_budget.toString() : ''
+    project.total_budget !== undefined && project.total_budget !== null ? project.total_budget.toString() : ''
   );
   const [status, setStatus] = useState<ProjectStatus>(project.status);
   const [loading, setLoading] = useState(false);
@@ -295,7 +294,7 @@ const EditProjectScreen = () => {
           try {
             console.log('Refreshing project progress data');
             const updatedProject = await getProjectById(project.id);
-            if (updatedProject && updatedProject.progress !== undefined) {
+            if (updatedProject && updatedProject.progress !== undefined && updatedProject.progress !== null) {
               console.log(`Updated project progress: ${updatedProject.progress}%`);
               setProgress(updatedProject.progress.toString());
             }
@@ -325,10 +324,10 @@ const EditProjectScreen = () => {
   // Start inline editing for a milestone
   const handleStartEditMilestone = (milestone: Milestone) => {
     setEditingMilestoneId(milestone.id || null);
-    setEditMilestoneName(milestone.milestone_name);
-    setEditCompletionPercentage(milestone.completion_percentage);
+    setEditMilestoneName(milestone.milestone_name || '');
+    setEditCompletionPercentage(milestone.completion_percentage || 0);
     setEditStatus(milestone.status);
-    setEditSrNo(milestone.sr_no);
+    setEditSrNo(milestone.sr_no || 1);
     setEditErrors({});
   };
 
@@ -778,7 +777,7 @@ const EditProjectScreen = () => {
                                 <>
                                   <DataTable.Cell style={styles.srNoColumn}>
                                     <TextInput
-                                      value={editSrNo.toString()}
+                                      value={(editSrNo || 1).toString()}
                                       onChangeText={(text) => {
                                         const num = parseInt(text);
                                         if (!isNaN(num) && num > 0) {
@@ -808,7 +807,7 @@ const EditProjectScreen = () => {
                                   </DataTable.Cell>
                                   <DataTable.Cell style={styles.completionColumn}>
                                     <TextInput
-                                      value={editCompletionPercentage.toString()}
+                                      value={(editCompletionPercentage || 0).toString()}
                                       onChangeText={(text) => {
                                         // Allow only numbers and up to 2 decimal places
                                         const regex = /^\d+(\.\d{0,2})?$/;

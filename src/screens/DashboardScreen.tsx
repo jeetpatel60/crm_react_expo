@@ -1,27 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, useTheme } from 'react-native-paper';
-import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { DrawerNavigationProp } from '@react-navigation/drawer';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { RootStackParamList, DrawerParamList } from '../types';
-import { LoadingIndicator, KPICard, ChartCard, ActivityList } from '../components';
+import { LoadingIndicator, KPICard, ChartCard } from '../components';
 import { spacing, shadows, borderRadius } from '../constants/theme';
 import { fetchDashboardData, DashboardData, generateUnitsByStatusData, generateUnitsSoldWeeklyData, generateUnitsSoldMonthlyData } from '../utils/dashboardUtils';
 import { getUnitsFlats, UnitFlat } from '../database/unitsFlatDb';
 import { formatCurrency } from '../utils/formatters';
 
-type DashboardScreenNavigationProp = CompositeNavigationProp<
-  DrawerNavigationProp<DrawerParamList, 'Dashboard'>,
-  StackNavigationProp<RootStackParamList>
->;
-
 const DashboardScreen = () => {
   const theme = useTheme();
-  const navigation = useNavigation<DashboardScreenNavigationProp>();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -141,7 +132,7 @@ const DashboardScreen = () => {
               value={dashboardData.totalLeads.toString()}
               icon="account-convert"
               iconColor={theme.colors.primary}
-              subtitle="Active leads in pipeline"
+              subtitle="Unconverted leads in pipeline"
               gradientColors={[
                 theme.colors.surfaceVariant,
                 `${theme.colors.surfaceVariant}CC`
@@ -260,99 +251,6 @@ const DashboardScreen = () => {
             selectedProjectId={selectedMonthlyProjectId}
           />
         </View>
-
-        {/* Recent Activities Section */}
-        <View style={styles.section}>
-          <View style={[styles.sectionHeader, { borderBottomColor: `${theme.colors.onBackground}10` }]}>
-            <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
-              Recent Activities
-            </Text>
-          </View>
-
-          <ActivityList
-            title="Latest Updates"
-            activities={dashboardData.recentActivities}
-          />
-        </View>
-
-        {/* Quick Links Section */}
-        <View style={styles.section}>
-          <View style={[styles.sectionHeader, { borderBottomColor: `${theme.colors.onBackground}10` }]}>
-            <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
-              Quick Access
-            </Text>
-          </View>
-
-          <View style={styles.quickLinksGrid}>
-            <Card
-              style={[styles.quickLinkCard, shadows.sm]}
-              onPress={() => navigation.navigate('Clients')}
-            >
-              <LinearGradient
-                colors={[theme.colors.surfaceVariant, `${theme.colors.surfaceVariant}CC`]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.quickLinkGradient}
-              >
-                <Card.Content style={styles.quickLinkContent}>
-                  <MaterialCommunityIcons name="account-tie" size={32} color="#0284C7" />
-                  <Text variant="bodyLarge" style={[styles.quickLinkText, { color: theme.colors.onSurface }]}>Clients</Text>
-                </Card.Content>
-              </LinearGradient>
-            </Card>
-
-            <Card
-              style={[styles.quickLinkCard, shadows.sm]}
-              onPress={() => navigation.navigate('Projects')}
-            >
-              <LinearGradient
-                colors={[theme.colors.surfaceVariant, `${theme.colors.surfaceVariant}CC`]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.quickLinkGradient}
-              >
-                <Card.Content style={styles.quickLinkContent}>
-                  <MaterialCommunityIcons name="briefcase" size={32} color="#8B5CF6" />
-                  <Text variant="bodyLarge" style={[styles.quickLinkText, { color: theme.colors.onSurface }]}>Projects</Text>
-                </Card.Content>
-              </LinearGradient>
-            </Card>
-
-            <Card
-              style={[styles.quickLinkCard, shadows.sm]}
-              onPress={() => navigation.navigate('Leads')}
-            >
-              <LinearGradient
-                colors={[theme.colors.surfaceVariant, `${theme.colors.surfaceVariant}CC`]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.quickLinkGradient}
-              >
-                <Card.Content style={styles.quickLinkContent}>
-                  <MaterialCommunityIcons name="account-convert" size={32} color="#EF4444" />
-                  <Text variant="bodyLarge" style={[styles.quickLinkText, { color: theme.colors.onSurface }]}>Leads</Text>
-                </Card.Content>
-              </LinearGradient>
-            </Card>
-
-            <Card
-              style={[styles.quickLinkCard, shadows.sm]}
-              onPress={() => navigation.navigate('UnitsFlats')}
-            >
-              <LinearGradient
-                colors={[theme.colors.surfaceVariant, `${theme.colors.surfaceVariant}CC`]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.quickLinkGradient}
-              >
-                <Card.Content style={styles.quickLinkContent}>
-                  <MaterialCommunityIcons name="home" size={32} color="#10B981" />
-                  <Text variant="bodyLarge" style={[styles.quickLinkText, { color: theme.colors.onSurface }]}>Units/Flats</Text>
-                </Card.Content>
-              </LinearGradient>
-            </Card>
-          </View>
-        </View>
       </ScrollView>
     </View>
   );
@@ -423,28 +321,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginHorizontal: -spacing.xs,
   },
-  quickLinksGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  quickLinkCard: {
-    width: '48%',
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-  },
-  quickLinkGradient: {
-    borderRadius: borderRadius.lg,
-  },
-  quickLinkContent: {
-    alignItems: 'center',
-    padding: spacing.md,
-  },
-  quickLinkText: {
-    marginTop: spacing.sm,
-    fontWeight: '500',
-  },
+
 });
 
 export default DashboardScreen;

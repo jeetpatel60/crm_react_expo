@@ -187,8 +187,7 @@ const HowToUseGuideScreen = () => {
           <StepItem step="2" description="Enable automatic database backups (every 2 hours)" />
           <StepItem step="3" description="Manage backup files and restore when needed" />
           <StepItem step="4" description="Use the theme switcher at the top of Settings to customize app appearance" />
-          <StepItem step="5" description="Export/import data for backup purposes" />
-          <StepItem step="6" description="View database location for manual backups" />
+          <StepItem step="5" description="View database location for manual backups" />
         </GuideSection>
 
         <Card style={[styles.tipsCard, shadows.sm]}>

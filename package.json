@@ -44,7 +44,9 @@
     "react-native-svg": "15.11.2",
     "react-native-tab-view": "^4.0.12",
     "react-native-web": "^0.20.0",
-    "victory-native": "^41.17.1"
+    "victory-native": "^41.17.1",
+    "expo-clipboard": "~7.1.4",
+    "expo-intent-launcher": "~12.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

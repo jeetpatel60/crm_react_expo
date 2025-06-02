@@ -79,7 +79,7 @@ export const fetchDashboardData = async (): Promise<DashboardData> => {
     }
 
     // Calculate KPIs
-    const totalLeads = leads.length;
+    const totalLeads = leads.filter(lead => lead.status !== 'Converted').length;
     const totalProjects = projects.length;
     const totalClients = clients.length;
     const totalUnits = units.length;

@@ -32,7 +32,6 @@ const AddProjectScreen = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [includeSchedule, setIncludeSchedule] = useState(false);
   const [scheduleDate, setScheduleDate] = useState<Date>(new Date());
 
   // Company dropdown state
@@ -94,8 +93,8 @@ const AddProjectScreen = () => {
       // Add the project
       const projectId = await addProject(newProject);
 
-      // If including a schedule with milestones
-      if (includeSchedule && milestones.length > 0) {
+      // If there are milestones, create a schedule with them
+      if (milestones.length > 0) {
         try {
           // Create milestones without schedule_id (will be set in the function)
           const milestonesWithoutScheduleId = milestones.map(({ schedule_id, ...rest }) => rest);
@@ -417,46 +416,33 @@ const AddProjectScreen = () => {
 
         <Card style={[styles.scheduleCard, shadows.md]}>
           <Card.Content>
-            <View style={styles.scheduleHeader}>
-              <Text variant="titleMedium" style={styles.scheduleTitle}>Add Schedule & Milestones</Text>
-              <Button
-                mode={includeSchedule ? "contained" : "outlined"}
-                onPress={() => setIncludeSchedule(!includeSchedule)}
-                style={styles.toggleButton}
-              >
-                {includeSchedule ? "Enabled" : "Disabled"}
-              </Button>
-            </View>
+            <Text variant="titleMedium" style={styles.scheduleTitle}>Schedule & Milestones</Text>
 
-            {includeSchedule && (
-              <>
-                <Divider style={styles.divider} />
+            <Divider style={styles.divider} />
 
-                <Text style={styles.sectionTitle}>Schedule Date</Text>
-                <Button
-                  mode="outlined"
-                  onPress={() => showDatePicker('schedule')}
-                  style={styles.dateButton}
-                  icon="calendar"
-                >
-                  {formatDate(scheduleDate)}
-                </Button>
+            <Text style={styles.sectionTitle}>Schedule Date</Text>
+            <Button
+              mode="outlined"
+              onPress={() => showDatePicker('schedule')}
+              style={styles.dateButton}
+              icon="calendar"
+            >
+              {formatDate(scheduleDate)}
+            </Button>
 
-                {showScheduleDatePicker && Platform.OS === 'android' && (
-                  <DateTimePicker
-                    value={datePickerDate}
-                    mode="date"
-                    display="default"
-                    onChange={onDateChange}
-                  />
-                )}
-
-                <MilestoneForm
-                  milestones={milestones}
-                  setMilestones={setMilestones}
-                />
-              </>
+            {showScheduleDatePicker && Platform.OS === 'android' && (
+              <DateTimePicker
+                value={datePickerDate}
+                mode="date"
+                display="default"
+                onChange={onDateChange}
+              />
             )}
+
+            <MilestoneForm
+              milestones={milestones}
+              setMilestones={setMilestones}
+            />
           </Card.Content>
         </Card>
 
@@ -505,16 +491,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     borderRadius: 12,
   },
-  scheduleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   scheduleTitle: {
     fontWeight: 'bold',
-  },
-  toggleButton: {
-    borderRadius: 20,
+    marginBottom: spacing.xs,
   },
   divider: {
     marginVertical: spacing.md,
