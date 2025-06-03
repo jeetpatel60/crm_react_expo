@@ -10,7 +10,7 @@ import { spacing } from '../constants/theme';
 import { formatCurrency } from '../utils/formatters';
 import { db } from '../database/database';
 import { generateAndShareCustomerLedgerPdf } from '../utils/reportUtils';
-import { CompanySelectionModal } from '../components';
+import CustomerLedgerExportModal from '../components/CustomerLedgerExportModal';
 
 interface LedgerEntry {
   id: string;
@@ -32,7 +32,7 @@ const CustomerLedgerReportScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Export PDF related state
-  const [companySelectionVisible, setCompanySelectionVisible] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
   const [clientFlatDetails, setClientFlatDetails] = useState<UnitFlat | null>(null);
 
   useEffect(() => {
@@ -103,25 +103,26 @@ const CustomerLedgerReportScreen = () => {
   const showDialog = () => setDialogVisible(true);
   const hideDialog = () => setDialogVisible(false);
 
-  const showCompanySelection = () => setCompanySelectionVisible(true);
-  const hideCompanySelection = () => setCompanySelectionVisible(false);
+  const showExportModal = () => setExportModalVisible(true);
+  const hideExportModal = () => setExportModalVisible(false);
 
-  const handleCompanySelect = async (companyId: number) => {
-    hideCompanySelection();
+  const handleExport = async (letterheadOption: 'none' | 'company', companyId?: number) => {
+    hideExportModal();
 
     if (!selectedClient) {
       return;
     }
 
     try {
-      console.log(`Exporting PDF with company ID: ${companyId}`);
+      console.log(`Exporting PDF with letterhead option: ${letterheadOption}, company ID: ${companyId}`);
       await generateAndShareCustomerLedgerPdf(
         selectedClient,
         ledgerData,
         balanceAmount,
         totalAmountReceived,
         clientFlatDetails?.flat_value,
-        companyId // Use the companyId parameter directly
+        companyId,
+        letterheadOption
       );
     } catch (error) {
       console.error('Error exporting PDF:', error);
@@ -236,7 +237,7 @@ const CustomerLedgerReportScreen = () => {
         {selectedClient && (
           <Button
             mode="contained"
-            onPress={showCompanySelection}
+            onPress={showExportModal}
             icon="file-pdf-box"
             style={styles.exportButton}
           >
@@ -308,12 +309,11 @@ const CustomerLedgerReportScreen = () => {
           </Dialog.Actions>
         </Dialog>
 
-        {/* Company Selection Modal for PDF Export */}
-        <CompanySelectionModal
-          visible={companySelectionVisible}
-          onDismiss={hideCompanySelection}
-          onSelect={handleCompanySelect}
-          title="Select Company for Letterhead"
+        {/* Customer Ledger Export Modal */}
+        <CustomerLedgerExportModal
+          visible={exportModalVisible}
+          onDismiss={hideExportModal}
+          onExport={handleExport}
         />
       </Portal>
     </View>
