@@ -33,12 +33,12 @@ interface CustomerLedgerData {
 /**
  * Generate HTML content for the customer ledger report
  */
-const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
+const generateCustomerLedgerHtml = (data: CustomerLedgerData, letterheadOption?: 'none' | 'company'): string => {
   const { client, ledgerEntries, balanceAmount, totalAmountReceived, flatValue, company, generatedAt } = data;
 
-  // Generate letterhead section if company is provided
+  // Generate letterhead section if company is provided and letterhead is requested
   let letterheadHtml = '';
-  if (company) {
+  if (company && letterheadOption === 'company') {
     // Check if we have a base64 encoded image
     if (data.companyLetterheadBase64 && data.companyLetterheadType === 'image') {
       // Use the base64 encoded image for the letterhead
@@ -59,6 +59,7 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
       console.log('Using company name as header (no letterhead image)');
     }
   }
+  // If letterheadOption is 'none', letterheadHtml will remain empty
 
   // Generate flat value section
   const flatValueHtml = flatValue ? `
@@ -158,6 +159,9 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
           .letterhead-text h1 {
             margin: 0;
             color: #2c3e50;
+          }
+          .no-letterhead {
+            margin-top: 150px;
           }
           .report-title {
             font-size: 24px;
@@ -273,7 +277,7 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
       <body>
         ${letterheadHtml}
 
-        <div class="report-title">Customer Ledger Report</div>
+        <div class="report-title ${letterheadOption === 'none' ? 'no-letterhead' : ''}">Customer Ledger Report</div>
         <div class="report-subtitle">Generated on ${formatDate(generatedAt)}</div>
 
         <div class="client-info">
@@ -309,7 +313,8 @@ export const generateAndShareCustomerLedgerPdf = async (
   balanceAmount: number,
   totalAmountReceived?: number,
   flatValue?: number,
-  companyId?: number
+  companyId?: number,
+  letterheadOption?: 'none' | 'company'
 ): Promise<void> => {
   try {
     console.log(`Starting PDF generation for client: ${client.name}, with company ID: ${companyId}`);
@@ -325,8 +330,8 @@ export const generateAndShareCustomerLedgerPdf = async (
       generatedAt
     };
 
-    // If company ID is provided, fetch company data
-    if (companyId) {
+    // If company ID is provided and letterhead is requested, fetch company data
+    if (companyId && letterheadOption === 'company') {
       try {
         console.log(`Fetching company data for ID: ${companyId}`);
         const company = await getCompanyById(companyId);
@@ -392,7 +397,7 @@ export const generateAndShareCustomerLedgerPdf = async (
       base64Length: data.companyLetterheadBase64?.length
     });
 
-    const htmlContent = generateCustomerLedgerHtml(data);
+    const htmlContent = generateCustomerLedgerHtml(data, letterheadOption);
 
     // Log the first 200 characters of HTML to verify letterhead inclusion
     console.log('Generated HTML (first 200 chars):', htmlContent.substring(0, 200));
