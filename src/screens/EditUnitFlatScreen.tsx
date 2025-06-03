@@ -11,7 +11,7 @@ import { updateUnitFlat } from '../database/unitsFlatDb';
 import { getProjects } from '../database/projectsDb';
 import { getClientById } from '../database/clientsDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
-import { UNIT_STATUS_OPTIONS } from '../constants';
+import { UNIT_STATUS_OPTIONS, UNIT_TYPE_OPTIONS } from '../constants';
 import { ClientSelectionModal } from '../components';
 
 type EditUnitFlatScreenRouteProp = RouteProp<RootStackParamList, 'EditUnitFlat'>;
@@ -40,6 +40,7 @@ const EditUnitFlatScreen = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectMenuVisible, setProjectMenuVisible] = useState(false);
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
+  const [typeMenuVisible, setTypeMenuVisible] = useState(false);
   const [clientSelectionVisible, setClientSelectionVisible] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -300,6 +301,7 @@ const EditUnitFlatScreen = () => {
               error={!!errors.ratePerSqft}
               outlineColor={theme.colors.outline}
               activeOutlineColor={theme.colors.primary}
+              disabled={status !== 'Sold'}
             />
             {errors.ratePerSqft && (
               <Text style={[styles.errorText, { color: theme.colors.error }]}>
@@ -331,6 +333,7 @@ const EditUnitFlatScreen = () => {
               error={!!errors.receivedAmount}
               outlineColor={theme.colors.outline}
               activeOutlineColor={theme.colors.primary}
+              disabled={status !== 'Sold'}
             />
             {errors.receivedAmount && (
               <Text style={[styles.errorText, { color: theme.colors.error }]}>
@@ -396,15 +399,40 @@ const EditUnitFlatScreen = () => {
           </Menu>
         </View>
 
-        <TextInput
-          label="Type (e.g., 2 BHK)"
-          value={type}
-          onChangeText={setType}
-          mode="outlined"
-          style={styles.input}
-          outlineColor={theme.colors.outline}
-          activeOutlineColor={theme.colors.primary}
-        />
+        <View style={styles.dropdownContainer}>
+          <TextInput
+            label="Type"
+            value={type}
+            mode="outlined"
+            style={styles.input}
+            outlineColor={theme.colors.outline}
+            activeOutlineColor={theme.colors.primary}
+            right={
+              <TextInput.Icon
+                icon="menu-down"
+                onPress={() => setTypeMenuVisible(true)}
+              />
+            }
+            onTouchStart={() => setTypeMenuVisible(true)}
+          />
+          <Menu
+            visible={typeMenuVisible}
+            onDismiss={() => setTypeMenuVisible(false)}
+            anchor={{ x: 0, y: 0 }}
+            style={[styles.menu, { marginTop: 60 }]}
+          >
+            {UNIT_TYPE_OPTIONS.map((option) => (
+              <Menu.Item
+                key={option.value}
+                onPress={() => {
+                  setType(option.value);
+                  setTypeMenuVisible(false);
+                }}
+                title={option.label}
+              />
+            ))}
+          </Menu>
+        </View>
 
         <View style={styles.buttonContainer}>
           <Button

@@ -82,16 +82,8 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
                 />
               }
               onPress={() => {
-                // Toggle submenu expansion
+                // Only toggle submenu expansion, don't navigate
                 setReportsExpanded(!reportsExpanded);
-
-                // Close drawer first
-                props.navigation.closeDrawer();
-
-                // Navigate with delay
-                setTimeout(() => {
-                  navigation.navigate('Reports', { screen: 'ReportsLanding' });
-                }, 500);
               }}
               isFocused={isFocused}
             />

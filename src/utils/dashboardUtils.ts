@@ -84,39 +84,10 @@ export const fetchDashboardData = async (): Promise<DashboardData> => {
     const totalClients = clients.length;
     const totalUnits = units.length;
 
-    // Calculate monthly revenue (sum of received amounts + payment receipts for current month from all projects)
-    let totalRevenue = 0;
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    for (const unit of units) {
-      if (unit.id) {
-        try {
-          // Get payment receipts for this unit
-          const receipts = await getUnitPaymentReceipts(unit.id);
-
-          // Add payment receipts from current month
-          receipts.forEach((receipt) => {
-            const receiptDate = new Date(receipt.date);
-            if (receiptDate.getMonth() === currentMonth && receiptDate.getFullYear() === currentYear) {
-              totalRevenue += receipt.amount || 0;
-            }
-          });
-
-          // Add received amount if unit was sold in current month
-          if (unit.status === 'Sold' && unit.updated_at) {
-            const soldDate = new Date(unit.updated_at);
-            if (soldDate.getMonth() === currentMonth && soldDate.getFullYear() === currentYear) {
-              totalRevenue += unit.received_amount || 0;
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching payment data for unit ${unit.id}:`, error);
-          // Continue with other units even if one fails
-        }
-      }
-    }
+    // Calculate total revenue (sum of flat values of all units with "Sold" status)
+    const totalRevenue = units
+      .filter(unit => unit.status === 'Sold')
+      .reduce((sum, unit) => sum + (unit.flat_value || 0), 0);
 
     // Calculate total pending amount (sum of all balance amounts)
     const totalPendingAmount = units.reduce((sum, unit) => sum + (unit.balance_amount || 0), 0);

@@ -156,7 +156,7 @@ const DashboardScreen = () => {
               value={formatCurrency(dashboardData.totalRevenue)}
               icon="cash-multiple"
               iconColor="#10B981"
-              subtitle="Revenue for this month"
+              subtitle="Total value of sold units"
               gradientColors={[
                 theme.colors.surfaceVariant,
                 `${theme.colors.surfaceVariant}CC`

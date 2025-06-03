@@ -66,6 +66,21 @@ export const UNIT_STATUS_COLORS = {
   'Sold': '#6B7280', // Gray
 };
 
+export const UNIT_TYPE_OPTIONS = [
+  { label: '1 RK', value: '1 RK' },
+  { label: '1 BHK', value: '1 BHK' },
+  { label: '1.5 BHK', value: '1.5 BHK' },
+  { label: '2 BHK', value: '2 BHK' },
+  { label: '2.5 BHK', value: '2.5 BHK' },
+  { label: '3 BHK', value: '3 BHK' },
+  { label: '3.5 BHK', value: '3.5 BHK' },
+  { label: '4 BHK', value: '4 BHK' },
+  { label: '4.5 BHK', value: '4.5 BHK' },
+  { label: '5 BHK', value: '5 BHK' },
+  { label: '5.5 BHK', value: '5.5 BHK' },
+  { label: '6 BHK', value: '6 BHK' },
+];
+
 export const UNIT_CUSTOMER_SCHEDULE_STATUS_OPTIONS = [
   { label: 'Not Started', value: 'Not Started' },
   { label: 'Payment Requested', value: 'Payment Requested' },

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Text, useTheme, ActivityIndicator, Button, Dialog, Portal, List, Searchbar, Divider, FAB, IconButton } from 'react-native-paper';
-import { Client, Company } from '../types';
+import { Client, Company, UnitFlat } from '../types';
 import { getClientsWithDetails, ClientWithDetails } from '../database/clientsDb';
 import { getUnitPaymentRequestsByClientId } from '../database/unitPaymentRequestsDb';
 import { getUnitPaymentReceiptsByClientId } from '../database/unitPaymentReceiptsDb';
 import { UnitPaymentRequest, UnitPaymentReceipt } from '../types';
 import { spacing } from '../constants/theme';
 import { formatCurrency } from '../utils/formatters';
+import { db } from '../database/database';
 import { generateAndShareCustomerLedgerPdf } from '../utils/reportUtils';
 import { CompanySelectionModal } from '../components';
 
@@ -17,6 +18,8 @@ interface LedgerEntry {
   description: string;
   type: 'request' | 'receipt';
   amount: number;
+  mode?: string;
+  remarks?: string;
 }
 
 const CustomerLedgerReportScreen = () => {
@@ -30,6 +33,7 @@ const CustomerLedgerReportScreen = () => {
 
   // Export PDF related state
   const [companySelectionVisible, setCompanySelectionVisible] = useState(false);
+  const [clientFlatDetails, setClientFlatDetails] = useState<UnitFlat | null>(null);
 
   useEffect(() => {
     const loadClients = async () => {
@@ -50,6 +54,13 @@ const CustomerLedgerReportScreen = () => {
       if (selectedClient) {
         setLoading(true);
         try {
+          // Fetch flat details for the client
+          const flatDetails = await db.getFirstAsync<UnitFlat>(
+            'SELECT * FROM units_flats WHERE client_id = ?',
+            [selectedClient.id!]
+          );
+          setClientFlatDetails(flatDetails);
+
           const requests = await getUnitPaymentRequestsByClientId(selectedClient.id!);
           const receipts = await getUnitPaymentReceiptsByClientId(selectedClient.id!);
 
@@ -67,6 +78,8 @@ const CustomerLedgerReportScreen = () => {
             description: `Payment Receipt: ${rec.description || 'N/A'}`,
             type: 'receipt',
             amount: rec.amount,
+            mode: rec.mode,
+            remarks: rec.remarks,
           }));
 
           const combinedData = [...formattedRequests, ...formattedReceipts].sort((a, b) => {
@@ -106,6 +119,8 @@ const CustomerLedgerReportScreen = () => {
         selectedClient,
         ledgerData,
         balanceAmount,
+        totalAmountReceived,
+        clientFlatDetails?.flat_value,
         companyId // Use the companyId parameter directly
       );
     } catch (error) {
@@ -125,15 +140,54 @@ const CustomerLedgerReportScreen = () => {
     }, 0);
   }, [ledgerData]);
 
+  // Calculate total amount received (sum of all payment receipts)
+  const totalAmountReceived = useMemo(() => {
+    return ledgerData.reduce((total, item) => {
+      return total + (item.type === 'receipt' ? item.amount : 0);
+    }, 0);
+  }, [ledgerData]);
+
   const renderLedgerItem = ({ item }: { item: LedgerEntry }) => (
     <View style={styles.ledgerItem}>
-      <Text style={styles.ledgerDate}>{item.date}</Text>
-      <Text style={styles.ledgerDescription}>{item.description}</Text>
-      <Text style={[styles.ledgerAmount, { color: item.type === 'receipt' ? theme.colors.primary : theme.colors.error }]}>
-        {item.type === 'receipt' ? '+' : '-'} ₹{item.amount.toFixed(2)}
-      </Text>
+      <View style={styles.ledgerMainRow}>
+        <Text style={styles.ledgerDate}>{item.date}</Text>
+        <Text style={styles.ledgerDescription}>{item.description}</Text>
+        <Text style={[styles.ledgerAmount, { color: item.type === 'receipt' ? theme.colors.primary : theme.colors.error }]}>
+          {item.type === 'receipt' ? '+' : '-'} ₹{item.amount.toFixed(2)}
+        </Text>
+      </View>
+      {item.type === 'receipt' && (item.mode || item.remarks) && (
+        <View style={styles.receiptDetails}>
+          {item.mode && (
+            <Text style={[styles.receiptDetailText, { color: theme.colors.onSurfaceVariant }]}>
+              Mode: {item.mode}
+            </Text>
+          )}
+          {item.remarks && (
+            <Text style={[styles.receiptDetailText, { color: theme.colors.onSurfaceVariant }]}>
+              Remarks: {item.remarks}
+            </Text>
+          )}
+        </View>
+      )}
     </View>
   );
+
+  const renderHeader = () => {
+    if (!selectedClient || !clientFlatDetails) return null;
+
+    return (
+      <View style={styles.flatValueContainer}>
+        <Text style={[styles.flatValueLabel, { color: theme.colors.onSurface }]}>
+          Flat Value:
+        </Text>
+        <Text style={[styles.flatValueAmount, { color: theme.colors.primary }]}>
+          {formatCurrency(clientFlatDetails.flat_value || 0)}
+        </Text>
+        <Divider style={styles.divider} />
+      </View>
+    );
+  };
 
   const renderFooter = () => {
     if (ledgerData.length === 0) return null;
@@ -148,6 +202,15 @@ const CustomerLedgerReportScreen = () => {
             { color: balanceAmount >= 0 ? theme.colors.primary : theme.colors.error }
           ]}>
             {formatCurrency(balanceAmount)}
+          </Text>
+        </View>
+        <View style={styles.balanceRow}>
+          <Text style={styles.balanceLabel}>Total Amount Received:</Text>
+          <Text style={[
+            styles.balanceAmount,
+            { color: theme.colors.primary }
+          ]}>
+            {formatCurrency(totalAmountReceived)}
           </Text>
         </View>
       </View>
@@ -189,6 +252,7 @@ const CustomerLedgerReportScreen = () => {
           data={ledgerData}
           keyExtractor={(item) => item.id}
           renderItem={renderLedgerItem}
+          ListHeaderComponent={renderHeader}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={{ color: theme.colors.onSurfaceVariant }}>No ledger entries found for this client.</Text>
@@ -281,12 +345,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   ledgerItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  ledgerMainRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   ledgerDate: {
     fontSize: 14,
@@ -302,6 +369,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     width: '20%',
     textAlign: 'right',
+  },
+  receiptDetails: {
+    marginTop: spacing.xs,
+    paddingLeft: spacing.sm,
+  },
+  receiptDetailText: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  flatValueContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  flatValueLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  flatValueAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   emptyState: {
     flex: 1,

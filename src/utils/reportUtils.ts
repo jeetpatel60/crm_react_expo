@@ -4,6 +4,7 @@ import * as FileSystem from 'expo-file-system';
 import { Alert } from 'react-native';
 
 import { Client, Company } from '../types';
+import { ClientWithDetails } from '../database/clientsDb';
 import { formatCurrency, formatDate } from './formatters';
 import { getCompanyById } from '../database/companiesDb';
 
@@ -13,12 +14,16 @@ interface LedgerEntry {
   description: string;
   type: 'request' | 'receipt';
   amount: number;
+  mode?: string;
+  remarks?: string;
 }
 
 interface CustomerLedgerData {
-  client: Client;
+  client: Client | ClientWithDetails;
   ledgerEntries: LedgerEntry[];
   balanceAmount: number;
+  totalAmountReceived?: number;
+  flatValue?: number;
   company?: Company;
   generatedAt: number; // timestamp
   companyLetterheadBase64?: string;
@@ -29,7 +34,7 @@ interface CustomerLedgerData {
  * Generate HTML content for the customer ledger report
  */
 const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
-  const { client, ledgerEntries, balanceAmount, company, generatedAt } = data;
+  const { client, ledgerEntries, balanceAmount, totalAmountReceived, flatValue, company, generatedAt } = data;
 
   // Generate letterhead section if company is provided
   let letterheadHtml = '';
@@ -55,6 +60,16 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
     }
   }
 
+  // Generate flat value section
+  const flatValueHtml = flatValue ? `
+    <div class="flat-value-section">
+      <div class="flat-value-row">
+        <span class="flat-value-label">Flat Value:</span>
+        <span class="flat-value-amount">${formatCurrency(flatValue)}</span>
+      </div>
+    </div>
+  ` : '';
+
   // Generate ledger entries table
   let ledgerTableHtml = '';
   if (ledgerEntries.length > 0) {
@@ -65,12 +80,17 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
             <th>Date</th>
             <th>Description</th>
             <th>Amount</th>
+            <th>Details</th>
           </tr>
         </thead>
         <tbody>
     `;
 
     ledgerEntries.forEach(entry => {
+      const detailsHtml = entry.type === 'receipt' && (entry.mode || entry.remarks)
+        ? `${entry.mode ? `Mode: ${entry.mode}` : ''}${entry.mode && entry.remarks ? '<br>' : ''}${entry.remarks ? `Remarks: ${entry.remarks}` : ''}`
+        : '';
+
       ledgerTableHtml += `
         <tr>
           <td>${entry.date}</td>
@@ -78,6 +98,7 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
           <td class="${entry.type === 'receipt' ? 'receipt-amount' : 'request-amount'}">
             ${entry.type === 'receipt' ? '+' : '-'} ${formatCurrency(entry.amount)}
           </td>
+          <td class="details-cell">${detailsHtml}</td>
         </tr>
       `;
     });
@@ -99,6 +120,14 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
           ${formatCurrency(balanceAmount)}
         </span>
       </div>
+      ${totalAmountReceived !== undefined ? `
+      <div class="balance-row">
+        <span class="balance-label">Total Amount Received:</span>
+        <span class="balance-amount positive">
+          ${formatCurrency(totalAmountReceived)}
+        </span>
+      </div>
+      ` : ''}
     </div>
   `;
 
@@ -149,6 +178,28 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
             background-color: #f8f9fa;
             border-radius: 5px;
           }
+          .flat-value-section {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e8f5e8;
+            border-radius: 5px;
+            border-left: 4px solid #27ae60;
+          }
+          .flat-value-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .flat-value-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+          }
+          .flat-value-amount {
+            font-size: 18px;
+            font-weight: bold;
+            color: #27ae60;
+          }
           .ledger-table {
             width: 100%;
             border-collapse: collapse;
@@ -173,6 +224,12 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
           .request-amount {
             color: #e74c3c;
             font-weight: bold;
+          }
+          .details-cell {
+            font-size: 12px;
+            color: #7f8c8d;
+            max-width: 200px;
+            word-wrap: break-word;
           }
           .balance-section {
             margin-top: 20px;
@@ -224,7 +281,11 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
           ${client.address ? `<p>Address: ${client.address}</p>` : ''}
           ${client.contact_no ? `<p>Contact: ${client.contact_no}</p>` : ''}
           ${client.email ? `<p>Email: ${client.email}</p>` : ''}
+          ${(client as ClientWithDetails).project_name ? `<p>Project Name: ${(client as ClientWithDetails).project_name}</p>` : ''}
+          ${(client as ClientWithDetails).flat_no ? `<p>Flat No: ${(client as ClientWithDetails).flat_no}</p>` : ''}
         </div>
+
+        ${flatValueHtml}
 
         ${ledgerTableHtml}
 
@@ -243,9 +304,11 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData): string => {
  * Generate and share customer ledger report as PDF
  */
 export const generateAndShareCustomerLedgerPdf = async (
-  client: Client,
+  client: Client | ClientWithDetails,
   ledgerEntries: LedgerEntry[],
   balanceAmount: number,
+  totalAmountReceived?: number,
+  flatValue?: number,
   companyId?: number
 ): Promise<void> => {
   try {
@@ -257,6 +320,8 @@ export const generateAndShareCustomerLedgerPdf = async (
       client,
       ledgerEntries,
       balanceAmount,
+      totalAmountReceived,
+      flatValue,
       generatedAt
     };
 

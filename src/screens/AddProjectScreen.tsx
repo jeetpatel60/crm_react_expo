@@ -55,12 +55,14 @@ const AddProjectScreen = () => {
       newErrors.name = 'Project name is required';
     }
 
-    if (progress && (isNaN(Number(progress)) || Number(progress) < 0 || Number(progress) > 100)) {
-      newErrors.progress = 'Progress must be a number between 0 and 100';
+    if (!totalBudget.trim()) {
+      newErrors.totalBudget = 'Total budget is required';
+    } else if (isNaN(Number(totalBudget))) {
+      newErrors.totalBudget = 'Total budget must be a valid number';
     }
 
-    if (totalBudget && isNaN(Number(totalBudget))) {
-      newErrors.totalBudget = 'Total budget must be a valid number';
+    if (progress && (isNaN(Number(progress)) || Number(progress) < 0 || Number(progress) > 100)) {
+      newErrors.progress = 'Progress must be a number between 0 and 100';
     }
 
     if (startDate && endDate && startDate > endDate) {
@@ -333,7 +335,7 @@ const AddProjectScreen = () => {
         </Text>
 
         <TextInput
-          label="Total Budget"
+          label="Total Budget *"
           value={totalBudget}
           onChangeText={setTotalBudget}
           mode="outlined"
