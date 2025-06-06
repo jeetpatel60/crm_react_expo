@@ -10,10 +10,11 @@ import { Project, ProjectStatus, getProjectById } from '../database/projectsDb';
 import { Milestone, ProjectSchedule, MilestoneStatus } from '../database/projectSchedulesDb';
 import { Company } from '../database/companiesDb';
 import { updateProject } from '../database';
-import { getProjectSchedulesByProjectId, getMilestonesByScheduleId, updateProjectSchedule, deleteMilestone, updateMilestone } from '../database/projectSchedulesDb';
+import { getProjectSchedulesByProjectId, getMilestonesByScheduleId, updateProjectSchedule, deleteMilestone, updateMilestone, addProjectScheduleWithMilestones } from '../database/projectSchedulesDb';
 import { getCompanies } from '../database/companiesDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
 import { PROJECT_STATUS_OPTIONS, MILESTONE_STATUS_COLORS, MILESTONE_STATUS_OPTIONS } from '../constants';
+import MilestoneForm from '../components/MilestoneForm';
 
 type EditProjectRouteProp = RouteProp<RootStackParamList, 'EditProject'>;
 type EditProjectNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -69,7 +70,14 @@ const EditProjectScreen = () => {
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [datePickerDate, setDatePickerDate] = useState(new Date());
   const [showIOSDateModal, setShowIOSDateModal] = useState(false);
-  const [currentDateField, setCurrentDateField] = useState<'start' | 'end'>('start');
+  const [currentDateField, setCurrentDateField] = useState<'start' | 'end' | 'schedule'>('start');
+
+  // Add schedule state
+  const [showAddScheduleModal, setShowAddScheduleModal] = useState(false);
+  const [newScheduleDate, setNewScheduleDate] = useState(new Date());
+  const [newScheduleMilestones, setNewScheduleMilestones] = useState<Omit<Milestone, 'schedule_id'>[]>([]);
+  const [showScheduleDatePicker, setShowScheduleDatePicker] = useState(false);
+  const [addingSchedule, setAddingSchedule] = useState(false);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -149,7 +157,7 @@ const EditProjectScreen = () => {
     });
   };
 
-  const showDatePicker = (field: 'start' | 'end') => {
+  const showDatePicker = (field: 'start' | 'end' | 'schedule') => {
     setCurrentDateField(field);
 
     // Set initial date in picker based on current value
@@ -157,6 +165,8 @@ const EditProjectScreen = () => {
       setDatePickerDate(startDate);
     } else if (field === 'end' && endDate) {
       setDatePickerDate(endDate);
+    } else if (field === 'schedule') {
+      setDatePickerDate(newScheduleDate);
     } else {
       setDatePickerDate(new Date());
     }
@@ -168,6 +178,8 @@ const EditProjectScreen = () => {
         setShowStartDatePicker(true);
       } else if (field === 'end') {
         setShowEndDatePicker(true);
+      } else if (field === 'schedule') {
+        setShowScheduleDatePicker(true);
       }
     }
   };
@@ -176,8 +188,10 @@ const EditProjectScreen = () => {
     if (Platform.OS === 'android') {
       if (currentDateField === 'start') {
         setShowStartDatePicker(false);
-      } else {
+      } else if (currentDateField === 'end') {
         setShowEndDatePicker(false);
+      } else if (currentDateField === 'schedule') {
+        setShowScheduleDatePicker(false);
       }
     }
 
@@ -188,6 +202,8 @@ const EditProjectScreen = () => {
         setStartDate(selectedDate);
       } else if (currentDateField === 'end') {
         setEndDate(selectedDate);
+      } else if (currentDateField === 'schedule') {
+        setNewScheduleDate(selectedDate);
       }
     }
   };
@@ -197,6 +213,8 @@ const EditProjectScreen = () => {
       setStartDate(datePickerDate);
     } else if (currentDateField === 'end') {
       setEndDate(datePickerDate);
+    } else if (currentDateField === 'schedule') {
+      setNewScheduleDate(datePickerDate);
     }
     setShowIOSDateModal(false);
   };
@@ -319,6 +337,62 @@ const EditProjectScreen = () => {
   // Handle selecting a schedule
   const handleSelectSchedule = (schedule: ProjectSchedule) => {
     setSelectedSchedule(schedule);
+  };
+
+  // Handle opening add schedule modal
+  const handleOpenAddScheduleModal = () => {
+    setNewScheduleDate(new Date());
+    setNewScheduleMilestones([]);
+    setShowAddScheduleModal(true);
+  };
+
+  // Handle closing add schedule modal
+  const handleCloseAddScheduleModal = () => {
+    setShowAddScheduleModal(false);
+    setNewScheduleDate(new Date());
+    setNewScheduleMilestones([]);
+  };
+
+  // Handle adding new schedule
+  const handleAddSchedule = async () => {
+    if (!project.id) {
+      Alert.alert('Error', 'Project ID is required');
+      return;
+    }
+
+    try {
+      setAddingSchedule(true);
+
+      // Add the schedule with milestones
+      const scheduleId = await addProjectScheduleWithMilestones(
+        project.id,
+        newScheduleDate.getTime(),
+        newScheduleMilestones
+      );
+
+      // Refresh schedules
+      const projectSchedules = await getProjectSchedulesByProjectId(project.id);
+      setSchedules(projectSchedules);
+
+      // Select the newly created schedule
+      const newSchedule = projectSchedules.find(s => s.id === scheduleId);
+      if (newSchedule) {
+        setSelectedSchedule(newSchedule);
+        // Load milestones for the new schedule
+        const scheduleMilestones = await getMilestonesByScheduleId(scheduleId);
+        setMilestones(scheduleMilestones);
+      }
+
+      // Close modal
+      handleCloseAddScheduleModal();
+
+      Alert.alert('Success', 'Schedule added successfully');
+    } catch (error) {
+      console.error('Error adding schedule:', error);
+      Alert.alert('Error', 'Failed to add schedule');
+    } finally {
+      setAddingSchedule(false);
+    }
   };
 
 
@@ -701,6 +775,63 @@ const EditProjectScreen = () => {
               </Button>
             </Modal>
           </Portal>
+
+          {/* Add Schedule Modal */}
+          <Portal>
+            <Modal
+              visible={showAddScheduleModal}
+              onDismiss={handleCloseAddScheduleModal}
+              contentContainerStyle={[styles.modalContainer, { backgroundColor: theme.colors.surface }]}
+            >
+              <ScrollView style={styles.modalScrollView}>
+                <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>Add New Schedule</Text>
+
+                <Text style={[styles.modalLabel, { color: theme.colors.onSurface }]}>Schedule Date</Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => showDatePicker('schedule')}
+                  style={styles.dateButton}
+                  icon="calendar"
+                >
+                  {formatDate(newScheduleDate)}
+                </Button>
+
+                {showScheduleDatePicker && Platform.OS === 'android' && (
+                  <DateTimePicker
+                    value={datePickerDate}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                  />
+                )}
+
+                <MilestoneForm
+                  milestones={newScheduleMilestones.map(m => ({ ...m, schedule_id: 0 }))}
+                  setMilestones={(milestones) => setNewScheduleMilestones(milestones.map(({ schedule_id, ...rest }) => rest))}
+                />
+
+                <View style={styles.modalButtons}>
+                  <Button
+                    mode="contained"
+                    onPress={handleAddSchedule}
+                    style={styles.modalButton}
+                    loading={addingSchedule}
+                    disabled={addingSchedule}
+                  >
+                    Add Schedule
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    onPress={handleCloseAddScheduleModal}
+                    style={styles.modalButton}
+                    disabled={addingSchedule}
+                  >
+                    Cancel
+                  </Button>
+                </View>
+              </ScrollView>
+            </Modal>
+          </Portal>
         </View>
 
         <Text style={styles.sectionTitle}>Status</Text>
@@ -722,7 +853,17 @@ const EditProjectScreen = () => {
             {loadingSchedules ? (
               <Text style={styles.loadingText}>Loading schedules...</Text>
             ) : schedules.length === 0 ? (
-              <Text style={styles.emptyText}>No schedules found for this project.</Text>
+              <View style={styles.emptyScheduleContainer}>
+                <Text style={styles.emptyText}>No schedules found for this project.</Text>
+                <Button
+                  mode="contained"
+                  icon="plus"
+                  onPress={handleOpenAddScheduleModal}
+                  style={styles.addScheduleButton}
+                >
+                  Add Schedule
+                </Button>
+              </View>
             ) : (
               <>
                 <View style={styles.scheduleSelector}>
@@ -999,6 +1140,13 @@ const styles = StyleSheet.create({
     marginVertical: spacing.md,
     fontStyle: 'italic',
     opacity: 0.7,
+  },
+  emptyScheduleContainer: {
+    alignItems: 'center',
+    marginVertical: spacing.md,
+  },
+  addScheduleButton: {
+    marginTop: spacing.md,
   },
   divider: {
     marginVertical: spacing.md,

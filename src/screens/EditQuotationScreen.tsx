@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { TextInput, Button, useTheme, Text, Modal, Portal, DataTable, IconButton } from 'react-native-paper';
+import { TextInput, Button, useTheme, Text, Modal, Portal, DataTable, IconButton, FAB } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -435,8 +435,9 @@ const EditQuotationScreen = () => {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Text style={[styles.title, { color: theme.colors.primary }]}>Edit Quotation</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Text style={[styles.title, { color: theme.colors.primary }]}>Edit Quotation</Text>
 
       {/* Quotation No */}
       <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Quotation No *</Text>
@@ -1010,23 +1011,30 @@ const EditQuotationScreen = () => {
         </Modal>
       </Portal>
 
-      {/* Save Button */}
-      <Button
-        mode="contained"
-        onPress={handleSave}
-        style={styles.saveButton}
+      </ScrollView>
+
+      {/* Floating Save Button */}
+      <FAB
         icon="content-save"
-      >
-        Save Changes
-      </Button>
-    </ScrollView>
+        label="Save"
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        color="#fff"
+        onPress={handleSave}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: spacing.md,
+    paddingBottom: 100, // Extra space for FAB
   },
   title: {
     fontSize: 24,
@@ -1180,8 +1188,11 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   modalAddButton: {},
-  saveButton: {
-    marginVertical: spacing.lg,
+  fab: {
+    position: 'absolute',
+    margin: spacing.md,
+    left: 0,
+    bottom: 0,
   },
 });
 

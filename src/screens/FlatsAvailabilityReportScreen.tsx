@@ -410,7 +410,7 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
               </Text>
             )}
 
-            {unit.client_name && (
+            {unit.client_name && unit.status !== 'Sold' && (
               <Text
                 numberOfLines={1}
                 ellipsizeMode="tail"
@@ -456,7 +456,7 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
       {renderLegend()}
 
       {/* Building visualization */}
-      <View style={styles.buildingContentContainer}>
+      <View style={styles.buildingFlatsContainer}>
         {selectedFloor ? (
           // Show only selected floor
           renderFloor(selectedFloor)
@@ -668,7 +668,7 @@ const FlatsAvailabilityReportScreen = () => {
         <td>${unit.type || '-'}</td>
         <td>${unit.area_sqft ? `${unit.area_sqft} sqft` : '-'}</td>
         <td>${unit.status}</td>
-        <td>${unit.client_name || '-'}</td>
+        <td>${unit.status === 'Sold' ? '-' : (unit.client_name || '-')}</td>
         <td>${unit.flat_value ? formatCurrency(unit.flat_value) : '-'}</td>
       </tr>
     `).join('');
@@ -733,7 +733,7 @@ const FlatsAvailabilityReportScreen = () => {
             <div class="unit" style="background-color: ${statusColor};">
               <div class="unit-number">${unit.flat_no}</div>
               <div class="unit-status">${unit.status}</div>
-              ${unit.client_name ? `<div class="unit-client">${unit.client_name}</div>` : ''}
+              ${unit.client_name && unit.status !== 'Sold' ? `<div class="unit-client">${unit.client_name}</div>` : ''}
             </div>
           `;
         }).join('');
@@ -945,7 +945,7 @@ const FlatsAvailabilityReportScreen = () => {
 
             <View style={styles.cardDetails}>
               <Text style={styles.projectName}>{project?.name || item.project_name || 'Unknown Project'}</Text>
-              {item.client_name && (
+              {item.client_name && item.status !== 'Sold' && (
                 <Text style={styles.clientName}>Client: {item.client_name}</Text>
               )}
               {item.type && (
@@ -1063,7 +1063,7 @@ const FlatsAvailabilityReportScreen = () => {
 
       {/* Export FAB */}
       <FAB
-        icon="file-export"
+        icon="file-pdf-box"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         color="#fff"
         onPress={() => setExportDialogVisible(true)}
@@ -1222,7 +1222,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexGrow: 1,
   },
   buildingVisualizationContainer: {
-    minHeight: 400,
+    flex: 1,
   },
   summaryContainer: {
     flexDirection: 'row',
@@ -1330,7 +1330,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   fab: {
     position: 'absolute',
     margin: 16,
-    right: 0,
+    left: 0,
     bottom: 0,
     ...shadows.md,
   },
@@ -1338,11 +1338,9 @@ const createStyles = (theme: any) => StyleSheet.create({
   buildingContainer: {
     padding: spacing.sm,
   },
-  buildingContentContainer: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    ...shadows.sm,
+  buildingFlatsContainer: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   filtersContainer: {
     backgroundColor: theme.colors.surface,
@@ -1402,8 +1400,8 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
 
   floorSection: {
-    marginBottom: spacing.md,
-    padding: spacing.sm,
+    marginBottom: 2,
+    padding: 2,
   },
   floorHeader: {
     flexDirection: 'row',
@@ -1423,10 +1421,12 @@ const createStyles = (theme: any) => StyleSheet.create({
   wingsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   wingSection: {
-    width: '50%',
-    padding: spacing.xs,
+    width: '47%',
+    padding: 1,
+    marginBottom: 2,
   },
   wingTitle: {
     fontSize: 14,
@@ -1439,44 +1439,54 @@ const createStyles = (theme: any) => StyleSheet.create({
   unitsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   unitContainer: {
-    width: '50%',
-    padding: spacing.xs,
+    width: '47%',
+    padding: 1,
+    marginBottom: 3,
   },
   unitCard: {
-    borderRadius: borderRadius.md,
-    borderWidth: 2,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1.5,
     backgroundColor: theme.colors.surface,
+    minHeight: 'auto', // Remove fixed height
     ...shadows.sm,
   },
   unitCardContent: {
-    padding: spacing.sm,
+    padding: 6,
+    justifyContent: 'flex-start',
+    minHeight: 'auto', // Remove fixed height
   },
   unitHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   unitNumber: {
     fontWeight: 'bold',
     fontSize: 14,
+    lineHeight: 16,
   },
   unitTypeText: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
-    marginBottom: spacing.xs,
-  },
-  unitArea: {
-    fontSize: 12,
-    color: theme.colors.onSurfaceVariant,
-    marginBottom: spacing.xs,
-  },
-  unitClient: {
     fontSize: 11,
     color: theme.colors.onSurfaceVariant,
+    lineHeight: 13,
+    marginBottom: 1,
+  },
+  unitArea: {
+    fontSize: 11,
+    color: theme.colors.onSurfaceVariant,
+    lineHeight: 13,
+    marginBottom: 1,
+  },
+  unitClient: {
+    fontSize: 10,
+    color: theme.colors.onSurfaceVariant,
     fontStyle: 'italic',
+    lineHeight: 12,
   },
   // Dialog styles
   dialog: {

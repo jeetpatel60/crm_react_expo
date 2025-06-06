@@ -24,6 +24,7 @@ interface CustomerLedgerData {
   balanceAmount: number;
   totalAmountReceived?: number;
   flatValue?: number;
+  totalBalancePayable?: number;
   company?: Company;
   generatedAt: number; // timestamp
   companyLetterheadBase64?: string;
@@ -34,7 +35,7 @@ interface CustomerLedgerData {
  * Generate HTML content for the customer ledger report
  */
 const generateCustomerLedgerHtml = (data: CustomerLedgerData, letterheadOption?: 'none' | 'company'): string => {
-  const { client, ledgerEntries, balanceAmount, totalAmountReceived, flatValue, company, generatedAt } = data;
+  const { client, ledgerEntries, balanceAmount, totalAmountReceived, flatValue, totalBalancePayable, company, generatedAt } = data;
 
   // Generate letterhead section if company is provided and letterhead is requested
   let letterheadHtml = '';
@@ -126,6 +127,14 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData, letterheadOption?:
         <span class="balance-label">Total Amount Received:</span>
         <span class="balance-amount positive">
           ${formatCurrency(totalAmountReceived)}
+        </span>
+      </div>
+      ` : ''}
+      ${totalBalancePayable !== undefined ? `
+      <div class="balance-row">
+        <span class="balance-label">Total Balance Payable<br>of Flat Value:</span>
+        <span class="balance-amount ${totalBalancePayable >= 0 ? 'positive' : 'negative'}">
+          ${formatCurrency(totalBalancePayable)}
         </span>
       </div>
       ` : ''}
@@ -313,6 +322,7 @@ export const generateAndShareCustomerLedgerPdf = async (
   balanceAmount: number,
   totalAmountReceived?: number,
   flatValue?: number,
+  totalBalancePayable?: number,
   companyId?: number,
   letterheadOption?: 'none' | 'company'
 ): Promise<void> => {
@@ -327,6 +337,7 @@ export const generateAndShareCustomerLedgerPdf = async (
       balanceAmount,
       totalAmountReceived,
       flatValue,
+      totalBalancePayable,
       generatedAt
     };
 

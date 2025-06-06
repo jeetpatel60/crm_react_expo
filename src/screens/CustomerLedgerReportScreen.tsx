@@ -121,6 +121,7 @@ const CustomerLedgerReportScreen = () => {
         balanceAmount,
         totalAmountReceived,
         clientFlatDetails?.flat_value,
+        totalBalancePayable,
         companyId,
         letterheadOption
       );
@@ -147,6 +148,12 @@ const CustomerLedgerReportScreen = () => {
       return total + (item.type === 'receipt' ? item.amount : 0);
     }, 0);
   }, [ledgerData]);
+
+  // Calculate total balance payable of flat value (Flat value - total amount received)
+  const totalBalancePayable = useMemo(() => {
+    const flatValue = clientFlatDetails?.flat_value || 0;
+    return flatValue - totalAmountReceived;
+  }, [clientFlatDetails?.flat_value, totalAmountReceived]);
 
   const renderLedgerItem = ({ item }: { item: LedgerEntry }) => (
     <View style={styles.ledgerItem}>
@@ -212,6 +219,15 @@ const CustomerLedgerReportScreen = () => {
             { color: theme.colors.primary }
           ]}>
             {formatCurrency(totalAmountReceived)}
+          </Text>
+        </View>
+        <View style={styles.balanceRowMultiLine}>
+          <Text style={styles.balanceLabelMultiLine}>Total Balance Payable{'\n'}of Flat Value:</Text>
+          <Text style={[
+            styles.balanceAmount,
+            { color: totalBalancePayable >= 0 ? theme.colors.primary : theme.colors.error }
+          ]}>
+            {formatCurrency(totalBalancePayable)}
           </Text>
         </View>
       </View>
@@ -417,14 +433,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.sm,
   },
+  balanceRowMultiLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: spacing.sm,
+  },
   balanceLabel: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  balanceLabelMultiLine: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1,
+    marginRight: spacing.md,
+    lineHeight: 22,
   },
   balanceAmount: {
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'right',
+    minWidth: 120,
   },
 });
 
