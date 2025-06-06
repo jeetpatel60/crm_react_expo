@@ -27,6 +27,7 @@ const DrawerNavigator = () => {
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
+      defaultStatus="open"
       detachInactiveScreens={true}
       screenOptions={{
         headerShown: true,

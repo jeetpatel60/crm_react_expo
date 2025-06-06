@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal, Card, Divider, DataTable, IconButton, Chip } from 'react-native-paper';
+import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal, Card, Divider, DataTable, IconButton, Chip, FAB } from 'react-native-paper';
 import { RouteProp, useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -1078,16 +1078,17 @@ const EditProjectScreen = () => {
 
 
 
-        <Button
-          mode="contained"
-          onPress={handleUpdate}
-          style={styles.saveButton}
-          loading={loading}
-          disabled={loading}
-        >
-          Update Project
-        </Button>
       </ScrollView>
+
+      <FAB
+        icon="content-save"
+        label="Update"
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        color="#fff"
+        onPress={handleUpdate}
+        loading={loading}
+        disabled={loading}
+      />
     </View>
   );
 };
@@ -1098,6 +1099,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
+    paddingBottom: 100, // Extra padding for FAB
   },
   input: {
     marginBottom: spacing.sm,
@@ -1118,9 +1120,11 @@ const styles = StyleSheet.create({
   segmentedButtons: {
     marginBottom: spacing.lg,
   },
-  saveButton: {
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
+  fab: {
+    position: 'absolute',
+    margin: spacing.md,
+    left: 0,
+    bottom: spacing.lg,
   },
   card: {
     marginVertical: spacing.md,

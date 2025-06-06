@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { Divider, Text, useTheme, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -190,17 +190,16 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
         entering={FadeIn.duration(animations.duration.standard)}
       >
         <View style={styles.userInfo}>
-          <AnimatedAvatarText
-            size={60}
-            label="CRM"
-            style={[
-              { backgroundColor: theme.colors.primaryContainer },
-              styles.avatar,
-              shadows.md
-            ]}
-            color={theme.colors.onPrimaryContainer}
+          <Animated.View
+            style={[styles.logoContainer, shadows.md]}
             entering={FadeInLeft.delay(300).duration(animations.duration.standard)}
-          />
+          >
+            <Image
+              source={require('../../assets/samvida-logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </Animated.View>
           <AnimatedView
             style={styles.userDetails}
             entering={FadeInRight.delay(400).duration(animations.duration.standard)}
@@ -209,15 +208,6 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
             <Text style={[styles.version, { color: 'rgba(255, 255, 255, 0.8)' }]}>
               Version 1.0.0
             </Text>
-            <Button
-              mode="text"
-              compact
-              style={styles.profileButton}
-              textColor="#fff"
-              labelStyle={{ fontSize: 12 }}
-            >
-              View Profile
-            </Button>
           </AnimatedView>
         </View>
       </AnimatedView>
@@ -247,7 +237,7 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
         entering={FadeIn.delay(600).duration(animations.duration.standard)}
       >
         <Text style={[styles.footerText, { color: theme.colors.onSurfaceVariant }]}>
-          © 2025 CRM App
+          © 2025 SAMVIDA App
         </Text>
       </AnimatedView>
     </View>
@@ -279,6 +269,19 @@ const styles = StyleSheet.create({
   avatar: {
     borderRadius: borderRadius.round,
   },
+  logoContainer: {
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xs,
+  },
+  logo: {
+    width: 50,
+    height: 50,
+  },
   userDetails: {
     marginLeft: spacing.md,
   },
@@ -291,10 +294,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: spacing.xs,
     marginBottom: spacing.xs,
-  },
-  profileButton: {
-    borderRadius: borderRadius.md,
-    marginTop: spacing.xs,
   },
   drawerContent: {
     paddingTop: spacing.xs,

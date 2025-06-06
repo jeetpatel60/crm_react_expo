@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +16,8 @@ interface KPICardProps {
     isPositive: boolean;
   };
   gradientColors?: string[];
+  onPress?: () => void;
+  fullWidth?: boolean;
 }
 
 const KPICard = ({
@@ -26,6 +28,8 @@ const KPICard = ({
   subtitle,
   trend,
   gradientColors,
+  onPress,
+  fullWidth = false,
 }: KPICardProps) => {
   const theme = useTheme();
 
@@ -34,8 +38,8 @@ const KPICard = ({
     theme.colors.surfaceVariant,
   ];
 
-  return (
-    <Card style={[styles.card, shadows.md]}>
+  const CardContent = (
+    <Card style={[styles.card, fullWidth && styles.fullWidthCard, shadows.md]}>
       <LinearGradient
         colors={gradientColors || defaultGradientColors as any}
         start={{ x: 0, y: 0 }}
@@ -93,6 +97,16 @@ const KPICard = ({
       </LinearGradient>
     </Card>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {CardContent}
+      </TouchableOpacity>
+    );
+  }
+
+  return CardContent;
 };
 
 const styles = StyleSheet.create({
@@ -103,6 +117,9 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xs,
     width: '100%',
     height: 140,
+  },
+  fullWidthCard: {
+    marginHorizontal: 0,
   },
   gradient: {
     borderRadius: borderRadius.lg,

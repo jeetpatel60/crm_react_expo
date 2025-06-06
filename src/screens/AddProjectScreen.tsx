@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal, Divider, Card } from 'react-native-paper';
+import { TextInput, Button, useTheme, Text, SegmentedButtons, Modal, Portal, Divider, Card, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -448,16 +448,17 @@ const AddProjectScreen = () => {
           </Card.Content>
         </Card>
 
-        <Button
-          mode="contained"
-          onPress={handleSave}
-          style={styles.saveButton}
-          loading={loading}
-          disabled={loading}
-        >
-          Save Project
-        </Button>
       </ScrollView>
+
+      <FAB
+        icon="content-save"
+        label="Save"
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        color="#fff"
+        onPress={handleSave}
+        loading={loading}
+        disabled={loading}
+      />
     </View>
   );
 };
@@ -468,6 +469,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.md,
+    paddingBottom: 100, // Extra padding for FAB
   },
   input: {
     marginBottom: spacing.sm,
@@ -500,9 +502,11 @@ const styles = StyleSheet.create({
   divider: {
     marginVertical: spacing.md,
   },
-  saveButton: {
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
+  fab: {
+    position: 'absolute',
+    margin: spacing.md,
+    left: 0,
+    bottom: spacing.lg,
   },
   modalContainer: {
     margin: spacing.lg,

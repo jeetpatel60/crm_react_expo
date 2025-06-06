@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, useTheme } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,8 +12,12 @@ import { spacing, shadows, borderRadius } from '../constants/theme';
 import { fetchDashboardData, DashboardData, generateUnitsByStatusData, generateUnitsSoldWeeklyData, generateUnitsSoldMonthlyData } from '../utils/dashboardUtils';
 import { getUnitsFlats, UnitFlat } from '../database/unitsFlatDb';
 import { formatCurrency } from '../utils/formatters';
+import { DrawerParamList } from '../types';
+
+type DashboardScreenNavigationProp = DrawerNavigationProp<DrawerParamList, 'Dashboard'>;
 
 const DashboardScreen = () => {
+  const navigation = useNavigation<DashboardScreenNavigationProp>();
   const theme = useTheme();
 
   const [loading, setLoading] = useState(true);
@@ -77,6 +83,15 @@ const DashboardScreen = () => {
     loadData();
   }, []);
 
+  // Navigation handlers
+  const handleTotalLeadsPress = () => {
+    navigation.navigate('Leads');
+  };
+
+  const handleTotalProjectsPress = () => {
+    navigation.navigate('Projects');
+  };
+
   if (loading || !dashboardData) {
     return <LoadingIndicator />;
   }
@@ -126,7 +141,8 @@ const DashboardScreen = () => {
             </Text>
           </View>
 
-          <View style={styles.kpiGrid}>
+          {/* Full width cards for navigation */}
+          <View style={styles.fullWidthKpiContainer}>
             <KPICard
               title="Total Leads"
               value={dashboardData.totalLeads.toString()}
@@ -137,6 +153,8 @@ const DashboardScreen = () => {
                 theme.colors.surfaceVariant,
                 `${theme.colors.surfaceVariant}CC`
               ]}
+              onPress={handleTotalLeadsPress}
+              fullWidth={true}
             />
 
             <KPICard
@@ -149,8 +167,13 @@ const DashboardScreen = () => {
                 theme.colors.surfaceVariant,
                 `${theme.colors.surfaceVariant}CC`
               ]}
+              onPress={handleTotalProjectsPress}
+              fullWidth={true}
             />
+          </View>
 
+          {/* Two column layout for other cards */}
+          <View style={styles.kpiGrid}>
             <KPICard
               title="Total Revenue"
               value={formatCurrency(dashboardData.totalRevenue)}
@@ -314,6 +337,9 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  fullWidthKpiContainer: {
+    marginBottom: spacing.md,
   },
   kpiGrid: {
     flexDirection: 'row',
