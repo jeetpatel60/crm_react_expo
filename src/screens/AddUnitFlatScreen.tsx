@@ -28,6 +28,8 @@ const AddUnitFlatScreen = () => {
   const [areaSqft, setAreaSqft] = useState('');
   const [ratePerSqft, setRatePerSqft] = useState('');
   const [receivedAmount, setReceivedAmount] = useState('0');
+  const [bValue, setBValue] = useState('0');
+  const [wValue, setWValue] = useState('0');
   const [status, setStatus] = useState<UnitStatus>('Available');
   const [type, setType] = useState('');
 
@@ -91,6 +93,14 @@ const AddUnitFlatScreen = () => {
       newErrors.receivedAmount = 'Received amount must be a valid number';
     }
 
+    if (bValue && isNaN(parseFloat(bValue))) {
+      newErrors.bValue = 'B Value must be a valid number';
+    }
+
+    if (wValue && isNaN(parseFloat(wValue))) {
+      newErrors.wValue = 'W Value must be a valid number';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -112,6 +122,8 @@ const AddUnitFlatScreen = () => {
         flat_value: parseFloat(flatValue),
         received_amount: receivedAmount ? parseFloat(receivedAmount) : 0,
         balance_amount: parseFloat(balanceAmount),
+        b_value: bValue ? parseFloat(bValue) : 0,
+        w_value: wValue ? parseFloat(wValue) : 0,
         status,
         type: type.trim() || undefined,
       };
@@ -303,6 +315,47 @@ const AddUnitFlatScreen = () => {
             {errors.receivedAmount && (
               <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {errors.receivedAmount}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.halfInput}>
+            <TextInput
+              label="B Value"
+              value={bValue}
+              onChangeText={setBValue}
+              mode="outlined"
+              style={styles.input}
+              keyboardType="numeric"
+              error={!!errors.bValue}
+              outlineColor={theme.colors.outline}
+              activeOutlineColor={theme.colors.primary}
+              disabled={status !== 'Sold'}
+            />
+            {errors.bValue && (
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                {errors.bValue}
+              </Text>
+            )}
+          </View>
+          <View style={styles.halfInput}>
+            <TextInput
+              label="W Value"
+              value={wValue}
+              onChangeText={setWValue}
+              mode="outlined"
+              style={styles.input}
+              keyboardType="numeric"
+              error={!!errors.wValue}
+              outlineColor={theme.colors.outline}
+              activeOutlineColor={theme.colors.primary}
+              disabled={status !== 'Sold'}
+            />
+            {errors.wValue && (
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                {errors.wValue}
               </Text>
             )}
           </View>

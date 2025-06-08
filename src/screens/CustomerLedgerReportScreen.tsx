@@ -9,8 +9,9 @@ import { UnitPaymentRequest, UnitPaymentReceipt } from '../types';
 import { spacing } from '../constants/theme';
 import { formatCurrency } from '../utils/formatters';
 import { db } from '../database/database';
-import { generateAndShareCustomerLedgerPdf } from '../utils/reportUtils';
+import { generateAndShareCustomerLedgerPdf, RecordType } from '../utils/reportUtils';
 import CustomerLedgerExportModal from '../components/CustomerLedgerExportModal';
+import RecordTypeSelectionModal from '../components/RecordTypeSelectionModal';
 
 interface LedgerEntry {
   id: string;
@@ -22,6 +23,12 @@ interface LedgerEntry {
   remarks?: string;
 }
 
+
+
+// Payment mode categories
+const WHITE_PAYMENT_MODES = ['Cheque', 'Bank Transfer', 'UPI', 'Credit Card', 'Debit Card'];
+const BLACK_PAYMENT_MODES = ['Cash', 'Other'];
+
 const CustomerLedgerReportScreen = () => {
   const theme = useTheme();
   const [clients, setClients] = useState<ClientWithDetails[]>([]);
@@ -30,6 +37,10 @@ const CustomerLedgerReportScreen = () => {
   const [loading, setLoading] = useState(true);
   const [dialogVisible, setDialogVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Record type selection state
+  const [recordTypeModalVisible, setRecordTypeModalVisible] = useState(false);
+  const [selectedRecordType, setSelectedRecordType] = useState<RecordType>('all');
 
   // Export PDF related state
   const [exportModalVisible, setExportModalVisible] = useState(false);
@@ -62,7 +73,19 @@ const CustomerLedgerReportScreen = () => {
           setClientFlatDetails(flatDetails);
 
           const requests = await getUnitPaymentRequestsByClientId(selectedClient.id!);
-          const receipts = await getUnitPaymentReceiptsByClientId(selectedClient.id!);
+          let receipts = await getUnitPaymentReceiptsByClientId(selectedClient.id!);
+
+          // Filter receipts based on selected record type
+          if (selectedRecordType === 'white') {
+            receipts = receipts.filter(receipt =>
+              !receipt.mode || WHITE_PAYMENT_MODES.includes(receipt.mode)
+            );
+          } else if (selectedRecordType === 'black') {
+            receipts = receipts.filter(receipt =>
+              receipt.mode && BLACK_PAYMENT_MODES.includes(receipt.mode)
+            );
+          }
+          // For 'all', no filtering is applied
 
           const formattedRequests: LedgerEntry[] = requests.map(req => ({
             id: `req-${req.id ?? 0}`,
@@ -98,13 +121,32 @@ const CustomerLedgerReportScreen = () => {
       }
     };
     fetchLedgerData();
-  }, [selectedClient]);
+  }, [selectedClient, selectedRecordType]);
 
   const showDialog = () => setDialogVisible(true);
   const hideDialog = () => setDialogVisible(false);
 
+  const showRecordTypeModal = () => setRecordTypeModalVisible(true);
+  const hideRecordTypeModal = () => setRecordTypeModalVisible(false);
+
   const showExportModal = () => setExportModalVisible(true);
   const hideExportModal = () => setExportModalVisible(false);
+
+  const handleClientSelect = (client: Client) => {
+    setSelectedClient(client);
+    hideDialog();
+    // Reset record type to 'all' when selecting a new client
+    setSelectedRecordType('all');
+    // Show record type selection modal after client selection
+    setTimeout(() => {
+      showRecordTypeModal();
+    }, 100);
+  };
+
+  const handleRecordTypeSelect = (recordType: RecordType) => {
+    setSelectedRecordType(recordType);
+    hideRecordTypeModal();
+  };
 
   const handleExport = async (letterheadOption: 'none' | 'company', companyId?: number) => {
     hideExportModal();
@@ -114,16 +156,26 @@ const CustomerLedgerReportScreen = () => {
     }
 
     try {
-      console.log(`Exporting PDF with letterhead option: ${letterheadOption}, company ID: ${companyId}`);
+      console.log(`Exporting PDF with letterhead option: ${letterheadOption}, company ID: ${companyId}, record type: ${selectedRecordType}`);
+
+      // Determine which flat value to use based on record type
+      let flatValueToUse = clientFlatDetails?.flat_value;
+      if (selectedRecordType === 'white' && clientFlatDetails?.w_value) {
+        flatValueToUse = clientFlatDetails.w_value;
+      } else if (selectedRecordType === 'black' && clientFlatDetails?.b_value) {
+        flatValueToUse = clientFlatDetails.b_value;
+      }
+
       await generateAndShareCustomerLedgerPdf(
         selectedClient,
         ledgerData,
         balanceAmount,
         totalAmountReceived,
-        clientFlatDetails?.flat_value,
+        flatValueToUse,
         totalBalancePayable,
         companyId,
-        letterheadOption
+        letterheadOption,
+        selectedRecordType
       );
     } catch (error) {
       console.error('Error exporting PDF:', error);
@@ -151,9 +203,17 @@ const CustomerLedgerReportScreen = () => {
 
   // Calculate total balance payable of flat value (Flat value - total amount received)
   const totalBalancePayable = useMemo(() => {
-    const flatValue = clientFlatDetails?.flat_value || 0;
+    let flatValue = clientFlatDetails?.flat_value || 0;
+
+    // Use appropriate value based on record type
+    if (selectedRecordType === 'white' && clientFlatDetails?.w_value) {
+      flatValue = clientFlatDetails.w_value;
+    } else if (selectedRecordType === 'black' && clientFlatDetails?.b_value) {
+      flatValue = clientFlatDetails.b_value;
+    }
+
     return flatValue - totalAmountReceived;
-  }, [clientFlatDetails?.flat_value, totalAmountReceived]);
+  }, [clientFlatDetails?.flat_value, clientFlatDetails?.w_value, clientFlatDetails?.b_value, totalAmountReceived, selectedRecordType]);
 
   const renderLedgerItem = ({ item }: { item: LedgerEntry }) => (
     <View style={styles.ledgerItem}>
@@ -184,13 +244,25 @@ const CustomerLedgerReportScreen = () => {
   const renderHeader = () => {
     if (!selectedClient || !clientFlatDetails) return null;
 
+    // Determine which flat value to display based on record type
+    let flatValueToDisplay = clientFlatDetails.flat_value || 0;
+    let flatValueLabel = 'Flat Value:';
+
+    if (selectedRecordType === 'white' && clientFlatDetails.w_value) {
+      flatValueToDisplay = clientFlatDetails.w_value;
+      flatValueLabel = 'W Value:';
+    } else if (selectedRecordType === 'black' && clientFlatDetails.b_value) {
+      flatValueToDisplay = clientFlatDetails.b_value;
+      flatValueLabel = 'B Value:';
+    }
+
     return (
       <View style={styles.flatValueContainer}>
         <Text style={[styles.flatValueLabel, { color: theme.colors.onSurface }]}>
-          Flat Value:
+          {flatValueLabel}
         </Text>
         <Text style={[styles.flatValueAmount, { color: theme.colors.primary }]}>
-          {formatCurrency(clientFlatDetails.flat_value || 0)}
+          {formatCurrency(flatValueToDisplay)}
         </Text>
         <Divider style={styles.divider} />
       </View>
@@ -252,12 +324,13 @@ const CustomerLedgerReportScreen = () => {
 
         {selectedClient && (
           <Button
-            mode="contained"
-            onPress={showExportModal}
-            icon="file-pdf-box"
-            style={styles.exportButton}
+            mode="outlined"
+            onPress={showRecordTypeModal}
+            icon="filter-variant"
+            style={styles.recordTypeButton}
           >
-            Export PDF
+            {selectedRecordType === 'all' ? 'All Records' :
+             selectedRecordType === 'white' ? 'White Only' : 'Black Only'}
           </Button>
         )}
       </View>
@@ -311,10 +384,7 @@ const CustomerLedgerReportScreen = () => {
                       : undefined
                   }
                   descriptionStyle={{ color: theme.colors.secondary }}
-                  onPress={() => {
-                    setSelectedClient(item);
-                    hideDialog();
-                  }}
+                  onPress={() => handleClientSelect(item)}
                 />
               )}
               ListEmptyComponent={<Text>No clients found.</Text>}
@@ -325,6 +395,14 @@ const CustomerLedgerReportScreen = () => {
           </Dialog.Actions>
         </Dialog>
 
+        {/* Record Type Selection Modal */}
+        <RecordTypeSelectionModal
+          visible={recordTypeModalVisible}
+          onDismiss={hideRecordTypeModal}
+          onSelect={handleRecordTypeSelect}
+          selectedRecordType={selectedRecordType}
+        />
+
         {/* Customer Ledger Export Modal */}
         <CustomerLedgerExportModal
           visible={exportModalVisible}
@@ -332,6 +410,16 @@ const CustomerLedgerReportScreen = () => {
           onExport={handleExport}
         />
       </Portal>
+
+      {/* Floating Action Button for PDF Export */}
+      {selectedClient && (
+        <FAB
+          icon="file-pdf-box"
+          style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+          onPress={showExportModal}
+          label="Export PDF"
+        />
+      )}
     </View>
   );
 };
@@ -351,8 +439,13 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: spacing.sm,
   },
-  exportButton: {
+  recordTypeButton: {
     marginLeft: spacing.sm,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: spacing.xl * 1.5,
+    left: spacing.lg,
   },
   loadingIndicator: {
     marginTop: spacing.lg,

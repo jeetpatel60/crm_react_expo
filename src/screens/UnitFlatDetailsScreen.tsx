@@ -464,6 +464,28 @@ const UnitFlatDetailsScreen = () => {
                 </Text>
               </View>
             </View>
+
+            <View style={styles.financialInfo}>
+              <View style={styles.financialItem}>
+                <Text variant="labelSmall" style={styles.financialLabel}>
+                  B Value
+                </Text>
+                <Text variant="titleSmall" style={styles.financialValue}>
+                  {formatCurrency(unit.b_value || 0)}
+                </Text>
+              </View>
+              <View style={styles.financialItem}>
+                <Text variant="labelSmall" style={styles.financialLabel}>
+                  W Value
+                </Text>
+                <Text variant="titleSmall" style={styles.financialValue}>
+                  {formatCurrency(unit.w_value || 0)}
+                </Text>
+              </View>
+              <View style={styles.financialItem}>
+                {/* Empty space for alignment */}
+              </View>
+            </View>
           </Card.Content>
         </Card>
 

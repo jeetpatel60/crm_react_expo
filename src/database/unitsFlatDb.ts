@@ -14,6 +14,8 @@ export interface UnitFlat {
   flat_value?: number;
   received_amount?: number;
   balance_amount?: number;
+  b_value?: number;
+  w_value?: number;
   status: UnitStatus;
   type?: string;
   created_at?: number;
@@ -84,8 +86,8 @@ export const addUnitFlat = async (unit: UnitFlat): Promise<number> => {
     const result = await db.runAsync(
       `INSERT INTO units_flats (
         flat_no, project_id, client_id, area_sqft, rate_per_sqft, flat_value,
-        received_amount, balance_amount, status, type, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        received_amount, balance_amount, b_value, w_value, status, type, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         unit.flat_no,
         unit.project_id,
@@ -95,6 +97,8 @@ export const addUnitFlat = async (unit: UnitFlat): Promise<number> => {
         unitWithCalculations.flat_value || null,
         unitWithCalculations.received_amount || 0,
         unitWithCalculations.balance_amount || null,
+        unit.b_value || 0,
+        unit.w_value || 0,
         unit.status,
         unit.type || null,
         now,
@@ -148,6 +152,8 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
         flat_value = ?,
         received_amount = ?,
         balance_amount = ?,
+        b_value = ?,
+        w_value = ?,
         status = ?,
         type = ?,
         updated_at = ?
@@ -161,6 +167,8 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
         unitWithCalculations.flat_value || null,
         unitWithCalculations.received_amount || 0,
         unitWithCalculations.balance_amount || null,
+        unit.b_value || 0,
+        unit.w_value || 0,
         unit.status,
         unit.type || null,
         now,

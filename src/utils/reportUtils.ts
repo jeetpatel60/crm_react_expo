@@ -8,6 +8,8 @@ import { ClientWithDetails } from '../database/clientsDb';
 import { formatCurrency, formatDate } from './formatters';
 import { getCompanyById } from '../database/companiesDb';
 
+export type RecordType = 'all' | 'white' | 'black';
+
 interface LedgerEntry {
   id: string;
   date: string;
@@ -29,13 +31,14 @@ interface CustomerLedgerData {
   generatedAt: number; // timestamp
   companyLetterheadBase64?: string;
   companyLetterheadType?: 'image' | 'pdf';
+  recordType?: RecordType;
 }
 
 /**
  * Generate HTML content for the customer ledger report
  */
 const generateCustomerLedgerHtml = (data: CustomerLedgerData, letterheadOption?: 'none' | 'company'): string => {
-  const { client, ledgerEntries, balanceAmount, totalAmountReceived, flatValue, totalBalancePayable, company, generatedAt } = data;
+  const { client, ledgerEntries, balanceAmount, totalAmountReceived, flatValue, totalBalancePayable, company, generatedAt, recordType } = data;
 
   // Generate letterhead section if company is provided and letterhead is requested
   let letterheadHtml = '';
@@ -62,11 +65,11 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData, letterheadOption?:
   }
   // If letterheadOption is 'none', letterheadHtml will remain empty
 
-  // Generate flat value section
+  // Generate flat value section with appropriate label based on record type
   const flatValueHtml = flatValue ? `
     <div class="flat-value-section">
       <div class="flat-value-row">
-        <span class="flat-value-label">Flat Value:</span>
+        <span class="flat-value-label">${recordType === 'white' ? 'W Value:' : recordType === 'black' ? 'B Value:' : 'Flat Value:'}</span>
         <span class="flat-value-amount">${formatCurrency(flatValue)}</span>
       </div>
     </div>
@@ -324,7 +327,8 @@ export const generateAndShareCustomerLedgerPdf = async (
   flatValue?: number,
   totalBalancePayable?: number,
   companyId?: number,
-  letterheadOption?: 'none' | 'company'
+  letterheadOption?: 'none' | 'company',
+  recordType?: RecordType
 ): Promise<void> => {
   try {
     console.log(`Starting PDF generation for client: ${client.name}, with company ID: ${companyId}`);
@@ -338,7 +342,8 @@ export const generateAndShareCustomerLedgerPdf = async (
       totalAmountReceived,
       flatValue,
       totalBalancePayable,
-      generatedAt
+      generatedAt,
+      recordType
     };
 
     // If company ID is provided and letterhead is requested, fetch company data
@@ -417,9 +422,10 @@ export const generateAndShareCustomerLedgerPdf = async (
     console.log('Generating PDF from HTML...');
     const { uri } = await Print.printToFileAsync({ html: htmlContent });
 
-    // Create a filename with timestamp
+    // Create a filename with timestamp and record type
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const newUri = `${FileSystem.cacheDirectory}CustomerLedger_${client.name.replace(/\s+/g, '_')}_${timestamp}.pdf`;
+    const recordTypeSuffix = recordType && recordType !== 'all' ? `_${recordType.toUpperCase()}` : '';
+    const newUri = `${FileSystem.cacheDirectory}CustomerLedger_${client.name.replace(/\s+/g, '_')}${recordTypeSuffix}_${timestamp}.pdf`;
 
     // Copy the file to the new location with the timestamp in the name
     await FileSystem.copyAsync({

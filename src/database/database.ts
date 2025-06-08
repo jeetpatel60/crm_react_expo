@@ -373,6 +373,9 @@ export const runMigrations = async (): Promise<void> => {
     const { addUnitFlatIdToLeads } = await import('./migrations/addUnitFlatIdToLeads');
     await addUnitFlatIdToLeads(getDatabase);
 
+    const { addBValueWValueToUnitsFlats } = await import('./migrations/addBValueWValueToUnitsFlats');
+    await addBValueWValueToUnitsFlats(getDatabase);
+
     console.log('Database migrations completed successfully');
   } catch (error) {
     console.error('Error running database migrations:', error);
