@@ -59,8 +59,6 @@ const DrawerNavigator = () => {
         },
         drawerStyle: {
           width: 300,
-          borderTopRightRadius: borderRadius.lg,
-          borderBottomRightRadius: borderRadius.lg,
           ...shadows.lg,
           overflow: 'hidden',
         },

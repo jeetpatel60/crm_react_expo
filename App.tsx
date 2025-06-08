@@ -17,7 +17,7 @@ import { initializeDatabase } from './src/utils';
 import { addSampleAgreementTemplate } from './src/utils/sampleTemplateUtils';
 import { initializeBackupSystem } from './src/utils/backupUtils';
 import { DebugLogger, PerformanceMonitor, getSystemInfo } from './src/utils/debugUtils';
-import { LoadingIndicator, FallbackScreen, ErrorBoundary } from './src/components';
+import { LoadingIndicator, FallbackScreen, ErrorBoundary, SplashScreen } from './src/components';
 import { ThemeProvider, useThemeContext } from './src/context';
 import { animations, shadows } from './src/constants/theme';
 
@@ -64,6 +64,7 @@ const MainApp = () => {
 export default function App() {
   // Use theme manager for initial theme
   const themeManager = useThemeManager();
+  const [showSplash, setShowSplash] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initializationStep, setInitializationStep] = useState('Starting...');
@@ -146,14 +147,29 @@ export default function App() {
     initializeApp();
   };
 
-  useEffect(() => {
-    // Add a small delay to ensure all components are mounted
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+    // Start app initialization after splash screen finishes
     const timer = setTimeout(() => {
       initializeApp();
     }, 100);
+  };
 
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    // Don't start initialization until splash screen is finished
+    // The splash screen will trigger initialization via handleSplashFinish
   }, []);
+
+  // Show splash screen first
+  if (showSplash) {
+    return (
+      <PaperProvider theme={themeManager.theme}>
+        <SafeAreaProvider>
+          <SplashScreen onFinish={handleSplashFinish} />
+        </SafeAreaProvider>
+      </PaperProvider>
+    );
+  }
 
   if (loading) {
     return (

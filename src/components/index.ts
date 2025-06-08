@@ -23,3 +23,4 @@ export { default as AgreementTemplateSelectionModal } from './AgreementTemplateS
 export { default as PaymentReceiptTemplateSelectionModal } from './PaymentReceiptTemplateSelectionModal';
 export { default as FallbackScreen } from './FallbackScreen';
 export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as SplashScreen } from './SplashScreen';
