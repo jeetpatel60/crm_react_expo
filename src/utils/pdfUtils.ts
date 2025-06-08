@@ -41,8 +41,22 @@ export const generateAndShareQuotationPdf = async (quotationId: number): Promise
     // Generate PDF file
     const { uri } = await Print.printToFileAsync({ html: htmlContent });
 
+    // Generate appropriate filename: {project}-{lead}-{flat}-{quotation no}
+    const filename = generateQuotationPdfFilename(data);
+    console.log('Generated quotation PDF filename:', filename);
+
+    // Create a new file with the appropriate name
+    const newUri = `${FileSystem.cacheDirectory}${filename}`;
+    await FileSystem.copyAsync({
+      from: uri,
+      to: newUri
+    });
+
+    // Delete the original file
+    await FileSystem.deleteAsync(uri, { idempotent: true });
+
     // Share the PDF file
-    await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+    await shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf' });
   } catch (error) {
     console.error('Error generating or sharing PDF:', error);
     Alert.alert('Error', 'Failed to generate or share PDF. Please try again.');
@@ -340,6 +354,29 @@ const generateAnnexureTable = (title: string, items: QuotationAnnexureItem[]): s
       </tbody>
     </table>
   `;
+};
+
+/**
+ * Generate appropriate filename for quotation PDF: {project}-{lead}-{flat}-{quotation no}
+ */
+const generateQuotationPdfFilename = (data: QuotationPdfData): string => {
+  const { quotation, projectName, leadName, flatNo } = data;
+
+  // Helper function to sanitize filename parts
+  const sanitize = (str: string | undefined): string => {
+    if (!str) return 'Unknown';
+    return str.replace(/[^a-zA-Z0-9\-_]/g, '_').replace(/_{2,}/g, '_');
+  };
+
+  // Build filename parts
+  const parts = [
+    sanitize(projectName),
+    sanitize(leadName),
+    sanitize(flatNo),
+    sanitize(quotation.quotation_no)
+  ];
+
+  return `${parts.join('-')}.pdf`;
 };
 
 /**
