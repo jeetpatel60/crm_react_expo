@@ -24,6 +24,7 @@ import {
   getBackupStatus,
   getDatabaseLocation,
   getBackupLocation,
+  downloadLatestBackup,
   BackupStatus
 } from '../utils/backupUtils';
 
@@ -368,6 +369,18 @@ const SettingsScreen = () => {
     }
   };
 
+  const handleDownloadLatestBackup = async () => {
+    try {
+      await downloadLatestBackup();
+    } catch (error) {
+      console.error('Error downloading latest backup:', error);
+      Alert.alert(
+        'Download Failed',
+        error instanceof Error ? error.message : 'Failed to download the latest backup. Please try again.'
+      );
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ThemeIndicator />
@@ -395,6 +408,15 @@ const SettingsScreen = () => {
               <List.Icon {...props} icon="backup-restore" color={theme.colors.primary} />
             )}
             onPress={() => navigation.navigate('BackupManagement')}
+          />
+          <List.Item
+            title="Download Latest Backup"
+            description={backupStatus.backupCount > 0 ? "Save the most recent backup to a location of your choice" : "No backups available"}
+            left={(props) => (
+              <List.Icon {...props} icon="download" color={backupStatus.backupCount > 0 ? theme.colors.primary : theme.colors.outline} />
+            )}
+            disabled={backupStatus.backupCount === 0}
+            onPress={handleDownloadLatestBackup}
           />
           <List.Item
             title="Database Location"

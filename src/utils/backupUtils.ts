@@ -3,6 +3,7 @@ import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Platform } from 'react-native';
+import { shareAsync } from 'expo-sharing';
 
 // Constants
 export const BACKUP_TASK_NAME = 'database-backup-task';
@@ -114,7 +115,7 @@ export const createBackup = async (): Promise<BackupInfo> => {
       filename,
       path: backupPath,
       timestamp,
-      size: backupInfo.size || 0,
+      size: (backupInfo as any).size || 0,
       formattedDate: formatBackupDate(timestamp),
     };
 
@@ -146,7 +147,7 @@ export const getBackupList = async (): Promise<BackupInfo[]> => {
         // Extract timestamp from filename
         // New format: crm_backup_1234567890_2023-12-25T10-30-00-000Z.db
         // Old format: crm_backup_2023-12-25T10-30-00-000Z.db
-        let timestamp = fileInfo.modificationTime || Date.now();
+        let timestamp = (fileInfo as any).modificationTime || Date.now();
 
         const newFormatMatch = filename.match(/crm_backup_(\d+)_(.+)\.db/);
         const oldFormatMatch = filename.match(/crm_backup_(.+)\.db/);
@@ -166,7 +167,7 @@ export const getBackupList = async (): Promise<BackupInfo[]> => {
             }
           } catch (e) {
             // Fallback to file modification time
-            timestamp = fileInfo.modificationTime || Date.now();
+            timestamp = (fileInfo as any).modificationTime || Date.now();
             console.log(`Using fallback timestamp: ${timestamp} for file: ${filename}`);
           }
         }
@@ -178,7 +179,7 @@ export const getBackupList = async (): Promise<BackupInfo[]> => {
           filename,
           path,
           timestamp,
-          size: fileInfo.size || 0,
+          size: (fileInfo as any).size || 0,
           formattedDate,
         });
       }
@@ -420,4 +421,66 @@ export const formatFileSize = (bytes: number): string => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+// Get the latest backup file
+export const getLatestBackup = async (): Promise<BackupInfo | null> => {
+  try {
+    const backups = await getBackupList();
+    return backups.length > 0 ? backups[0] : null; // First item is the latest due to sorting
+  } catch (error) {
+    console.error('Error getting latest backup:', error);
+    return null;
+  }
+};
+
+// Download the latest backup - allows user to choose save location
+export const downloadLatestBackup = async (): Promise<void> => {
+  try {
+    const latestBackup = await getLatestBackup();
+
+    if (!latestBackup) {
+      throw new Error('No backup files found');
+    }
+
+    // Check if backup file exists
+    const backupInfo = await FileSystem.getInfoAsync(latestBackup.path);
+    if (!backupInfo.exists) {
+      throw new Error('Latest backup file not found');
+    }
+
+    // Create a filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const fileName = `SAMVIDA_backup_${timestamp}.db`;
+
+    // Create a temporary file with the proper name for sharing
+    const tempPath = `${FileSystem.cacheDirectory}${fileName}`;
+
+    // Copy the backup to temp location with proper filename
+    await FileSystem.copyAsync({
+      from: latestBackup.path,
+      to: tempPath,
+    });
+
+    // Use sharing to let user choose where to save
+    await shareAsync(tempPath, {
+      UTI: '.db',
+      mimeType: 'application/x-sqlite3',
+      dialogTitle: 'Save Backup File'
+    });
+
+    // Clean up the temporary file after a delay to ensure sharing is complete
+    setTimeout(async () => {
+      try {
+        await FileSystem.deleteAsync(tempPath, { idempotent: true });
+      } catch (cleanupError) {
+        console.log('Error cleaning up temp file:', cleanupError);
+      }
+    }, 5000); // 5 second delay
+
+    console.log(`Backup shared successfully: ${fileName}`);
+  } catch (error) {
+    console.error('Error downloading latest backup:', error);
+    throw error;
+  }
 };
