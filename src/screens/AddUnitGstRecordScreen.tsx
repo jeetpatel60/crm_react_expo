@@ -6,7 +6,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { RootStackParamList } from '../types';
-import { UnitGstRecord, GstStatus } from '../database/unitGstRecordsDb';
+import { UnitGstRecord } from '../database/unitGstRecordsDb';
 import { addUnitGstRecord, getNextGstSerialNumber } from '../database/unitGstRecordsDb';
 import { spacing } from '../constants/theme';
 import { formatDate } from '../utils/formatters';
@@ -14,11 +14,7 @@ import { formatDate } from '../utils/formatters';
 type AddUnitGstRecordScreenRouteProp = RouteProp<RootStackParamList, 'AddUnitGstRecord'>;
 type AddUnitGstRecordNavigationProp = StackNavigationProp<RootStackParamList>;
 
-const GST_STATUS_OPTIONS: { label: string; value: GstStatus }[] = [
-  { label: 'Not Received', value: 'Not Received' },
-  { label: 'Partially Received', value: 'Partially Received' },
-  { label: 'Received', value: 'Received' },
-];
+
 
 const AddUnitGstRecordScreen = () => {
   const theme = useTheme();
@@ -28,10 +24,8 @@ const AddUnitGstRecordScreen = () => {
 
   // Form state
   const [date, setDate] = useState(new Date());
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
+  const [remarks, setRemarks] = useState('');
   const [rAmount, setRAmount] = useState('');
-  const [status, setStatus] = useState<GstStatus>('Not Received');
   const [nextSrNo, setNextSrNo] = useState(1);
   
   // UI state
@@ -55,18 +49,8 @@ const AddUnitGstRecordScreen = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!amount.trim()) {
-      newErrors.amount = 'Amount is required';
-    } else if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      newErrors.amount = 'Amount must be a valid positive number';
-    }
-
     if (rAmount.trim() && (isNaN(parseFloat(rAmount)) || parseFloat(rAmount) < 0)) {
-      newErrors.rAmount = 'Received amount must be a valid non-negative number';
-    }
-
-    if (rAmount.trim() && amount.trim() && parseFloat(rAmount) > parseFloat(amount)) {
-      newErrors.rAmount = 'Received amount cannot be greater than total amount';
+      newErrors.rAmount = 'R. Amount must be a valid non-negative number';
     }
 
     setErrors(newErrors);
@@ -92,10 +76,8 @@ const AddUnitGstRecordScreen = () => {
         unit_id: unitId,
         sr_no: nextSrNo,
         date: date.getTime(),
-        description: description.trim() || undefined,
-        amount: parseFloat(amount),
+        remarks: remarks.trim() || undefined,
         r_amount: parseFloat(rAmount) || 0,
-        status: status,
       };
 
       await addUnitGstRecord(newGstRecord);
@@ -149,35 +131,6 @@ const AddUnitGstRecordScreen = () => {
         </View>
 
         <TextInput
-          label="Description"
-          value={description}
-          onChangeText={setDescription}
-          mode="outlined"
-          style={styles.input}
-          outlineColor={theme.colors.outline}
-          activeOutlineColor={theme.colors.primary}
-          multiline
-          numberOfLines={3}
-        />
-
-        <TextInput
-          label="Amount *"
-          value={amount}
-          onChangeText={setAmount}
-          mode="outlined"
-          style={styles.input}
-          outlineColor={theme.colors.outline}
-          activeOutlineColor={theme.colors.primary}
-          keyboardType="numeric"
-          error={!!errors.amount}
-        />
-        {errors.amount && (
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>
-            {errors.amount}
-          </Text>
-        )}
-
-        <TextInput
           label="R. Amount"
           value={rAmount}
           onChangeText={setRAmount}
@@ -194,18 +147,19 @@ const AddUnitGstRecordScreen = () => {
           </Text>
         )}
 
-        <Text style={[styles.label, { color: theme.colors.onSurface }]}>Status</Text>
-        {GST_STATUS_OPTIONS.map((option) => (
-          <Button
-            key={option.value}
-            mode={status === option.value ? 'contained' : 'outlined'}
-            onPress={() => setStatus(option.value)}
-            style={styles.statusButton}
-            contentStyle={styles.statusButtonContent}
-          >
-            {option.label}
-          </Button>
-        ))}
+        <TextInput
+          label="Remarks"
+          value={remarks}
+          onChangeText={setRemarks}
+          mode="outlined"
+          style={styles.input}
+          outlineColor={theme.colors.outline}
+          activeOutlineColor={theme.colors.primary}
+          multiline
+          numberOfLines={3}
+        />
+
+
 
         <View style={styles.buttonContainer}>
           <Button
@@ -252,18 +206,7 @@ const styles = StyleSheet.create({
   datePickerContainer: {
     marginBottom: spacing.sm,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  statusButton: {
-    marginBottom: spacing.xs,
-  },
-  statusButtonContent: {
-    paddingVertical: 4,
-  },
+
   buttonContainer: {
     marginTop: spacing.md,
     marginBottom: spacing.xl,

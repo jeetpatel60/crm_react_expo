@@ -6,3 +6,4 @@ export * from './addPaymentReceiptTemplatesTable';
 export * from './addBValueWValueToUnitsFlats';
 export * from './addGstPercentageToUnitsFlats';
 export * from './addGstAmountToUnitsFlats';
+export * from './updateGstRecordsSchema';

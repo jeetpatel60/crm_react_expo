@@ -1,16 +1,12 @@
 import { db } from './database';
 
-export type GstStatus = 'Not Received' | 'Partially Received' | 'Received';
-
 export interface UnitGstRecord {
   id?: number;
   unit_id: number;
   sr_no: number;
   date: number;
-  description?: string;
-  amount: number;
+  remarks?: string;
   r_amount: number;
-  status: GstStatus;
   created_at?: number;
   updated_at?: number;
 }
@@ -63,16 +59,14 @@ export const addUnitGstRecord = async (gstRecord: UnitGstRecord): Promise<number
 
     const result = await db.runAsync(
       `INSERT INTO unit_gst_records (
-        unit_id, sr_no, date, description, amount, r_amount, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        unit_id, sr_no, date, remarks, r_amount, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?);`,
       [
         gstRecord.unit_id,
         gstRecord.sr_no,
         gstRecord.date,
-        gstRecord.description || null,
-        gstRecord.amount,
+        gstRecord.remarks || null,
         gstRecord.r_amount,
-        gstRecord.status,
         now,
         now
       ]
@@ -99,20 +93,16 @@ export const updateUnitGstRecord = async (gstRecord: UnitGstRecord): Promise<voi
         unit_id = ?,
         sr_no = ?,
         date = ?,
-        description = ?,
-        amount = ?,
+        remarks = ?,
         r_amount = ?,
-        status = ?,
         updated_at = ?
       WHERE id = ?;`,
       [
         gstRecord.unit_id,
         gstRecord.sr_no,
         gstRecord.date,
-        gstRecord.description || null,
-        gstRecord.amount,
+        gstRecord.remarks || null,
         gstRecord.r_amount,
-        gstRecord.status,
         now,
         gstRecord.id
       ]

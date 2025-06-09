@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList, ScrollView } from 'react-native';
 import {
   Text,
   useTheme,
@@ -26,10 +26,9 @@ import CustomerLedgerExportModal from '../components/CustomerLedgerExportModal';
 interface GstEntry {
   id: string;
   date: string;
-  description: string;
-  amount: number;
-  rAmount: number;
-  status: string;
+  remarks: string;
+  credit: number;
+  debit: number;
   srNo: number;
 }
 
@@ -76,19 +75,34 @@ const GstReportScreen = () => {
             // Fetch GST records for this client's unit
             const gstRecords = await getUnitGstRecords(clientFlat.id!);
 
-            // Transform to GstEntry format
-            const transformedData: GstEntry[] = gstRecords.map(record => ({
+            // Create entries array with initial debit entry for total GST value
+            const transformedData: GstEntry[] = [];
+
+            // Add initial debit entry for total GST value
+            if (clientFlat.gst_amount && clientFlat.gst_amount > 0) {
+              transformedData.push({
+                id: 'initial-debit',
+                date: '', // No date for debit entry
+                remarks: 'Total GST Value',
+                credit: 0,
+                debit: clientFlat.gst_amount,
+                srNo: 0,
+              });
+            }
+
+            // Transform GST records to credit entries
+            const creditEntries: GstEntry[] = gstRecords.map(record => ({
               id: record.id!.toString(),
-              date: formatDate(new Date(record.date)),
-              description: record.description || 'GST Record',
-              amount: record.amount,
-              rAmount: record.r_amount,
-              status: record.status,
+              date: record.date ? formatDate(record.date) : '',
+              remarks: record.remarks || 'GST Payment',
+              credit: record.r_amount,
+              debit: 0,
               srNo: record.sr_no,
             }));
 
-            // Sort by date (newest first)
-            transformedData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            // Combine and sort by serial number
+            transformedData.push(...creditEntries);
+            transformedData.sort((a, b) => a.srNo - b.srNo);
 
             setGstData(transformedData);
           } else {
@@ -129,16 +143,18 @@ const GstReportScreen = () => {
       console.log(`Exporting GST Report PDF with letterhead option: ${letterheadOption}, company ID: ${companyId}`);
 
       // Calculate totals
-      const overallGstBalance = (clientFlatDetails.gst_amount || 0) - totalReceivedAmount;
+      const totalDebit = gstData.reduce((total, item) => total + item.debit, 0);
+      const totalCredit = gstData.reduce((total, item) => total + item.credit, 0);
+      const balanceToCollect = totalDebit - totalCredit;
 
       await generateAndShareGstReportPdf(
         selectedClient,
         gstData,
         clientFlatDetails.gst_amount || 0,
-        totalGstAmount,
-        totalReceivedAmount,
-        totalPendingAmount,
-        overallGstBalance,
+        totalDebit,
+        totalCredit,
+        balanceToCollect,
+        balanceToCollect,
         clientFlatDetails.flat_no,
         companyId,
         letterheadOption
@@ -153,128 +169,74 @@ const GstReportScreen = () => {
   );
 
   // Calculate totals
-  const totalGstAmount = useMemo(() => {
-    return gstData.reduce((total, item) => total + item.amount, 0);
+  const totalCredit = useMemo(() => {
+    return gstData.reduce((total, item) => total + item.credit, 0);
   }, [gstData]);
 
-  const totalReceivedAmount = useMemo(() => {
-    return gstData.reduce((total, item) => total + item.rAmount, 0);
+  const totalDebit = useMemo(() => {
+    return gstData.reduce((total, item) => total + item.debit, 0);
   }, [gstData]);
 
-  const totalPendingAmount = useMemo(() => {
-    return totalGstAmount - totalReceivedAmount;
-  }, [totalGstAmount, totalReceivedAmount]);
+  const balanceToCollect = useMemo(() => {
+    return totalDebit - totalCredit;
+  }, [totalDebit, totalCredit]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Received':
-        return theme.colors.primary;
-      case 'Partially Received':
-        return '#FF9800';
-      case 'Not Received':
-        return theme.colors.error;
-      default:
-        return theme.colors.outline;
-    }
-  };
+
 
   const renderGstItem = ({ item }: { item: GstEntry }) => (
     <View style={styles.gstItem}>
       <View style={styles.gstMainRow}>
-        <View style={styles.gstLeftSection}>
-          <Text style={styles.gstDate}>{item.date}</Text>
-          <Text style={styles.gstDescription}>
-            Sr.{item.srNo} - {item.description}
+        <View style={styles.gstSerialSection}>
+          <Text style={[styles.gstSerial, { color: theme.colors.onSurface }]}>
+            {item.srNo === 0 ? '-' : item.srNo}
           </Text>
         </View>
-        <View style={styles.gstRightSection}>
-          <Text style={[styles.gstAmount, { color: theme.colors.primary }]}>
-            {formatCurrency(item.amount)}
-          </Text>
-          <Text style={[styles.gstStatus, { color: getStatusColor(item.status) }]}>
-            {item.status}
+        <View style={styles.gstDateSection}>
+          <Text style={[styles.gstDate, { color: theme.colors.onSurface }]}>{item.date || '-'}</Text>
+        </View>
+        <View style={styles.gstDebitSection}>
+          <Text style={[styles.gstDebit, { color: item.debit > 0 ? '#F44336' : theme.colors.onSurfaceVariant }]}>
+            {item.debit > 0 ? formatCurrency(item.debit) : '-'}
           </Text>
         </View>
-      </View>
-      <View style={styles.gstDetailsRow}>
-        <Text style={[styles.gstDetailText, { color: theme.colors.onSurfaceVariant }]}>
-          R. Amount: {formatCurrency(item.rAmount)}
-        </Text>
-        <Text style={[styles.gstDetailText, { color: theme.colors.onSurfaceVariant }]}>
-          Balance: {formatCurrency(item.amount - item.rAmount)}
-        </Text>
+        <View style={styles.gstCreditSection}>
+          <Text style={[styles.gstCredit, { color: item.credit > 0 ? '#4CAF50' : theme.colors.onSurfaceVariant }]}>
+            {item.credit > 0 ? formatCurrency(item.credit) : '-'}
+          </Text>
+        </View>
+        <View style={styles.gstRemarksSection}>
+          <Text style={[styles.gstRemarks, { color: theme.colors.onSurface }]}>
+            {item.remarks}
+          </Text>
+        </View>
       </View>
     </View>
   );
 
-  const renderHeader = () => {
-    if (!selectedClient || !clientFlatDetails) return null;
 
-    return (
-      <View>
-        <View style={styles.flatValueContainer}>
-          <Text style={[styles.flatValueLabel, { color: theme.colors.onSurface }]}>
-            Total GST Value:
-          </Text>
-          <Text style={[styles.flatValueAmount, { color: theme.colors.primary }]}>
-            {formatCurrency(clientFlatDetails.gst_amount || 0)}
-          </Text>
-        </View>
-        <View style={styles.clientInfoContainer}>
-          <Text style={[styles.clientInfoText, { color: theme.colors.onSurfaceVariant }]}>
-            Client: {selectedClient.name}
-          </Text>
-          <Text style={[styles.clientInfoText, { color: theme.colors.onSurfaceVariant }]}>
-            Unit: {clientFlatDetails.flat_no}
-          </Text>
-        </View>
-      </View>
-    );
-  };
 
   const renderFooter = () => {
     if (!selectedClient || !clientFlatDetails) return null;
-
-    // Calculate Overall GST Balance: Total GST Value - Total R. Amount Received
-    const overallGstBalance = (clientFlatDetails.gst_amount || 0) - totalReceivedAmount;
 
     return (
       <View style={styles.balanceContainer}>
         <Divider style={styles.divider} />
         <View style={styles.balanceRow}>
-          <Text style={styles.balanceLabel}>Total Collection Amount:</Text>
+          <Text style={styles.balanceLabel}>Total R. Amount:</Text>
           <Text style={[
             styles.balanceAmount,
-            { color: theme.colors.primary }
+            { color: '#4CAF50' }
           ]}>
-            {formatCurrency(totalGstAmount)}
+            {formatCurrency(totalCredit)}
           </Text>
         </View>
         <View style={styles.balanceRow}>
-          <Text style={styles.balanceLabel}>Total R. Amount Received:</Text>
+          <Text style={styles.balanceLabel}>Balance to be Collected:</Text>
           <Text style={[
             styles.balanceAmount,
-            { color: theme.colors.primary }
+            { color: balanceToCollect > 0 ? '#F44336' : '#4CAF50' }
           ]}>
-            {formatCurrency(totalReceivedAmount)}
-          </Text>
-        </View>
-        <View style={styles.balanceRow}>
-          <Text style={styles.balanceLabel}>Total Balance Amount:</Text>
-          <Text style={[
-            styles.balanceAmount,
-            { color: theme.colors.error }
-          ]}>
-            {formatCurrency(totalPendingAmount)}
-          </Text>
-        </View>
-        <View style={styles.balanceRow}>
-          <Text style={styles.balanceLabel}>Overall GST Balance:</Text>
-          <Text style={[
-            styles.balanceAmount,
-            { color: overallGstBalance >= 0 ? theme.colors.error : theme.colors.primary }
-          ]}>
-            {formatCurrency(overallGstBalance)}
+            {formatCurrency(balanceToCollect)}
           </Text>
         </View>
       </View>
@@ -301,19 +263,61 @@ const GstReportScreen = () => {
       {loading ? (
         <ActivityIndicator animating={true} color={theme.colors.primary} style={styles.loadingIndicator} />
       ) : selectedClient ? (
-        <FlatList
-          data={gstData}
-          keyExtractor={(item) => item.id}
-          renderItem={renderGstItem}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={{ color: theme.colors.onSurfaceVariant }}>No GST records found for this client.</Text>
+        <View style={styles.reportContainer}>
+          {/* Client Info - Fixed */}
+          <View style={styles.clientInfoContainer}>
+            <Text style={[styles.clientInfoText, { color: theme.colors.onSurfaceVariant }]}>
+              Client: {selectedClient.name}
+            </Text>
+            <Text style={[styles.clientInfoText, { color: theme.colors.onSurfaceVariant }]}>
+              Project: {(selectedClient as ClientWithDetails).project_name || 'N/A'}
+            </Text>
+            <Text style={[styles.clientInfoText, { color: theme.colors.onSurfaceVariant }]}>
+              Flat: {clientFlatDetails?.flat_no}
+            </Text>
+          </View>
+
+          {/* Table - Horizontally Scrollable */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.horizontalScrollView}>
+            <View style={styles.tableContainer}>
+              {/* Table Header */}
+              <View style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
+                <View style={styles.gstSerialSection}>
+                  <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>Sr No</Text>
+                </View>
+                <View style={styles.gstDateSection}>
+                  <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>Date</Text>
+                </View>
+                <View style={styles.gstDebitSection}>
+                  <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>Debit</Text>
+                </View>
+                <View style={styles.gstCreditSection}>
+                  <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>Credit</Text>
+                </View>
+                <View style={styles.gstRemarksSection}>
+                  <Text style={[styles.tableHeaderText, { color: theme.colors.onSurface }]}>Remarks</Text>
+                </View>
+              </View>
+
+              {/* Table Content */}
+              <FlatList
+                data={gstData}
+                keyExtractor={(item) => item.id}
+                renderItem={renderGstItem}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Text style={{ color: theme.colors.onSurfaceVariant }}>No GST records found for this client.</Text>
+                  </View>
+                }
+                contentContainerStyle={styles.listContentContainer}
+                scrollEnabled={false}
+              />
             </View>
-          }
-          ListFooterComponent={renderFooter}
-          contentContainerStyle={styles.listContentContainer}
-        />
+          </ScrollView>
+
+          {/* Footer - Fixed */}
+          {renderFooter()}
+        </View>
       ) : (
         <View style={styles.emptyState}>
           <Text style={{ color: theme.colors.onSurfaceVariant }}>Please select a client to view their GST records.</Text>
@@ -396,53 +400,79 @@ const styles = StyleSheet.create({
   listContentContainer: {
     flexGrow: 1,
   },
-  gstItem: {
-    flexDirection: 'column',
+  reportContainer: {
+    flex: 1,
+  },
+  horizontalScrollView: {
+    flexGrow: 0,
+  },
+  tableContainer: {
+    minWidth: 680, // Minimum width to accommodate all columns
+  },
+  tableHeader: {
+    flexDirection: 'row',
     paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderBottomWidth: 2,
+    borderBottomColor: '#ddd',
+    marginBottom: spacing.xs,
+  },
+  tableHeaderText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  gstItem: {
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   gstMainRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    alignItems: 'center',
   },
-  gstLeftSection: {
-    flex: 1,
-    marginRight: spacing.sm,
+  gstSerialSection: {
+    width: 80,
+    alignItems: 'center',
   },
-  gstRightSection: {
-    alignItems: 'flex-end',
-    minWidth: 120,
+  gstDateSection: {
+    width: 120,
+    alignItems: 'center',
   },
-  gstDate: {
-    fontSize: 14,
-    marginBottom: 2,
+  gstCreditSection: {
+    width: 140,
+    alignItems: 'center',
   },
-  gstDescription: {
-    fontSize: 14,
-    lineHeight: 18,
+  gstDebitSection: {
+    width: 140,
+    alignItems: 'center',
   },
-  gstAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'right',
-    marginBottom: 2,
-  },
-  gstStatus: {
-    fontSize: 12,
-    textAlign: 'right',
-    fontWeight: '500',
-  },
-  gstDetailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xs,
+  gstRemarksSection: {
+    width: 200,
     paddingLeft: spacing.sm,
   },
-  gstDetailText: {
+  gstSerial: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  gstDate: {
     fontSize: 12,
-    flex: 1,
+    textAlign: 'center',
+  },
+  gstCredit: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  gstDebit: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  gstRemarks: {
+    fontSize: 14,
+    lineHeight: 18,
   },
   flatValueContainer: {
     flexDirection: 'row',

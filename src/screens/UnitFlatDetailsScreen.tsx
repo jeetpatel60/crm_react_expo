@@ -799,14 +799,12 @@ const UnitFlatDetailsScreen = () => {
                 showsHorizontalScrollIndicator={true}
                 contentContainerStyle={{ flexGrow: 1 }}
               >
-                <DataTable style={[styles.table, { minWidth: 800 }]}>
+                <DataTable style={[styles.table, { minWidth: 500 }]}>
                   <DataTable.Header style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
                     <DataTable.Title style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>Sr No</DataTable.Title>
                     <DataTable.Title style={styles.dateColumn} textStyle={{textAlign: 'center'}}>Date</DataTable.Title>
-                    <DataTable.Title style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>Description</DataTable.Title>
-                    <DataTable.Title style={styles.amountColumn} textStyle={{textAlign: 'center'}}>Amount</DataTable.Title>
                     <DataTable.Title style={styles.rAmountColumn} textStyle={{textAlign: 'center'}}>R. Amount</DataTable.Title>
-                    <DataTable.Title style={styles.statusColumn} textStyle={{textAlign: 'center'}}>Status</DataTable.Title>
+                    <DataTable.Title style={styles.remarksColumn} textStyle={{textAlign: 'center'}}>Remarks</DataTable.Title>
                     <DataTable.Title style={styles.actionsColumn} textStyle={{textAlign: 'center'}}>Actions</DataTable.Title>
                   </DataTable.Header>
 
@@ -814,10 +812,8 @@ const UnitFlatDetailsScreen = () => {
                     <DataTable.Row key={gstRecord.id} style={[styles.tableRow, { borderBottomColor: theme.colors.outline }]}>
                       <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{gstRecord.sr_no}</DataTable.Cell>
                       <DataTable.Cell style={styles.dateColumn} textStyle={{textAlign: 'center'}}>{formatDate(gstRecord.date)}</DataTable.Cell>
-                      <DataTable.Cell style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>{gstRecord.description || '-'}</DataTable.Cell>
-                      <DataTable.Cell style={styles.amountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(gstRecord.amount)}</DataTable.Cell>
                       <DataTable.Cell style={styles.rAmountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(gstRecord.r_amount)}</DataTable.Cell>
-                      <DataTable.Cell style={styles.statusColumn} textStyle={{textAlign: 'center'}}>{gstRecord.status}</DataTable.Cell>
+                      <DataTable.Cell style={styles.remarksColumn} textStyle={{textAlign: 'center'}}>{gstRecord.remarks || '-'}</DataTable.Cell>
                       <DataTable.Cell style={styles.actionsColumn}>
                         <View style={styles.actionButtons}>
                           <IconButton

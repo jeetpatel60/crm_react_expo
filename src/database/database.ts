@@ -302,10 +302,8 @@ export const initDatabase = async (): Promise<void> => {
         unit_id INTEGER NOT NULL,
         sr_no INTEGER NOT NULL,
         date INTEGER NOT NULL,
-        description TEXT,
-        amount REAL NOT NULL,
+        remarks TEXT,
         r_amount REAL DEFAULT 0,
-        status TEXT NOT NULL DEFAULT 'Not Received',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (unit_id) REFERENCES units_flats (id) ON DELETE CASCADE
@@ -398,6 +396,9 @@ export const runMigrations = async (): Promise<void> => {
 
     const { addGstAmountToUnitsFlats } = await import('./migrations/addGstAmountToUnitsFlats');
     await addGstAmountToUnitsFlats(getDatabase);
+
+    const { updateGstRecordsSchema } = await import('./migrations/updateGstRecordsSchema');
+    await updateGstRecordsSchema(getDatabase);
 
     console.log('Database migrations completed successfully');
   } catch (error) {

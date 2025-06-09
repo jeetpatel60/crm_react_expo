@@ -448,10 +448,9 @@ export const generateAndShareCustomerLedgerPdf = async (
 interface GstReportEntry {
   id: string;
   date: string;
-  description: string;
-  amount: number;
-  rAmount: number;
-  status: string;
+  remarks: string;
+  credit: number;
+  debit: number;
   srNo: number;
 }
 
@@ -459,10 +458,8 @@ interface GstReportData {
   client: Client | ClientWithDetails;
   gstEntries: GstReportEntry[];
   totalGstValue: number;
-  totalCollectionAmount: number;
-  totalReceivedAmount: number;
-  totalBalanceAmount: number;
-  overallGstBalance: number;
+  totalCredit: number;
+  balanceToCollect: number;
   unitFlatNo: string;
   company?: Company;
   generatedAt: number;
@@ -478,10 +475,8 @@ const generateGstReportHtml = (data: GstReportData, letterheadOption?: 'none' | 
     client,
     gstEntries,
     totalGstValue,
-    totalCollectionAmount,
-    totalReceivedAmount,
-    totalBalanceAmount,
-    overallGstBalance,
+    totalCredit,
+    balanceToCollect,
     unitFlatNo,
     company,
     generatedAt
@@ -509,12 +504,15 @@ const generateGstReportHtml = (data: GstReportData, letterheadOption?: 'none' | 
   // Generate GST entries table
   const gstEntriesHtml = gstEntries.map(entry => `
     <tr>
-      <td>${entry.date}</td>
-      <td>Sr.${entry.srNo} - ${entry.description}</td>
-      <td style="text-align: right;">₹${entry.amount.toFixed(2)}</td>
-      <td style="text-align: right;">₹${entry.rAmount.toFixed(2)}</td>
-      <td style="text-align: right;">₹${(entry.amount - entry.rAmount).toFixed(2)}</td>
-      <td style="text-align: center;">${entry.status}</td>
+      <td style="text-align: center;">${entry.srNo === 0 ? '-' : entry.srNo}</td>
+      <td style="text-align: center;">${entry.date || '-'}</td>
+      <td style="text-align: right; color: ${entry.debit > 0 ? '#F44336' : '#666'}; font-weight: ${entry.debit > 0 ? 'bold' : 'normal'};">
+        ${entry.debit > 0 ? '₹' + entry.debit.toFixed(2) : '-'}
+      </td>
+      <td style="text-align: right; color: ${entry.credit > 0 ? '#4CAF50' : '#666'}; font-weight: ${entry.credit > 0 ? 'bold' : 'normal'};">
+        ${entry.credit > 0 ? '₹' + entry.credit.toFixed(2) : '-'}
+      </td>
+      <td>${entry.remarks}</td>
     </tr>
   `).join('');
 
@@ -612,25 +610,20 @@ const generateGstReportHtml = (data: GstReportData, letterheadOption?: 'none' | 
 
       <div class="client-info">
         <strong>Client:</strong> ${client.name}<br>
-        <strong>Unit:</strong> ${unitFlatNo}<br>
-        ${(client as ClientWithDetails).project_name ? `<strong>Project:</strong> ${(client as ClientWithDetails).project_name}<br>` : ''}
+        <strong>Project:</strong> ${(client as ClientWithDetails).project_name || 'N/A'}<br>
+        <strong>Flat:</strong> ${unitFlatNo}<br>
         ${client.email ? `<strong>Email:</strong> ${client.email}<br>` : ''}
         ${client.phone ? `<strong>Phone:</strong> ${client.phone}` : ''}
-      </div>
-
-      <div class="gst-value">
-        <h3>Total GST Value: ₹${totalGstValue.toFixed(2)}</h3>
       </div>
 
       <table>
         <thead>
           <tr>
+            <th>Sr No</th>
             <th>Date</th>
-            <th>Description</th>
-            <th>Amount</th>
-            <th>R. Amount</th>
-            <th>Balance</th>
-            <th>Status</th>
+            <th style="color: #F44336;">Debit</th>
+            <th style="color: #4CAF50;">Credit</th>
+            <th>Remarks</th>
           </tr>
         </thead>
         <tbody>
@@ -640,20 +633,12 @@ const generateGstReportHtml = (data: GstReportData, letterheadOption?: 'none' | 
 
       <div class="summary">
         <div class="summary-row">
-          <span>Total Collection Amount:</span>
-          <span>₹${totalCollectionAmount.toFixed(2)}</span>
-        </div>
-        <div class="summary-row">
-          <span>Total R. Amount Received:</span>
-          <span>₹${totalReceivedAmount.toFixed(2)}</span>
-        </div>
-        <div class="summary-row">
-          <span>Total Balance Amount:</span>
-          <span>₹${totalBalanceAmount.toFixed(2)}</span>
+          <span>Total R. Amount:</span>
+          <span style="color: #4CAF50; font-weight: bold;">₹${totalCredit.toFixed(2)}</span>
         </div>
         <div class="summary-row total">
-          <span>Overall GST Balance:</span>
-          <span>₹${overallGstBalance.toFixed(2)}</span>
+          <span>Balance to be Collected:</span>
+          <span style="color: ${balanceToCollect > 0 ? '#F44336' : '#4CAF50'}; font-weight: bold;">₹${balanceToCollect.toFixed(2)}</span>
         </div>
       </div>
 
@@ -689,10 +674,8 @@ export const generateAndShareGstReportPdf = async (
       client,
       gstEntries,
       totalGstValue,
-      totalCollectionAmount,
-      totalReceivedAmount,
-      totalBalanceAmount,
-      overallGstBalance,
+      totalCredit: totalReceivedAmount,
+      balanceToCollect: overallGstBalance,
       unitFlatNo,
       generatedAt
     };
