@@ -4,3 +4,5 @@ export * from './addClientIdToUnitsFlats';
 export * from './addPaymentRequestIdToUnitPaymentReceipts';
 export * from './addPaymentReceiptTemplatesTable';
 export * from './addBValueWValueToUnitsFlats';
+export * from './addGstPercentageToUnitsFlats';
+export * from './addGstAmountToUnitsFlats';

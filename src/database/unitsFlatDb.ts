@@ -16,6 +16,8 @@ export interface UnitFlat {
   balance_amount?: number;
   b_value?: number;
   w_value?: number;
+  gst_percentage?: number;
+  gst_amount?: number;
   status: UnitStatus;
   type?: string;
   created_at?: number;
@@ -86,8 +88,8 @@ export const addUnitFlat = async (unit: UnitFlat): Promise<number> => {
     const result = await db.runAsync(
       `INSERT INTO units_flats (
         flat_no, project_id, client_id, area_sqft, rate_per_sqft, flat_value,
-        received_amount, balance_amount, b_value, w_value, status, type, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        received_amount, balance_amount, b_value, w_value, gst_percentage, gst_amount, status, type, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         unit.flat_no,
         unit.project_id,
@@ -99,6 +101,8 @@ export const addUnitFlat = async (unit: UnitFlat): Promise<number> => {
         unitWithCalculations.balance_amount || null,
         unit.b_value || 0,
         unit.w_value || 0,
+        unit.gst_percentage || 0,
+        unit.gst_amount || 0,
         unit.status,
         unit.type || null,
         now,
@@ -154,6 +158,8 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
         balance_amount = ?,
         b_value = ?,
         w_value = ?,
+        gst_percentage = ?,
+        gst_amount = ?,
         status = ?,
         type = ?,
         updated_at = ?
@@ -169,6 +175,8 @@ export const updateUnitFlat = async (unit: UnitFlat): Promise<void> => {
         unitWithCalculations.balance_amount || null,
         unit.b_value || 0,
         unit.w_value || 0,
+        unit.gst_percentage || 0,
+        unit.gst_amount || 0,
         unit.status,
         unit.type || null,
         now,

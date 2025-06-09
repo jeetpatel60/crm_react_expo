@@ -4,6 +4,7 @@ import { useTheme } from 'react-native-paper';
 import { ReportsStackParamList } from '../types';
 import CustomerLedgerReportScreen from '../screens/CustomerLedgerReportScreen';
 import FlatsAvailabilityReportScreen from '../screens/FlatsAvailabilityReportScreen';
+import GstReportScreen from '../screens/GstReportScreen';
 import { View, Text, StyleSheet } from 'react-native';
 import { spacing } from '../constants/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -86,6 +87,11 @@ const ReportsNavigator = () => {
         name="FlatsAvailabilityReport"
         component={FlatsAvailabilityReportScreen}
         options={{ title: 'Flats Availability Report' }}
+      />
+      <ReportsStack.Screen
+        name="GstReport"
+        component={GstReportScreen}
+        options={{ title: 'GST Report' }}
       />
     </ReportsStack.Navigator>
   );

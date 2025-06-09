@@ -30,6 +30,8 @@ const AddUnitFlatScreen = () => {
   const [receivedAmount, setReceivedAmount] = useState('0');
   const [bValue, setBValue] = useState('0');
   const [wValue, setWValue] = useState('0');
+  const [gstPercentage, setGstPercentage] = useState('0');
+  const [gstAmount, setGstAmount] = useState('0');
   const [status, setStatus] = useState<UnitStatus>('Available');
   const [type, setType] = useState('');
 
@@ -101,6 +103,26 @@ const AddUnitFlatScreen = () => {
       newErrors.wValue = 'W Value must be a valid number';
     }
 
+    if (gstPercentage && isNaN(parseFloat(gstPercentage))) {
+      newErrors.gstPercentage = 'GST % must be a valid number';
+    }
+
+    if (gstPercentage && parseFloat(gstPercentage) < 0) {
+      newErrors.gstPercentage = 'GST % cannot be negative';
+    }
+
+    if (gstPercentage && parseFloat(gstPercentage) > 100) {
+      newErrors.gstPercentage = 'GST % cannot be more than 100';
+    }
+
+    if (gstAmount && isNaN(parseFloat(gstAmount))) {
+      newErrors.gstAmount = 'GST Amount must be a valid number';
+    }
+
+    if (gstAmount && parseFloat(gstAmount) < 0) {
+      newErrors.gstAmount = 'GST Amount cannot be negative';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -124,6 +146,8 @@ const AddUnitFlatScreen = () => {
         balance_amount: parseFloat(balanceAmount),
         b_value: bValue ? parseFloat(bValue) : 0,
         w_value: wValue ? parseFloat(wValue) : 0,
+        gst_percentage: gstPercentage ? parseFloat(gstPercentage) : 0,
+        gst_amount: gstAmount ? parseFloat(gstAmount) : 0,
         status,
         type: type.trim() || undefined,
       };
@@ -356,6 +380,45 @@ const AddUnitFlatScreen = () => {
             {errors.wValue && (
               <Text style={[styles.errorText, { color: theme.colors.error }]}>
                 {errors.wValue}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.halfInput}>
+            <TextInput
+              label="GST %"
+              value={gstPercentage}
+              onChangeText={setGstPercentage}
+              mode="outlined"
+              style={styles.input}
+              keyboardType="numeric"
+              error={!!errors.gstPercentage}
+              outlineColor={theme.colors.outline}
+              activeOutlineColor={theme.colors.primary}
+            />
+            {errors.gstPercentage && (
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                {errors.gstPercentage}
+              </Text>
+            )}
+          </View>
+          <View style={styles.halfInput}>
+            <TextInput
+              label="GST Amount"
+              value={gstAmount}
+              onChangeText={setGstAmount}
+              mode="outlined"
+              style={styles.input}
+              keyboardType="numeric"
+              error={!!errors.gstAmount}
+              outlineColor={theme.colors.outline}
+              activeOutlineColor={theme.colors.primary}
+            />
+            {errors.gstAmount && (
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                {errors.gstAmount}
               </Text>
             )}
           </View>

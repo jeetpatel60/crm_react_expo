@@ -134,6 +134,26 @@ const CustomDrawerContent = (props: DrawerContentComponentProps) => {
                   }}
                   isSubmenuItem={true}
                 />
+                <DrawerItemCustom
+                  label="GST Report"
+                  icon={
+                    <MaterialCommunityIcons
+                      name="receipt"
+                      color={theme.colors.onSurface}
+                      size={22}
+                    />
+                  }
+                  onPress={() => {
+                    // Close drawer first
+                    props.navigation.closeDrawer();
+
+                    // Navigate with delay
+                    setTimeout(() => {
+                      navigation.navigate('Reports', { screen: 'GstReport' });
+                    }, 500);
+                  }}
+                  isSubmenuItem={true}
+                />
               </Animated.View>
             )}
           </View>

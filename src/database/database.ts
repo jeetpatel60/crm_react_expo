@@ -295,6 +295,23 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
+    // Create unit_gst_records table
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS unit_gst_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        unit_id INTEGER NOT NULL,
+        sr_no INTEGER NOT NULL,
+        date INTEGER NOT NULL,
+        description TEXT,
+        amount REAL NOT NULL,
+        r_amount REAL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'Not Received',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (unit_id) REFERENCES units_flats (id) ON DELETE CASCADE
+      );
+    `);
+
     // Create quotation_annexure_a table
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS quotation_annexure_a (
@@ -375,6 +392,12 @@ export const runMigrations = async (): Promise<void> => {
 
     const { addBValueWValueToUnitsFlats } = await import('./migrations/addBValueWValueToUnitsFlats');
     await addBValueWValueToUnitsFlats(getDatabase);
+
+    const { addGstPercentageToUnitsFlats } = await import('./migrations/addGstPercentageToUnitsFlats');
+    await addGstPercentageToUnitsFlats(getDatabase);
+
+    const { addGstAmountToUnitsFlats } = await import('./migrations/addGstAmountToUnitsFlats');
+    await addGstAmountToUnitsFlats(getDatabase);
 
     console.log('Database migrations completed successfully');
   } catch (error) {

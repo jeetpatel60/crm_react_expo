@@ -443,3 +443,351 @@ export const generateAndShareCustomerLedgerPdf = async (
     Alert.alert('Error', 'Failed to generate or share PDF. Please try again.');
   }
 };
+
+// GST Report interfaces and types
+interface GstReportEntry {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  rAmount: number;
+  status: string;
+  srNo: number;
+}
+
+interface GstReportData {
+  client: Client | ClientWithDetails;
+  gstEntries: GstReportEntry[];
+  totalGstValue: number;
+  totalCollectionAmount: number;
+  totalReceivedAmount: number;
+  totalBalanceAmount: number;
+  overallGstBalance: number;
+  unitFlatNo: string;
+  company?: Company;
+  generatedAt: number;
+  companyLetterheadBase64?: string;
+  companyLetterheadType?: 'image' | 'pdf';
+}
+
+/**
+ * Generate HTML content for the GST report
+ */
+const generateGstReportHtml = (data: GstReportData, letterheadOption?: 'none' | 'company'): string => {
+  const {
+    client,
+    gstEntries,
+    totalGstValue,
+    totalCollectionAmount,
+    totalReceivedAmount,
+    totalBalanceAmount,
+    overallGstBalance,
+    unitFlatNo,
+    company,
+    generatedAt
+  } = data;
+
+  // Generate letterhead section if company is provided and letterhead is requested
+  let letterheadHtml = '';
+  if (company && letterheadOption === 'company') {
+    if (data.companyLetterheadBase64 && data.companyLetterheadType === 'image') {
+      letterheadHtml = `
+        <div class="letterhead">
+          <img src="${data.companyLetterheadBase64}" style="max-width: 100%; max-height: 150px;" />
+        </div>
+      `;
+    } else {
+      letterheadHtml = `
+        <div class="letterhead-text">
+          <h1>${company.name || 'Company Name'}</h1>
+          ${company.salutation ? `<p>${company.salutation}</p>` : ''}
+        </div>
+      `;
+    }
+  }
+
+  // Generate GST entries table
+  const gstEntriesHtml = gstEntries.map(entry => `
+    <tr>
+      <td>${entry.date}</td>
+      <td>Sr.${entry.srNo} - ${entry.description}</td>
+      <td style="text-align: right;">₹${entry.amount.toFixed(2)}</td>
+      <td style="text-align: right;">₹${entry.rAmount.toFixed(2)}</td>
+      <td style="text-align: right;">₹${(entry.amount - entry.rAmount).toFixed(2)}</td>
+      <td style="text-align: center;">${entry.status}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>GST Report - ${client.name}</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+          ${letterheadOption === 'none' ? 'padding-top: 150px;' : ''}
+        }
+        .letterhead {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .letterhead-text {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .letterhead-text h1 {
+          margin: 0;
+          color: #333;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .client-info {
+          margin-bottom: 20px;
+          padding: 15px;
+          background-color: #f5f5f5;
+          border-radius: 5px;
+        }
+        .gst-value {
+          margin-bottom: 20px;
+          padding: 15px;
+          background-color: #e3f2fd;
+          border-radius: 5px;
+          text-align: center;
+        }
+        .gst-value h3 {
+          margin: 0;
+          color: #1976d2;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 8px;
+          text-align: left;
+        }
+        th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+        }
+        .summary {
+          margin-top: 20px;
+          padding: 15px;
+          background-color: #f9f9f9;
+          border-radius: 5px;
+        }
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          padding: 5px 0;
+        }
+        .summary-row.total {
+          border-top: 2px solid #333;
+          font-weight: bold;
+          font-size: 16px;
+        }
+        .footer {
+          margin-top: 30px;
+          text-align: center;
+          font-size: 12px;
+          color: #666;
+        }
+      </style>
+    </head>
+    <body>
+      ${letterheadHtml}
+
+      <div class="header">
+        <h2>GST Report</h2>
+      </div>
+
+      <div class="client-info">
+        <strong>Client:</strong> ${client.name}<br>
+        <strong>Unit:</strong> ${unitFlatNo}<br>
+        ${(client as ClientWithDetails).project_name ? `<strong>Project:</strong> ${(client as ClientWithDetails).project_name}<br>` : ''}
+        ${client.email ? `<strong>Email:</strong> ${client.email}<br>` : ''}
+        ${client.phone ? `<strong>Phone:</strong> ${client.phone}` : ''}
+      </div>
+
+      <div class="gst-value">
+        <h3>Total GST Value: ₹${totalGstValue.toFixed(2)}</h3>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>R. Amount</th>
+            <th>Balance</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${gstEntriesHtml}
+        </tbody>
+      </table>
+
+      <div class="summary">
+        <div class="summary-row">
+          <span>Total Collection Amount:</span>
+          <span>₹${totalCollectionAmount.toFixed(2)}</span>
+        </div>
+        <div class="summary-row">
+          <span>Total R. Amount Received:</span>
+          <span>₹${totalReceivedAmount.toFixed(2)}</span>
+        </div>
+        <div class="summary-row">
+          <span>Total Balance Amount:</span>
+          <span>₹${totalBalanceAmount.toFixed(2)}</span>
+        </div>
+        <div class="summary-row total">
+          <span>Overall GST Balance:</span>
+          <span>₹${overallGstBalance.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <div class="footer">
+        Generated on ${new Date(generatedAt).toLocaleString()}
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Generate and share GST report as PDF
+ */
+export const generateAndShareGstReportPdf = async (
+  client: Client | ClientWithDetails,
+  gstEntries: GstReportEntry[],
+  totalGstValue: number,
+  totalCollectionAmount: number,
+  totalReceivedAmount: number,
+  totalBalanceAmount: number,
+  overallGstBalance: number,
+  unitFlatNo: string,
+  companyId?: number,
+  letterheadOption?: 'none' | 'company'
+): Promise<void> => {
+  try {
+    console.log(`Starting GST Report PDF generation for client: ${client.name}, with company ID: ${companyId}`);
+    const generatedAt = Date.now();
+
+    // Prepare data for PDF generation
+    const data: GstReportData = {
+      client,
+      gstEntries,
+      totalGstValue,
+      totalCollectionAmount,
+      totalReceivedAmount,
+      totalBalanceAmount,
+      overallGstBalance,
+      unitFlatNo,
+      generatedAt
+    };
+
+    // If company ID is provided and letterhead is requested, fetch company data
+    if (companyId && letterheadOption === 'company') {
+      try {
+        console.log(`Fetching company data for ID: ${companyId}`);
+        const company = await getCompanyById(companyId);
+        console.log(`Company data fetched:`, {
+          id: company.id,
+          name: company.name,
+          hasLetterhead: !!company.letterhead_path,
+          letterheadPath: company.letterhead_path
+        });
+        data.company = company;
+
+        // Process letterhead if available
+        if (company.letterhead_path) {
+          try {
+            console.log(`Processing letterhead from path: ${company.letterhead_path}`);
+            const fileInfo = await FileSystem.getInfoAsync(company.letterhead_path);
+            console.log(`File exists: ${fileInfo.exists}, File info:`, fileInfo);
+
+            if (fileInfo.exists) {
+              // Check if it's an image file
+              const isImage = company.letterhead_path.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/);
+
+              if (isImage) {
+                console.log('Processing as image letterhead');
+                const base64 = await FileSystem.readAsStringAsync(company.letterhead_path, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+
+                // Determine the MIME type based on file extension
+                const extension = company.letterhead_path.toLowerCase().split('.').pop();
+                const mimeType = extension === 'png' ? 'image/png' : 'image/jpeg';
+
+                data.companyLetterheadBase64 = `data:${mimeType};base64,${base64}`;
+                data.companyLetterheadType = 'image';
+                console.log('Successfully processed image letterhead');
+              } else {
+                console.log('Letterhead file is not an image, using company name instead');
+              }
+            } else {
+              console.log('Letterhead file does not exist, using company name instead');
+            }
+          } catch (letterheadError) {
+            console.error('Error processing letterhead:', letterheadError);
+            console.log('Falling back to company name for letterhead');
+          }
+        } else {
+          console.log('No letterhead path found, using company name');
+        }
+      } catch (companyError) {
+        console.error('Error fetching company data:', companyError);
+        console.log('Proceeding without company letterhead');
+      }
+    }
+
+    const htmlContent = generateGstReportHtml(data, letterheadOption);
+
+    // Log the first 200 characters of HTML to verify letterhead inclusion
+    console.log('Generated HTML (first 200 chars):', htmlContent.substring(0, 200));
+
+    // Generate PDF file
+    console.log('Generating PDF from HTML...');
+    const { uri } = await Print.printToFileAsync({ html: htmlContent });
+
+    // Create a filename with the format: GSTReport-{project name}-{client name}-{flat}-{current date}
+    const now = new Date();
+    const currentDate = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getFullYear()}`; // DD-MM-YYYY format
+    const projectName = (client as ClientWithDetails).project_name || 'Unknown';
+    const clientName = client.name;
+    const flatNo = unitFlatNo;
+
+    // Sanitize filename components by removing special characters
+    const sanitize = (str: string) => str.replace(/[^a-zA-Z0-9]/g, '');
+
+    const filename = `GSTReport-${sanitize(projectName)}-${sanitize(clientName)}-${sanitize(flatNo)}-${currentDate}.pdf`;
+    const newUri = `${FileSystem.cacheDirectory}${filename}`;
+
+    // Copy the file to the new location with the timestamp in the name
+    await FileSystem.copyAsync({
+      from: uri,
+      to: newUri
+    });
+
+    // Delete the original file
+    await FileSystem.deleteAsync(uri, { idempotent: true });
+
+    // Share the PDF file
+    await shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf' });
+  } catch (error) {
+    console.error('Error generating or sharing GST Report PDF:', error);
+    Alert.alert('Error', 'Failed to generate or share GST Report PDF. Please try again.');
+  }
+};

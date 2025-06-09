@@ -8,6 +8,7 @@ export * from './unitsFlatDb';
 export * from './unitCustomerSchedulesDb';
 export * from './unitPaymentRequestsDb';
 export * from './unitPaymentReceiptsDb';
+export * from './unitGstRecordsDb';
 export * from './unitScheduleHelpers';
 export * from './quotationsDb';
 export * from './quotationAnnexuresDb';

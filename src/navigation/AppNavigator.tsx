@@ -32,6 +32,8 @@ import AddUnitPaymentRequestScreen from '../screens/AddUnitPaymentRequestScreen'
 import EditUnitPaymentRequestScreen from '../screens/EditUnitPaymentRequestScreen';
 import AddUnitPaymentReceiptScreen from '../screens/AddUnitPaymentReceiptScreen';
 import EditUnitPaymentReceiptScreen from '../screens/EditUnitPaymentReceiptScreen';
+import AddUnitGstRecordScreen from '../screens/AddUnitGstRecordScreen';
+import EditUnitGstRecordScreen from '../screens/EditUnitGstRecordScreen';
 import QuotationDetailsScreen from '../screens/QuotationDetailsScreen';
 import AddQuotationScreen from '../screens/AddQuotationScreen';
 import EditQuotationScreen from '../screens/EditQuotationScreen';
@@ -208,6 +210,16 @@ const AppNavigator = () => {
           name="EditUnitPaymentReceipt"
           component={EditUnitPaymentReceiptScreen}
           options={{ title: 'Edit Payment Receipt' }}
+        />
+        <Stack.Screen
+          name="AddUnitGstRecord"
+          component={AddUnitGstRecordScreen}
+          options={{ title: 'Add GST Record' }}
+        />
+        <Stack.Screen
+          name="EditUnitGstRecord"
+          component={EditUnitGstRecordScreen}
+          options={{ title: 'Edit GST Record' }}
         />
         <Stack.Screen
           name="QuotationDetails"

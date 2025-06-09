@@ -7,6 +7,7 @@ import { UnitFlat } from '../database/unitsFlatDb';
 import { UnitCustomerSchedule } from '../database/unitCustomerSchedulesDb';
 import { UnitPaymentRequest } from '../database/unitPaymentRequestsDb';
 import { UnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
+import { UnitGstRecord } from '../database/unitGstRecordsDb';
 import { Quotation } from '../database/quotationsDb';
 import { QuotationAnnexureItem } from '../database/quotationAnnexuresDb';
 import { AgreementTemplate } from '../database/agreementTemplatesDb';
@@ -60,6 +61,8 @@ export type RootStackParamList = {
   EditUnitPaymentRequest: { request: UnitPaymentRequest };
   AddUnitPaymentReceipt: { unitId: number; unitPaymentRequestId?: number; };
   EditUnitPaymentReceipt: { receipt: UnitPaymentReceipt };
+  AddUnitGstRecord: { unitId: number };
+  EditUnitGstRecord: { gstRecord: UnitGstRecord };
   QuotationDetails: { quotationId: number };
   AddQuotation: undefined;
   EditQuotation: { quotation: Quotation };
@@ -98,4 +101,5 @@ export type ReportsStackParamList = {
   ReportsLanding: undefined;
   CustomerLedgerReport: undefined;
   FlatsAvailabilityReport: undefined;
+  GstReport: undefined;
 };

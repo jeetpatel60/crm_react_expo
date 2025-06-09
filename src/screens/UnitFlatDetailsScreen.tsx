@@ -11,10 +11,12 @@ import { UnitFlat } from '../database/unitsFlatDb';
 import { UnitCustomerSchedule } from '../database/unitCustomerSchedulesDb';
 import { UnitPaymentRequest } from '../database/unitPaymentRequestsDb';
 import { UnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
+import { UnitGstRecord } from '../database/unitGstRecordsDb';
 import { getUnitFlatById, getUnitFlatWithDetails } from '../database/unitsFlatDb';
 import { getUnitCustomerSchedules, deleteUnitCustomerSchedule } from '../database/unitCustomerSchedulesDb';
 import { getUnitPaymentRequests, deleteUnitPaymentRequest } from '../database/unitPaymentRequestsDb';
 import { getUnitPaymentReceipts, deleteUnitPaymentReceipt } from '../database/unitPaymentReceiptsDb';
+import { getUnitGstRecords, deleteUnitGstRecord } from '../database/unitGstRecordsDb';
 import { getProjectById } from '../database/projectsDb';
 import { getClientById } from '../database/clientsDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
@@ -38,6 +40,7 @@ const UnitFlatDetailsScreen = () => {
   const [customerSchedules, setCustomerSchedules] = useState<UnitCustomerSchedule[]>([]);
   const [paymentRequests, setPaymentRequests] = useState<UnitPaymentRequest[]>([]);
   const [paymentReceipts, setPaymentReceipts] = useState<UnitPaymentReceipt[]>([]);
+  const [gstRecords, setGstRecords] = useState<UnitGstRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [templateModalVisible, setTemplateModalVisible] = useState(false);
@@ -84,12 +87,17 @@ const UnitFlatDetailsScreen = () => {
       const receiptsData = await getUnitPaymentReceipts(unitId);
       setPaymentReceipts(receiptsData);
 
+      // Fetch GST records
+      const gstData = await getUnitGstRecords(unitId);
+      setGstRecords(gstData);
+
       // Create a set of payment_request_ids that have receipts
       const receiptRequestIds = new Set(receiptsData.map(r => r.payment_request_id).filter((id): id is number => id !== undefined && id !== null));
       setReceiptsForRequests(receiptRequestIds);
 
       // Log for debugging
       console.log('Payment receipts loaded:', receiptsData.length);
+      console.log('GST records loaded:', gstData.length);
       console.log('Payment requests with receipts:', Array.from(receiptRequestIds));
 
     } catch (error) {
@@ -197,6 +205,30 @@ const UnitFlatDetailsScreen = () => {
                 'Error',
                 `Failed to delete payment receipt: ${errorMessage}. Please check the console for more details.`
               );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteGstRecord = (gstRecordId: number) => {
+    Alert.alert(
+      'Delete GST Record',
+      'Are you sure you want to delete this GST record? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteUnitGstRecord(gstRecordId);
+              Alert.alert('Success', 'GST record deleted successfully');
+              loadData();
+            } catch (error) {
+              console.error('Error deleting GST record:', error);
+              Alert.alert('Error', 'Failed to delete GST record');
             }
           },
         },
@@ -396,7 +428,7 @@ const UnitFlatDetailsScreen = () => {
                 size={16}
                 color={theme.colors.onSurfaceVariant}
               />
-              <Text variant="bodyMedium" style={styles.infoText}>
+              <Text variant="bodyMedium" style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>
                 Project: {projectName}
               </Text>
             </View>
@@ -408,7 +440,7 @@ const UnitFlatDetailsScreen = () => {
                   size={16}
                   color={theme.colors.onSurfaceVariant}
                 />
-                <Text variant="bodyMedium" style={styles.infoText}>
+                <Text variant="bodyMedium" style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>
                   Client: {clientName}
                 </Text>
               </View>
@@ -421,7 +453,7 @@ const UnitFlatDetailsScreen = () => {
                   size={16}
                   color={theme.colors.onSurfaceVariant}
                 />
-                <Text variant="bodyMedium" style={styles.infoText}>
+                <Text variant="bodyMedium" style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>
                   Type: {unit.type}
                 </Text>
               </View>
@@ -433,14 +465,14 @@ const UnitFlatDetailsScreen = () => {
                 size={16}
                 color={theme.colors.onSurfaceVariant}
               />
-              <Text variant="bodyMedium" style={styles.infoText}>
+              <Text variant="bodyMedium" style={[styles.infoText, { color: theme.colors.onSurfaceVariant }]}>
                 Area: {unit.area_sqft} sqft @ ₹{unit.rate_per_sqft}/sqft
               </Text>
             </View>
 
-            <View style={styles.financialInfo}>
+            <View style={[styles.financialInfo, { borderTopColor: theme.colors.outline }]}>
               <View style={styles.financialItem}>
-                <Text variant="labelSmall" style={styles.financialLabel}>
+                <Text variant="labelSmall" style={[styles.financialLabel, { color: theme.colors.onSurfaceVariant }]}>
                   Flat Value
                 </Text>
                 <Text variant="titleSmall" style={styles.financialValue}>
@@ -448,7 +480,7 @@ const UnitFlatDetailsScreen = () => {
                 </Text>
               </View>
               <View style={styles.financialItem}>
-                <Text variant="labelSmall" style={styles.financialLabel}>
+                <Text variant="labelSmall" style={[styles.financialLabel, { color: theme.colors.onSurfaceVariant }]}>
                   Received
                 </Text>
                 <Text variant="titleSmall" style={styles.financialValue}>
@@ -456,7 +488,7 @@ const UnitFlatDetailsScreen = () => {
                 </Text>
               </View>
               <View style={styles.financialItem}>
-                <Text variant="labelSmall" style={styles.financialLabel}>
+                <Text variant="labelSmall" style={[styles.financialLabel, { color: theme.colors.onSurfaceVariant }]}>
                   Balance
                 </Text>
                 <Text variant="titleSmall" style={styles.financialValue}>
@@ -465,9 +497,9 @@ const UnitFlatDetailsScreen = () => {
               </View>
             </View>
 
-            <View style={styles.financialInfo}>
+            <View style={[styles.financialInfo, { borderTopColor: theme.colors.outline }]}>
               <View style={styles.financialItem}>
-                <Text variant="labelSmall" style={styles.financialLabel}>
+                <Text variant="labelSmall" style={[styles.financialLabel, { color: theme.colors.onSurfaceVariant }]}>
                   B Value
                 </Text>
                 <Text variant="titleSmall" style={styles.financialValue}>
@@ -475,7 +507,7 @@ const UnitFlatDetailsScreen = () => {
                 </Text>
               </View>
               <View style={styles.financialItem}>
-                <Text variant="labelSmall" style={styles.financialLabel}>
+                <Text variant="labelSmall" style={[styles.financialLabel, { color: theme.colors.onSurfaceVariant }]}>
                   W Value
                 </Text>
                 <Text variant="titleSmall" style={styles.financialValue}>
@@ -508,7 +540,7 @@ const UnitFlatDetailsScreen = () => {
             </View>
 
             {customerSchedules.length === 0 ? (
-              <Text style={styles.emptyText}>No customer schedules added yet.</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No customer schedules added yet.</Text>
             ) : (
               <ScrollView
                 horizontal
@@ -517,7 +549,7 @@ const UnitFlatDetailsScreen = () => {
                 contentContainerStyle={{ flexGrow: 1 }}
               >
                 <DataTable style={styles.table}>
-                  <DataTable.Header style={styles.tableHeader}>
+                  <DataTable.Header style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
                     <DataTable.Title style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>Sr No</DataTable.Title>
                     <DataTable.Title style={styles.milestoneColumn} textStyle={{textAlign: 'center'}}>Milestone</DataTable.Title>
                     <DataTable.Title style={styles.completionColumn} textStyle={{textAlign: 'center'}}>% Completion</DataTable.Title>
@@ -527,7 +559,7 @@ const UnitFlatDetailsScreen = () => {
                   </DataTable.Header>
 
                   {customerSchedules.map((schedule) => (
-                    <DataTable.Row key={schedule.id} style={styles.tableRow}>
+                    <DataTable.Row key={schedule.id} style={[styles.tableRow, { borderBottomColor: theme.colors.outline }]}>
                       <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{schedule.sr_no}</DataTable.Cell>
                       <DataTable.Cell style={styles.milestoneColumn} textStyle={{textAlign: 'center'}}>{schedule.milestone}</DataTable.Cell>
                       <DataTable.Cell style={styles.completionColumn} textStyle={{textAlign: 'center'}}>{schedule.completion_percentage}%</DataTable.Cell>
@@ -584,7 +616,7 @@ const UnitFlatDetailsScreen = () => {
             </View>
 
             {paymentRequests.length === 0 ? (
-              <Text style={styles.emptyText}>No payment requests added yet.</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No payment requests added yet.</Text>
             ) : (
               <ScrollView
                 horizontal
@@ -593,7 +625,7 @@ const UnitFlatDetailsScreen = () => {
                 contentContainerStyle={{ flexGrow: 1 }}
               >
                 <DataTable style={styles.table}>
-                  <DataTable.Header style={styles.tableHeader}>
+                  <DataTable.Header style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
                     <DataTable.Title style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>Sr No</DataTable.Title>
                     <DataTable.Title style={styles.dateColumn} textStyle={{textAlign: 'center'}}>Date</DataTable.Title>
                     <DataTable.Title style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>Description</DataTable.Title>
@@ -604,7 +636,7 @@ const UnitFlatDetailsScreen = () => {
                   {paymentRequests.map((request) => {
                     const hasReceipt = receiptsForRequests.has(request.id!);
                     return (
-                      <DataTable.Row key={request.id} style={styles.tableRow}>
+                      <DataTable.Row key={request.id} style={[styles.tableRow, { borderBottomColor: theme.colors.outline }]}>
                         <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{request.sr_no}</DataTable.Cell>
                         <DataTable.Cell style={styles.dateColumn} textStyle={{textAlign: 'center'}}>{formatDate(request.date)}</DataTable.Cell>
                         <DataTable.Cell style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>{request.description || '-'}</DataTable.Cell>
@@ -668,7 +700,7 @@ const UnitFlatDetailsScreen = () => {
             </View>
 
             {paymentReceipts.length === 0 ? (
-              <Text style={styles.emptyText}>No payment receipts added yet.</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No payment receipts added yet.</Text>
             ) : (
               <ScrollView
                 horizontal
@@ -677,7 +709,7 @@ const UnitFlatDetailsScreen = () => {
                 contentContainerStyle={{ flexGrow: 1 }}
               >
                 <DataTable style={[styles.table, { minWidth: 800 }]}>
-                  <DataTable.Header style={styles.tableHeader}>
+                  <DataTable.Header style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
                     <DataTable.Title style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>Sr No</DataTable.Title>
                     <DataTable.Title style={styles.dateColumn} textStyle={{textAlign: 'center'}}>Date</DataTable.Title>
                     <DataTable.Title style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>Description</DataTable.Title>
@@ -692,7 +724,7 @@ const UnitFlatDetailsScreen = () => {
                     console.log(`Rendering receipt ID: ${receipt.id}, linked to request ID: ${receipt.payment_request_id || 'none'}`);
 
                     return (
-                      <DataTable.Row key={receipt.id} style={styles.tableRow}>
+                      <DataTable.Row key={receipt.id} style={[styles.tableRow, { borderBottomColor: theme.colors.outline }]}>
                         <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{receipt.sr_no}</DataTable.Cell>
                         <DataTable.Cell style={styles.dateColumn} textStyle={{textAlign: 'center'}}>{formatDate(receipt.date)}</DataTable.Cell>
                         <DataTable.Cell style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>{receipt.description || '-'}</DataTable.Cell>
@@ -734,6 +766,76 @@ const UnitFlatDetailsScreen = () => {
                       </DataTable.Row>
                     );
                   })}
+                </DataTable>
+              </ScrollView>
+            )}
+          </Card.Content>
+        </Card>
+
+        {/* GST Section */}
+        <Card style={[styles.card, shadows.md]}>
+          <Card.Content>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                GST
+              </Text>
+              <Button
+                mode="contained"
+                onPress={() => navigation.navigate('AddUnitGstRecord', { unitId })}
+                style={styles.addButton}
+                icon="plus"
+                compact
+              >
+                Add
+              </Button>
+            </View>
+
+            {gstRecords.length === 0 ? (
+              <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No GST records added yet.</Text>
+            ) : (
+              <ScrollView
+                horizontal
+                style={styles.tableContainer}
+                showsHorizontalScrollIndicator={true}
+                contentContainerStyle={{ flexGrow: 1 }}
+              >
+                <DataTable style={[styles.table, { minWidth: 800 }]}>
+                  <DataTable.Header style={[styles.tableHeader, { backgroundColor: theme.colors.surfaceVariant }]}>
+                    <DataTable.Title style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>Sr No</DataTable.Title>
+                    <DataTable.Title style={styles.dateColumn} textStyle={{textAlign: 'center'}}>Date</DataTable.Title>
+                    <DataTable.Title style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>Description</DataTable.Title>
+                    <DataTable.Title style={styles.amountColumn} textStyle={{textAlign: 'center'}}>Amount</DataTable.Title>
+                    <DataTable.Title style={styles.rAmountColumn} textStyle={{textAlign: 'center'}}>R. Amount</DataTable.Title>
+                    <DataTable.Title style={styles.statusColumn} textStyle={{textAlign: 'center'}}>Status</DataTable.Title>
+                    <DataTable.Title style={styles.actionsColumn} textStyle={{textAlign: 'center'}}>Actions</DataTable.Title>
+                  </DataTable.Header>
+
+                  {gstRecords.map((gstRecord) => (
+                    <DataTable.Row key={gstRecord.id} style={[styles.tableRow, { borderBottomColor: theme.colors.outline }]}>
+                      <DataTable.Cell style={styles.srNoColumn} textStyle={{textAlign: 'center'}}>{gstRecord.sr_no}</DataTable.Cell>
+                      <DataTable.Cell style={styles.dateColumn} textStyle={{textAlign: 'center'}}>{formatDate(gstRecord.date)}</DataTable.Cell>
+                      <DataTable.Cell style={styles.descriptionColumn} textStyle={{textAlign: 'center'}}>{gstRecord.description || '-'}</DataTable.Cell>
+                      <DataTable.Cell style={styles.amountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(gstRecord.amount)}</DataTable.Cell>
+                      <DataTable.Cell style={styles.rAmountColumn} textStyle={{textAlign: 'center'}}>{formatCurrency(gstRecord.r_amount)}</DataTable.Cell>
+                      <DataTable.Cell style={styles.statusColumn} textStyle={{textAlign: 'center'}}>{gstRecord.status}</DataTable.Cell>
+                      <DataTable.Cell style={styles.actionsColumn}>
+                        <View style={styles.actionButtons}>
+                          <IconButton
+                            icon="pencil"
+                            size={16}
+                            onPress={() => navigation.navigate('EditUnitGstRecord', { gstRecord })}
+                            style={styles.actionButton}
+                          />
+                          <IconButton
+                            icon="delete"
+                            size={16}
+                            onPress={() => handleDeleteGstRecord(gstRecord.id!)}
+                            style={styles.actionButton}
+                          />
+                        </View>
+                      </DataTable.Cell>
+                    </DataTable.Row>
+                  ))}
                 </DataTable>
               </ScrollView>
             )}
@@ -810,7 +912,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     marginLeft: spacing.xs,
-    color: '#666',
   },
   financialInfo: {
     flexDirection: 'row',
@@ -818,14 +919,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   financialItem: {
     flex: 1,
     alignItems: 'center',
   },
   financialLabel: {
-    color: '#666',
     marginBottom: 2,
   },
   financialValue: {
@@ -845,7 +944,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontStyle: 'italic',
-    color: '#666',
     textAlign: 'center',
     marginVertical: spacing.md,
   },
@@ -857,11 +955,11 @@ const styles = StyleSheet.create({
     minWidth: 650, // Set a minimum width to ensure all columns are visible
   },
   tableHeader: {
-    backgroundColor: '#f5f5f5',
+    // backgroundColor will be set dynamically with theme
   },
   tableRow: {
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    // borderBottomColor will be set dynamically with theme
   },
   srNoColumn: {
     width: 60,
@@ -876,6 +974,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   amountColumn: {
+    width: 120,
+    justifyContent: 'center',
+  },
+  rAmountColumn: {
     width: 120,
     justifyContent: 'center',
   },
