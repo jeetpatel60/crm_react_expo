@@ -14,7 +14,7 @@ interface LedgerEntry {
   id: string;
   date: string;
   description: string;
-  type: 'request' | 'receipt';
+  type: 'request' | 'receipt' | 'sales';
   amount: number;
   mode?: string;
   remarks?: string;
@@ -69,7 +69,7 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData, letterheadOption?:
   const flatValueHtml = flatValue ? `
     <div class="flat-value-section">
       <div class="flat-value-row">
-        <span class="flat-value-label">${recordType === 'white' ? 'W Value:' : recordType === 'black' ? 'B Value:' : 'Flat Value:'}</span>
+        <span class="flat-value-label">${recordType === 'white' ? 'Sales Value:' : recordType === 'black' ? 'B Value:' : 'Flat Value:'}</span>
         <span class="flat-value-amount">${formatCurrency(flatValue)}</span>
       </div>
     </div>
@@ -92,16 +92,31 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData, letterheadOption?:
     `;
 
     ledgerEntries.forEach(entry => {
-      const detailsHtml = entry.type === 'receipt' && (entry.mode || entry.remarks)
-        ? `${entry.mode ? `Mode: ${entry.mode}` : ''}${entry.mode && entry.remarks ? '<br>' : ''}${entry.remarks ? `Remarks: ${entry.remarks}` : ''}`
-        : '';
+      let detailsHtml = '';
+
+      // Only show receipt details for receipt entries
+      if (entry.type === 'receipt' && (entry.mode || entry.remarks)) {
+        detailsHtml = `${entry.mode ? `Mode: ${entry.mode}` : ''}${entry.mode && entry.remarks ? '<br>' : ''}${entry.remarks ? `Remarks: ${entry.remarks}` : ''}`;
+      }
+
+      // Determine the CSS class and sign based on entry type
+      let cssClass = 'receipt-amount';
+      let sign = '+ ';
+
+      if (entry.type === 'sales') {
+        cssClass = 'request-amount';
+        sign = '- ';
+      } else if (entry.type === 'request') {
+        cssClass = 'request-amount';
+        sign = '- ';
+      }
 
       ledgerTableHtml += `
         <tr>
-          <td>${entry.date}</td>
+          <td>${entry.type === 'sales' ? '' : entry.date}</td>
           <td>${entry.description}</td>
-          <td class="${entry.type === 'receipt' ? 'receipt-amount' : 'request-amount'}">
-            ${entry.type === 'receipt' ? '+' : '-'} ${formatCurrency(entry.amount)}
+          <td class="${cssClass}">
+            ${sign}${formatCurrency(entry.amount)}
           </td>
           <td class="details-cell">${detailsHtml}</td>
         </tr>
@@ -117,32 +132,63 @@ const generateCustomerLedgerHtml = (data: CustomerLedgerData, letterheadOption?:
   }
 
   // Generate balance section
-  const balanceHtml = `
-    <div class="balance-section">
-      <div class="balance-row">
-        <span class="balance-label">Balance Amount:</span>
-        <span class="balance-amount ${balanceAmount >= 0 ? 'positive' : 'negative'}">
-          ${formatCurrency(balanceAmount)}
-        </span>
+  const balancePayableLabel = recordType === 'white'
+    ? 'Total Balance Payable<br>of Sales Value:'
+    : 'Total Balance Payable<br>of B Value:'; // Changed from "Flat Value" to "B Value" for black records
+
+  let balanceHtml = '';
+
+  if (recordType === 'all') {
+    // Original balance section for "All Records"
+    balanceHtml = `
+      <div class="balance-section">
+        <div class="balance-row">
+          <span class="balance-label">Balance Amount:</span>
+          <span class="balance-amount ${balanceAmount >= 0 ? 'positive' : 'negative'}">
+            ${formatCurrency(balanceAmount)}
+          </span>
+        </div>
+        ${totalAmountReceived !== undefined ? `
+        <div class="balance-row">
+          <span class="balance-label">Total Amount Received:</span>
+          <span class="balance-amount positive">
+            ${formatCurrency(totalAmountReceived)}
+          </span>
+        </div>
+        ` : ''}
+        ${totalBalancePayable !== undefined ? `
+        <div class="balance-row">
+          <span class="balance-label">Total Balance Payable<br>of Flat Value:</span>
+          <span class="balance-amount ${totalBalancePayable >= 0 ? 'positive' : 'negative'}">
+            ${formatCurrency(totalBalancePayable)}
+          </span>
+        </div>
+        ` : ''}
       </div>
-      ${totalAmountReceived !== undefined ? `
-      <div class="balance-row">
-        <span class="balance-label">Total Amount Received:</span>
-        <span class="balance-amount positive">
-          ${formatCurrency(totalAmountReceived)}
-        </span>
+    `;
+  } else {
+    // New balance section for "White Only" and "Black Only"
+    balanceHtml = `
+      <div class="balance-section">
+        ${totalAmountReceived !== undefined ? `
+        <div class="balance-row">
+          <span class="balance-label">Total Amount Received:</span>
+          <span class="balance-amount" style="color: #4CAF50;">
+            ${formatCurrency(totalAmountReceived)}
+          </span>
+        </div>
+        ` : ''}
+        ${totalBalancePayable !== undefined ? `
+        <div class="balance-row">
+          <span class="balance-label">${balancePayableLabel}</span>
+          <span class="balance-amount" style="color: #2196F3;">
+            ${formatCurrency(totalBalancePayable)}
+          </span>
+        </div>
+        ` : ''}
       </div>
-      ` : ''}
-      ${totalBalancePayable !== undefined ? `
-      <div class="balance-row">
-        <span class="balance-label">Total Balance Payable<br>of Flat Value:</span>
-        <span class="balance-amount ${totalBalancePayable >= 0 ? 'positive' : 'negative'}">
-          ${formatCurrency(totalBalancePayable)}
-        </span>
-      </div>
-      ` : ''}
-    </div>
-  `;
+    `;
+  }
 
   // Generate the complete HTML
   return `
@@ -334,10 +380,13 @@ export const generateAndShareCustomerLedgerPdf = async (
     console.log(`Starting PDF generation for client: ${client.name}, with company ID: ${companyId}`);
     const generatedAt = Date.now();
 
+    // Keep all entries as they come from the screen (already properly filtered)
+    const processedLedgerEntries = ledgerEntries;
+
     // Prepare data for PDF generation
     const data: CustomerLedgerData = {
       client,
-      ledgerEntries,
+      ledgerEntries: processedLedgerEntries,
       balanceAmount,
       totalAmountReceived,
       flatValue,

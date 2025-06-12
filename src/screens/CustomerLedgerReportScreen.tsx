@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import { Text, useTheme, ActivityIndicator, Button, Dialog, Portal, List, Searchbar, Divider, FAB, IconButton } from 'react-native-paper';
-import { Client, Company, UnitFlat } from '../types';
+import { Text, useTheme, ActivityIndicator, Button, Dialog, Portal, List, Searchbar, Divider, FAB } from 'react-native-paper';
+import { Client, UnitFlat } from '../types';
 import { getClientsWithDetails, ClientWithDetails } from '../database/clientsDb';
 import { getUnitPaymentRequestsByClientId } from '../database/unitPaymentRequestsDb';
 import { getUnitPaymentReceiptsByClientId } from '../database/unitPaymentReceiptsDb';
-import { UnitPaymentRequest, UnitPaymentReceipt } from '../types';
 import { spacing } from '../constants/theme';
 import { formatCurrency } from '../utils/formatters';
 import { db } from '../database/database';
@@ -17,7 +16,7 @@ interface LedgerEntry {
   id: string;
   date: string;
   description: string;
-  type: 'request' | 'receipt';
+  type: 'request' | 'receipt' | 'sales';
   amount: number;
   mode?: string;
   remarks?: string;
@@ -87,27 +86,88 @@ const CustomerLedgerReportScreen = () => {
           }
           // For 'all', no filtering is applied
 
-          const formattedRequests: LedgerEntry[] = requests.map(req => ({
-            id: `req-${req.id ?? 0}`,
-            date: new Date(req.date).toLocaleDateString(),
-            description: `Payment Request: ${req.description || 'N/A'}`,
-            type: 'request',
-            amount: req.amount,
-          }));
+          let combinedData: LedgerEntry[] = [];
 
-          const formattedReceipts: LedgerEntry[] = receipts.map(rec => ({
-            id: `rec-${rec.id ?? 0}`,
-            date: new Date(rec.date).toLocaleDateString(),
-            description: `Payment Receipt: ${rec.description || 'N/A'}`,
-            type: 'receipt',
-            amount: rec.amount,
-            mode: rec.mode,
-            remarks: rec.remarks,
-          }));
+          if (selectedRecordType === 'all') {
+            // For "All Records" - show Sales Value, B Value, payment requests and receipts
+            const formattedRequests: LedgerEntry[] = requests.map(req => {
+              const dateObj = new Date(req.date);
+              const formattedDate = `${dateObj.getDate().toString().padStart(2, '0')}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getFullYear()}`;
 
-          const combinedData = [...formattedRequests, ...formattedReceipts].sort((a, b) => {
-            return new Date(a.date).getTime() - new Date(b.date).getTime();
-          });
+              return {
+                id: `req-${req.id ?? 0}`,
+                date: formattedDate,
+                description: `Payment Request: ${req.description || 'N/A'}`,
+                type: 'request',
+                amount: req.amount,
+              };
+            });
+
+            const formattedReceipts: LedgerEntry[] = receipts.map(rec => {
+              const dateObj = new Date(rec.date);
+              const formattedDate = `${dateObj.getDate().toString().padStart(2, '0')}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getFullYear()}`;
+
+              return {
+                id: `rec-${rec.id ?? 0}`,
+                date: formattedDate,
+                description: `Payment Receipt: ${rec.description || 'N/A'}`,
+                type: 'receipt',
+                amount: rec.amount,
+                mode: rec.mode,
+                remarks: rec.remarks,
+              };
+            });
+
+            // For "All Records" - don't add value entries to the ledger data, show them in footer only
+            combinedData = [...formattedRequests, ...formattedReceipts].sort((a, b) => {
+              return new Date(a.date).getTime() - new Date(b.date).getTime();
+            });
+          } else {
+            // For "White Only" and "Black Only" - show new format with sales value and receipts only
+            const formattedReceipts: LedgerEntry[] = receipts.map(rec => {
+              const dateObj = new Date(rec.date);
+              const formattedDate = `${dateObj.getDate().toString().padStart(2, '0')}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getFullYear()}`;
+
+              return {
+                id: `rec-${rec.id ?? 0}`,
+                date: formattedDate,
+                description: `Payment Receipt: ${rec.description || 'N/A'}`,
+                type: 'receipt',
+                amount: rec.amount,
+                mode: rec.mode,
+                remarks: rec.remarks,
+              };
+            });
+
+            // Add Sales Value row at the beginning (without date) for white/black only
+            const salesValueEntries: LedgerEntry[] = [];
+            if (flatDetails) {
+              let salesValue = flatDetails.flat_value || 0;
+              let salesLabel = 'Flat Value';
+
+              if (selectedRecordType === 'white' && flatDetails.w_value) {
+                salesValue = flatDetails.w_value;
+                salesLabel = 'Sales Value';
+              } else if (selectedRecordType === 'black' && flatDetails.b_value) {
+                salesValue = flatDetails.b_value;
+                salesLabel = 'B Value';
+              }
+
+              if (salesValue > 0) {
+                salesValueEntries.push({
+                  id: 'sales-value',
+                  date: '', // No date for sales value row
+                  description: salesLabel,
+                  type: 'sales',
+                  amount: salesValue,
+                });
+              }
+            }
+
+            combinedData = [...salesValueEntries, ...formattedReceipts.sort((a, b) => {
+              return new Date(a.date).getTime() - new Date(b.date).getTime();
+            })];
+          }
 
           setLedgerData(combinedData);
         } catch (error) {
@@ -166,9 +226,15 @@ const CustomerLedgerReportScreen = () => {
         flatValueToUse = clientFlatDetails.b_value;
       }
 
+      // For "All Records", ledgerData already doesn't contain sales entries (they're shown in footer only)
+      // For "White Only"/"Black Only", we need to filter out sales entries from PDF
+      const pdfLedgerData = selectedRecordType === 'all'
+        ? ledgerData // Already clean for "All Records"
+        : ledgerData.filter(item => item.type !== 'sales'); // Remove Sales Value entries from PDF for white/black
+
       await generateAndShareCustomerLedgerPdf(
         selectedClient,
-        ledgerData,
+        pdfLedgerData,
         balanceAmount,
         totalAmountReceived,
         flatValueToUse,
@@ -188,13 +254,25 @@ const CustomerLedgerReportScreen = () => {
 
   // Calculate the balance amount
   const balanceAmount = useMemo(() => {
-    return ledgerData.reduce((total, item) => {
-      // Add receipts, subtract requests
-      return total + (item.type === 'receipt' ? item.amount : -item.amount);
-    }, 0);
-  }, [ledgerData]);
+    if (selectedRecordType === 'all') {
+      // Original calculation: receipts - requests (no sales entries in ledgerData for 'all')
+      return ledgerData.reduce((total, item) => {
+        return total + (item.type === 'receipt' ? item.amount : -item.amount);
+      }, 0);
+    } else {
+      // New calculation for white/black: sales value - receipts
+      return ledgerData.reduce((total, item) => {
+        if (item.type === 'sales') {
+          return total - item.amount; // Subtract sales value
+        } else if (item.type === 'receipt') {
+          return total + item.amount; // Add receipts
+        }
+        return total;
+      }, 0);
+    }
+  }, [ledgerData, selectedRecordType]);
 
-  // Calculate total amount received (sum of all payment receipts)
+  // Calculate total amount received (sum of all payment receipts only)
   const totalAmountReceived = useMemo(() => {
     return ledgerData.reduce((total, item) => {
       return total + (item.type === 'receipt' ? item.amount : 0);
@@ -218,10 +296,20 @@ const CustomerLedgerReportScreen = () => {
   const renderLedgerItem = ({ item }: { item: LedgerEntry }) => (
     <View style={styles.ledgerItem}>
       <View style={styles.ledgerMainRow}>
-        <Text style={styles.ledgerDate}>{item.date}</Text>
+        {/* Don't show date for sales value row */}
+        <Text style={styles.ledgerDate}>{item.type === 'sales' ? '' : item.date}</Text>
         <Text style={styles.ledgerDescription}>{item.description}</Text>
-        <Text style={[styles.ledgerAmount, { color: item.type === 'receipt' ? theme.colors.primary : theme.colors.error }]}>
-          {item.type === 'receipt' ? '+' : '-'} ₹{item.amount.toFixed(2)}
+        <Text style={[
+          styles.ledgerAmount,
+          {
+            color: item.type === 'sales' ? theme.colors.error :
+                   item.type === 'receipt' ? theme.colors.primary :
+                   theme.colors.error // for payment requests
+          }
+        ]}>
+          {item.type === 'sales' ? '- ' :
+           item.type === 'receipt' ? '+ ' :
+           '- '}₹{item.amount.toFixed(2)}
         </Text>
       </View>
       {item.type === 'receipt' && (item.mode || item.remarks) && (
@@ -250,7 +338,7 @@ const CustomerLedgerReportScreen = () => {
 
     if (selectedRecordType === 'white' && clientFlatDetails.w_value) {
       flatValueToDisplay = clientFlatDetails.w_value;
-      flatValueLabel = 'W Value:';
+      flatValueLabel = 'Sales Value:'; // Changed from 'W Value:' to 'Sales Value:'
     } else if (selectedRecordType === 'black' && clientFlatDetails.b_value) {
       flatValueToDisplay = clientFlatDetails.b_value;
       flatValueLabel = 'B Value:';
@@ -272,38 +360,136 @@ const CustomerLedgerReportScreen = () => {
   const renderFooter = () => {
     if (ledgerData.length === 0) return null;
 
-    return (
-      <View style={styles.balanceContainer}>
-        <Divider style={styles.divider} />
-        <View style={styles.balanceRow}>
-          <Text style={styles.balanceLabel}>Balance Amount:</Text>
-          <Text style={[
-            styles.balanceAmount,
-            { color: balanceAmount >= 0 ? theme.colors.primary : theme.colors.error }
-          ]}>
-            {formatCurrency(balanceAmount)}
-          </Text>
+    if (selectedRecordType === 'all') {
+      // Enhanced footer for "All Records" with Sales Value and B Value information
+      // Calculate white receipts total (for Sales Value balance)
+      const whiteReceiptsTotal = ledgerData.reduce((total, item) => {
+        if (item.type === 'receipt' && item.mode && WHITE_PAYMENT_MODES.includes(item.mode)) {
+          return total + item.amount;
+        }
+        return total;
+      }, 0);
+
+      // Calculate black receipts total (for B Value balance)
+      const blackReceiptsTotal = ledgerData.reduce((total, item) => {
+        if (item.type === 'receipt' && item.mode && BLACK_PAYMENT_MODES.includes(item.mode)) {
+          return total + item.amount;
+        }
+        return total;
+      }, 0);
+
+      const salesValueBalance = clientFlatDetails?.w_value ? (clientFlatDetails.w_value - whiteReceiptsTotal) : 0;
+      const bValueBalance = clientFlatDetails?.b_value ? (clientFlatDetails.b_value - blackReceiptsTotal) : 0;
+
+      return (
+        <View style={styles.balanceContainer}>
+          <Divider style={styles.divider} />
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>Balance Amount:</Text>
+            <Text style={[
+              styles.balanceAmount,
+              { color: balanceAmount >= 0 ? theme.colors.primary : theme.colors.error }
+            ]}>
+              {formatCurrency(balanceAmount)}
+            </Text>
+          </View>
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>Total Amount Received:</Text>
+            <Text style={[
+              styles.balanceAmount,
+              { color: theme.colors.primary }
+            ]}>
+              {formatCurrency(totalAmountReceived)}
+            </Text>
+          </View>
+          <View style={styles.balanceRowMultiLine}>
+            <Text style={styles.balanceLabelMultiLine}>Total Balance Payable{'\n'}of Flat Value:</Text>
+            <Text style={[
+              styles.balanceAmount,
+              { color: totalBalancePayable >= 0 ? theme.colors.primary : theme.colors.error }
+            ]}>
+              {formatCurrency(totalBalancePayable)}
+            </Text>
+          </View>
+
+          {/* Display Sales Value and B Value information below Total Balance Payable of Flat Value */}
+          {clientFlatDetails?.w_value && clientFlatDetails.w_value > 0 && (
+            <>
+              <View style={styles.balanceRow}>
+                <Text style={styles.balanceLabel}>Sales Value:</Text>
+                <Text style={[
+                  styles.balanceAmount,
+                  { color: theme.colors.error } // Red color with negative sign
+                ]}>
+                  - {formatCurrency(clientFlatDetails.w_value)}
+                </Text>
+              </View>
+              <View style={styles.balanceRowMultiLine}>
+                <Text style={styles.balanceLabelMultiLine}>Total Balance Payable{'\n'}of Sales Value:</Text>
+                <Text style={[
+                  styles.balanceAmount,
+                  { color: salesValueBalance >= 0 ? theme.colors.primary : theme.colors.error }
+                ]}>
+                  {formatCurrency(salesValueBalance)}
+                </Text>
+              </View>
+            </>
+          )}
+
+          {clientFlatDetails?.b_value && clientFlatDetails.b_value > 0 && (
+            <>
+              <View style={styles.balanceRow}>
+                <Text style={styles.balanceLabel}>B Value:</Text>
+                <Text style={[
+                  styles.balanceAmount,
+                  { color: theme.colors.error } // Red color with negative sign
+                ]}>
+                  - {formatCurrency(clientFlatDetails.b_value)}
+                </Text>
+              </View>
+              <View style={styles.balanceRowMultiLine}>
+                <Text style={styles.balanceLabelMultiLine}>Total Balance Payable{'\n'}of B Value:</Text>
+                <Text style={[
+                  styles.balanceAmount,
+                  { color: bValueBalance >= 0 ? theme.colors.primary : theme.colors.error }
+                ]}>
+                  {formatCurrency(bValueBalance)}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
-        <View style={styles.balanceRow}>
-          <Text style={styles.balanceLabel}>Total Amount Received:</Text>
-          <Text style={[
-            styles.balanceAmount,
-            { color: theme.colors.primary }
-          ]}>
-            {formatCurrency(totalAmountReceived)}
-          </Text>
+      );
+    } else {
+      // New footer for "White Only" and "Black Only"
+      const balancePayableLabel = selectedRecordType === 'white'
+        ? 'Total Balance Payable\nof Sales Value:'
+        : 'Total Balance Payable\nof B Value:'; // Changed from "Flat Value" to "B Value"
+
+      return (
+        <View style={styles.balanceContainer}>
+          <Divider style={styles.divider} />
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>Total Amount Received:</Text>
+            <Text style={[
+              styles.balanceAmount,
+              { color: '#4CAF50' } // Green color as requested
+            ]}>
+              {formatCurrency(totalAmountReceived)}
+            </Text>
+          </View>
+          <View style={styles.balanceRowMultiLine}>
+            <Text style={styles.balanceLabelMultiLine}>{balancePayableLabel}</Text>
+            <Text style={[
+              styles.balanceAmount,
+              { color: totalBalancePayable >= 0 ? theme.colors.primary : theme.colors.error }
+            ]}>
+              {formatCurrency(totalBalancePayable)}
+            </Text>
+          </View>
         </View>
-        <View style={styles.balanceRowMultiLine}>
-          <Text style={styles.balanceLabelMultiLine}>Total Balance Payable{'\n'}of Flat Value:</Text>
-          <Text style={[
-            styles.balanceAmount,
-            { color: totalBalancePayable >= 0 ? theme.colors.primary : theme.colors.error }
-          ]}>
-            {formatCurrency(totalBalancePayable)}
-          </Text>
-        </View>
-      </View>
-    );
+      );
+    }
   };
 
   return (
