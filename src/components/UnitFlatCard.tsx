@@ -137,6 +137,19 @@ const UnitFlatCard: React.FC<UnitFlatCardProps> = ({
             </View>
           )}
 
+          {unit.category && (
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons
+                name="tag"
+                size={16}
+                color={theme.colors.onSurfaceVariant}
+              />
+              <Text variant="bodyMedium" style={styles.infoText}>
+                {unit.category}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.infoRow}>
             <MaterialCommunityIcons
               name="ruler-square"

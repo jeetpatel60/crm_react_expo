@@ -40,10 +40,37 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
   const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
   const [selectedWing, setSelectedWing] = useState<string | null>(null);
 
-  // Extract unique floor numbers and wings from flat_no
-  const { floors, wings } = useMemo(() => {
+  // Group units by category first
+  const unitsByCategory = useMemo(() => {
     console.log('BuildingVisualization received units:', units.length);
 
+    const categorized = {
+      Flat: [] as UnitFlatWithDetails[],
+      Shop: [] as UnitFlatWithDetails[],
+      Office: [] as UnitFlatWithDetails[]
+    };
+
+    units.forEach(unit => {
+      const category = unit.category || 'Flat'; // Default to Flat if no category
+      if (category === 'Flat' || category === 'Shop' || category === 'Office') {
+        categorized[category].push(unit);
+      } else {
+        // If unknown category, default to Flat
+        categorized.Flat.push(unit);
+      }
+    });
+
+    console.log('Units by category:', {
+      Flat: categorized.Flat.length,
+      Shop: categorized.Shop.length,
+      Office: categorized.Office.length
+    });
+
+    return categorized;
+  }, [units]);
+
+  // Extract unique floor numbers and wings from flat_no (only for flats)
+  const { floors, wings } = useMemo(() => {
     const floorSet = new Set<string>();
     const wingSet = new Set<string>();
 
@@ -51,7 +78,8 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
     floorSet.add('1');
     wingSet.add('A');
 
-    units.forEach(unit => {
+    // Only process flats for floor/wing extraction
+    unitsByCategory.Flat.forEach(unit => {
       // Extract floor from flat_no (assuming format like "A-101" where 1 is the floor)
       // Try different patterns to be more flexible
       let floorNumber = null;
@@ -105,17 +133,17 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
     const sortedFloors = Array.from(floorSet).sort();
     const sortedWings = Array.from(wingSet).sort();
 
-    console.log('Extracted floors:', sortedFloors);
-    console.log('Extracted wings:', sortedWings);
+    console.log('Extracted floors (from flats only):', sortedFloors);
+    console.log('Extracted wings (from flats only):', sortedWings);
 
     return {
       floors: sortedFloors,
       wings: sortedWings
     };
-  }, [units]);
+  }, [unitsByCategory.Flat]);
 
-  // Group units by floor and wing
-  const groupedUnits = useMemo(() => {
+  // Group flats by floor and wing (only for flats)
+  const groupedFlats = useMemo(() => {
     const grouped: Record<string, Record<string, UnitFlatWithDetails[]>> = {};
 
     // Initialize structure
@@ -126,8 +154,8 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
       });
     });
 
-    // Group units
-    units.forEach(unit => {
+    // Group only flats by floor and wing
+    unitsByCategory.Flat.forEach(unit => {
       // Extract floor using the same logic as above
       let floorNumber = null;
       let wing = null;
@@ -227,20 +255,29 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
       wings.forEach(wing => {
         if (grouped[floor] && grouped[floor][wing]) {
           totalUnitsGrouped += grouped[floor][wing].length;
-          console.log(`Floor ${floor}, Wing ${wing}: ${grouped[floor][wing].length} units`);
+          console.log(`Floor ${floor}, Wing ${wing}: ${grouped[floor][wing].length} flats`);
         }
       });
     });
-    console.log(`Total units grouped: ${totalUnitsGrouped} out of ${units.length}`);
+    console.log(`Total flats grouped: ${totalUnitsGrouped} out of ${unitsByCategory.Flat.length}`);
 
     return grouped;
-  }, [units, floors, wings]);
+  }, [unitsByCategory.Flat, floors, wings]);
 
-  // Filter units by selected floor and wing
-  const filteredUnits = useMemo(() => {
-    if (!selectedFloor && !selectedWing) return units;
+  // Sort shops and offices separately (no floor grouping)
+  const sortedShops = useMemo(() => {
+    return [...unitsByCategory.Shop].sort((a, b) => a.flat_no.localeCompare(b.flat_no));
+  }, [unitsByCategory.Shop]);
 
-    return units.filter(unit => {
+  const sortedOffices = useMemo(() => {
+    return [...unitsByCategory.Office].sort((a, b) => a.flat_no.localeCompare(b.flat_no));
+  }, [unitsByCategory.Office]);
+
+  // Filter flats by selected floor and wing (only applies to flats)
+  const filteredFlats = useMemo(() => {
+    if (!selectedFloor && !selectedWing) return unitsByCategory.Flat;
+
+    return unitsByCategory.Flat.filter(unit => {
       // Extract floor using the same logic as above
       let floorNumber = null;
       let wing = null;
@@ -291,7 +328,7 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
 
       return floorMatches && wingMatches;
     });
-  }, [units, selectedFloor, selectedWing, floors, wings]);
+  }, [unitsByCategory.Flat, selectedFloor, selectedWing, floors, wings]);
 
   // Get status color
   const getStatusColor = (status: string) => {
@@ -348,7 +385,7 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
     );
   };
 
-  // Render a floor section - floor header hidden as requested
+  // Render a floor section for flats - floor header hidden as requested
   const renderFloor = (floor: string) => {
     return (
       <View key={floor} style={styles.floorSection}>
@@ -360,9 +397,9 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
     );
   };
 
-  // Render a wing section
+  // Render a wing section for flats
   const renderWing = (floor: string, wing: string) => {
-    const unitsInWing = groupedUnits[floor][wing];
+    const unitsInWing = groupedFlats[floor][wing];
 
     if (!unitsInWing || unitsInWing.length === 0) return null;
 
@@ -370,8 +407,44 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
       <View key={`${floor}-${wing}`} style={styles.wingSection}>
         {/* Wing title hidden as requested */}
         <View style={styles.unitsGrid}>
-          {unitsInWing.map((unit, index) => renderUnit(unit, index))}
+          {unitsInWing.map((unit, index) => (
+            <View key={unit.id} style={styles.unitContainer}>
+              {renderUnit(unit, index)}
+            </View>
+          ))}
         </View>
+      </View>
+    );
+  };
+
+  // Render category section
+  const renderCategorySection = (category: string, units: UnitFlatWithDetails[]) => {
+    if (units.length === 0) return null;
+
+    return (
+      <View key={category} style={styles.categorySection}>
+        <Text style={styles.categoryTitle}>{category}s</Text>
+        {category === 'Flat' ? (
+          // For flats, show floor-wise bifurcation
+          <View style={styles.buildingFlatsContainer}>
+            {selectedFloor ? (
+              // Show only selected floor
+              renderFloor(selectedFloor)
+            ) : (
+              // Show all floors
+              floors.map(floor => renderFloor(floor))
+            )}
+          </View>
+        ) : (
+          // For shops and offices, show as simple grid without floor grouping but with same card size
+          <View style={styles.unitsGrid}>
+            {units.map((unit, index) => (
+              <View key={unit.id} style={styles.unitContainer}>
+                {renderUnit(unit, index)}
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -382,7 +455,7 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
       <Animated.View
         key={unit.id}
         entering={FadeIn.delay(index * 30).duration(300)}
-        style={styles.unitContainer}
+        style={{ flex: 1 }}
       >
         <TouchableRipple
           onPress={() => onUnitPress(unit)}
@@ -455,15 +528,11 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
       {/* Legend */}
       {renderLegend()}
 
-      {/* Building visualization */}
-      <View style={styles.buildingFlatsContainer}>
-        {selectedFloor ? (
-          // Show only selected floor
-          renderFloor(selectedFloor)
-        ) : (
-          // Show all floors
-          floors.map(floor => renderFloor(floor))
-        )}
+      {/* Category-based visualization */}
+      <View style={styles.categoriesContainer}>
+        {renderCategorySection('Flat', filteredFlats)}
+        {renderCategorySection('Shop', sortedShops)}
+        {renderCategorySection('Office', sortedOffices)}
       </View>
     </View>
   );
@@ -588,6 +657,25 @@ const FlatsAvailabilityReportScreen = () => {
 
   // No view mode toggle as we only have building view
 
+  // Get filter description for PDF
+  const getFilterDescription = () => {
+    const filters = [];
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filters.push(`Status: ${statusFilter}`);
+    } else {
+      filters.push('Status: All');
+    }
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      filters.push(`Search: "${searchQuery}"`);
+    }
+
+    return filters.length > 0 ? filters.join(' | ') : 'All';
+  };
+
   // Generate and share PDF report
   const generateAndSharePDF = async (includeLetterhead: boolean = false) => {
     try {
@@ -606,10 +694,14 @@ const FlatsAvailabilityReportScreen = () => {
 
       console.log('Generating PDF with summary:', filteredSummary);
 
+      // Create filter description
+      const filterDescription = getFilterDescription();
+
       // Create HTML content
       const htmlContent = generateFlatsAvailabilityHtml({
         units: filteredUnits,
         projectName: selectedProject?.name || 'All Projects',
+        filterDescription,
         summary: filteredSummary, // Use the filtered summary
         generatedAt: Date.now(),
         includeLetterhead
@@ -650,12 +742,14 @@ const FlatsAvailabilityReportScreen = () => {
   const generateFlatsAvailabilityHtml = ({
     units,
     projectName,
+    filterDescription,
     summary,
     generatedAt,
     includeLetterhead = false
   }: {
     units: UnitFlatWithDetails[];
     projectName: string;
+    filterDescription: string;
     summary: { total: number; available: number; booked: number; sold: number };
     generatedAt: number;
     includeLetterhead?: boolean;
@@ -675,45 +769,116 @@ const FlatsAvailabilityReportScreen = () => {
 
     // Generate building visualization for building view
     const generateBuildingHtml = () => {
-      // Group units by floor
-      const unitsByFloor: Record<string, UnitFlatWithDetails[]> = {};
+      // Group units by category first
+      const unitsByCategory = {
+        Flat: [] as UnitFlatWithDetails[],
+        Shop: [] as UnitFlatWithDetails[],
+        Office: [] as UnitFlatWithDetails[]
+      };
 
       units.forEach(unit => {
-        // Extract floor using the same logic as in the component
-        let floor = 'other';
-
-        // Try pattern like "A-101"
-        const floorMatch1 = unit.flat_no.match(/[A-Za-z]-(\d+)/);
-        if (floorMatch1 && floorMatch1[1]) {
-          floor = floorMatch1[1].charAt(0);
+        const category = unit.category || 'Flat'; // Default to Flat if no category
+        if (category === 'Flat' || category === 'Shop' || category === 'Office') {
+          unitsByCategory[category].push(unit);
+        } else {
+          // If unknown category, default to Flat
+          unitsByCategory.Flat.push(unit);
         }
-        // Try pattern like "101" (just numbers)
-        else if (/^\d+$/.test(unit.flat_no)) {
-          floor = unit.flat_no.charAt(0);
-        }
-        // Try pattern like "Flat 101"
-        else {
-          const floorMatch2 = unit.flat_no.match(/(\d+)/);
-          if (floorMatch2 && floorMatch2[1]) {
-            floor = floorMatch2[1].charAt(0);
-          }
-        }
-
-        if (!unitsByFloor[floor]) {
-          unitsByFloor[floor] = [];
-        }
-
-        unitsByFloor[floor].push(unit);
       });
 
-      // Sort floors
-      const floors = Object.keys(unitsByFloor).sort();
+      // Generate HTML for each category
+      let categoryHtml = '';
 
-      // Generate HTML for each floor
-      return floors.map(floor => {
-        const floorUnits = unitsByFloor[floor].sort((a, b) => a.flat_no.localeCompare(b.flat_no));
+      // Generate Flats section with floor-wise bifurcation
+      if (unitsByCategory.Flat.length > 0) {
+        // Group flats by floor
+        const flatsByFloor: Record<string, UnitFlatWithDetails[]> = {};
 
-        const unitHtml = floorUnits.map(unit => {
+        unitsByCategory.Flat.forEach(unit => {
+          // Extract floor using the same logic as in the component
+          let floor = 'other';
+
+          // Try pattern like "A-101"
+          const floorMatch1 = unit.flat_no.match(/[A-Za-z]-(\d+)/);
+          if (floorMatch1 && floorMatch1[1]) {
+            floor = floorMatch1[1].charAt(0);
+          }
+          // Try pattern like "101" (just numbers)
+          else if (/^\d+$/.test(unit.flat_no)) {
+            floor = unit.flat_no.charAt(0);
+          }
+          // Try pattern like "Flat 101"
+          else {
+            const floorMatch2 = unit.flat_no.match(/(\d+)/);
+            if (floorMatch2 && floorMatch2[1]) {
+              floor = floorMatch2[1].charAt(0);
+            }
+          }
+
+          if (!flatsByFloor[floor]) {
+            flatsByFloor[floor] = [];
+          }
+
+          flatsByFloor[floor].push(unit);
+        });
+
+        // Sort floors
+        const floors = Object.keys(flatsByFloor).sort();
+
+        // Generate HTML for flats with floor grouping
+        const flatsHtml = floors.map(floor => {
+          const floorUnits = flatsByFloor[floor].sort((a, b) => a.flat_no.localeCompare(b.flat_no));
+
+          const unitHtml = floorUnits.map(unit => {
+            let statusColor = '';
+            switch (unit.status) {
+              case 'Available':
+                statusColor = '#E0F2F1'; // Light teal
+                break;
+              case 'Booked':
+                statusColor = '#FFF8E1'; // Light amber
+                break;
+              case 'Sold':
+                statusColor = '#FFEBEE'; // Light red
+                break;
+              default:
+                statusColor = '#F5F5F5'; // Light grey
+            }
+
+            return `
+              <div class="unit" style="background-color: ${statusColor};">
+                <div class="unit-number">${unit.flat_no}</div>
+                <div class="unit-status">${unit.status}</div>
+                ${unit.type ? `<div class="unit-type">${unit.type}</div>` : ''}
+                ${unit.area_sqft ? `<div class="unit-area">${unit.area_sqft} sqft</div>` : ''}
+                ${unit.client_name && unit.status !== 'Sold' ? `<div class="unit-client">${unit.client_name}</div>` : ''}
+              </div>
+            `;
+          }).join('');
+
+          return `
+            <div class="floor">
+              <h3>Floor ${floor}</h3>
+              <div class="units-grid">
+                ${unitHtml}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        categoryHtml += `
+          <div class="category-section">
+            <h2>Flats</h2>
+            ${flatsHtml}
+          </div>
+        `;
+      }
+
+      // Generate Shops section (no floor grouping)
+      if (unitsByCategory.Shop.length > 0) {
+        const sortedShops = unitsByCategory.Shop.sort((a, b) => a.flat_no.localeCompare(b.flat_no));
+
+        const shopsHtml = sortedShops.map(unit => {
           let statusColor = '';
           switch (unit.status) {
             case 'Available':
@@ -733,20 +898,65 @@ const FlatsAvailabilityReportScreen = () => {
             <div class="unit" style="background-color: ${statusColor};">
               <div class="unit-number">${unit.flat_no}</div>
               <div class="unit-status">${unit.status}</div>
+              ${unit.type ? `<div class="unit-type">${unit.type}</div>` : ''}
+              ${unit.area_sqft ? `<div class="unit-area">${unit.area_sqft} sqft</div>` : ''}
               ${unit.client_name && unit.status !== 'Sold' ? `<div class="unit-client">${unit.client_name}</div>` : ''}
             </div>
           `;
         }).join('');
 
-        return `
-          <div class="floor">
-            <h3>Floor ${floor}</h3>
+        categoryHtml += `
+          <div class="category-section">
+            <h2>Shops</h2>
             <div class="units-grid">
-              ${unitHtml}
+              ${shopsHtml}
             </div>
           </div>
         `;
-      }).join('');
+      }
+
+      // Generate Offices section (no floor grouping)
+      if (unitsByCategory.Office.length > 0) {
+        const sortedOffices = unitsByCategory.Office.sort((a, b) => a.flat_no.localeCompare(b.flat_no));
+
+        const officesHtml = sortedOffices.map(unit => {
+          let statusColor = '';
+          switch (unit.status) {
+            case 'Available':
+              statusColor = '#E0F2F1'; // Light teal
+              break;
+            case 'Booked':
+              statusColor = '#FFF8E1'; // Light amber
+              break;
+            case 'Sold':
+              statusColor = '#FFEBEE'; // Light red
+              break;
+            default:
+              statusColor = '#F5F5F5'; // Light grey
+          }
+
+          return `
+            <div class="unit" style="background-color: ${statusColor};">
+              <div class="unit-number">${unit.flat_no}</div>
+              <div class="unit-status">${unit.status}</div>
+              ${unit.type ? `<div class="unit-type">${unit.type}</div>` : ''}
+              ${unit.area_sqft ? `<div class="unit-area">${unit.area_sqft} sqft</div>` : ''}
+              ${unit.client_name && unit.status !== 'Sold' ? `<div class="unit-client">${unit.client_name}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+
+        categoryHtml += `
+          <div class="category-section">
+            <h2>Offices</h2>
+            <div class="units-grid">
+              ${officesHtml}
+            </div>
+          </div>
+        `;
+      }
+
+      return categoryHtml;
     };
 
     // Generate summary table
@@ -833,46 +1043,75 @@ const FlatsAvailabilityReportScreen = () => {
             .units-grid {
               display: flex;
               flex-wrap: wrap;
-              gap: 10px;
+              gap: 15px;
               margin-bottom: 20px;
             }
             .unit {
-              width: 120px;
-              height: 80px;
+              width: 180px;
+              min-height: 120px;
               border: 1px solid #ddd;
               border-radius: 4px;
-              padding: 10px;
+              padding: 12px;
               box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-start;
             }
             .unit-number {
               font-weight: bold;
               font-size: 16px;
-              margin-bottom: 5px;
+              margin-bottom: 6px;
+              color: #333;
             }
             .unit-status {
-              font-size: 14px;
-              margin-bottom: 5px;
+              font-size: 13px;
+              margin-bottom: 4px;
+              font-weight: 500;
+            }
+            .unit-type {
+              font-size: 12px;
+              color: #666;
+              margin-bottom: 3px;
+            }
+            .unit-area {
+              font-size: 12px;
+              color: #666;
+              margin-bottom: 3px;
             }
             .unit-client {
-              font-size: 12px;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
+              font-size: 11px;
+              color: #888;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+              line-height: 1.2;
             }
             .floor {
-              margin-bottom: 30px;
+              margin-bottom: 35px;
             }
             .floor h3 {
-              margin-bottom: 10px;
+              margin-bottom: 15px;
               border-bottom: 1px solid #ddd;
-              padding-bottom: 5px;
+              padding-bottom: 8px;
+              font-size: 16px;
+              color: #333;
+            }
+            .category-section {
+              margin-bottom: 40px;
+            }
+            .category-section h2 {
+              font-size: 20px;
+              font-weight: bold;
+              margin-bottom: 20px;
+              color: #333;
+              border-bottom: 2px solid #007bff;
+              padding-bottom: 10px;
             }
           </style>
         </head>
         <body>
           <div class="header">
             <div class="title">Flats Availability Report</div>
-            <div class="subtitle">Project: ${projectName}</div>
+            <div class="subtitle">Project: ${projectName} | Filter: ${filterDescription}</div>
           </div>
 
           ${summaryTable}
@@ -1342,6 +1581,22 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs,
   },
+  categoriesContainer: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  categorySection: {
+    marginBottom: spacing.lg,
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: spacing.md,
+    color: theme.colors.primary,
+    paddingBottom: spacing.xs,
+    borderBottomWidth: 2,
+    borderBottomColor: theme.colors.primary,
+  },
   filtersContainer: {
     backgroundColor: theme.colors.surface,
     borderRadius: borderRadius.md,
@@ -1419,12 +1674,11 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.onPrimaryContainer,
   },
   wingsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    width: '100%',
   },
   wingSection: {
-    width: '47%',
+    width: '100%',
     padding: 1,
     marginBottom: 2,
   },
@@ -1441,11 +1695,12 @@ const createStyles = (theme: any) => StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    paddingHorizontal: 4,
   },
   unitContainer: {
-    width: '47%',
+    width: '20%',
     padding: 1,
-    marginBottom: 3,
+    marginBottom: 6,
   },
   unitCard: {
     borderRadius: borderRadius.sm,

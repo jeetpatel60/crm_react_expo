@@ -11,7 +11,7 @@ import { updateUnitFlat } from '../database/unitsFlatDb';
 import { getProjects } from '../database/projectsDb';
 import { getClientById } from '../database/clientsDb';
 import { spacing, shadows, borderRadius } from '../constants/theme';
-import { UNIT_STATUS_OPTIONS, UNIT_TYPE_OPTIONS } from '../constants';
+import { UNIT_STATUS_OPTIONS, UNIT_TYPE_OPTIONS, UNIT_CATEGORY_OPTIONS } from '../constants';
 import { ClientSelectionModal } from '../components';
 
 type EditUnitFlatScreenRouteProp = RouteProp<RootStackParamList, 'EditUnitFlat'>;
@@ -38,6 +38,7 @@ const EditUnitFlatScreen = () => {
   const [gstAmount, setGstAmount] = useState(unit.gst_amount?.toString() || '0');
   const [status, setStatus] = useState<UnitStatus>(unit.status);
   const [type, setType] = useState(unit.type || '');
+  const [category, setCategory] = useState(unit.category || '');
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -45,6 +46,7 @@ const EditUnitFlatScreen = () => {
   const [projectMenuVisible, setProjectMenuVisible] = useState(false);
   const [statusMenuVisible, setStatusMenuVisible] = useState(false);
   const [typeMenuVisible, setTypeMenuVisible] = useState(false);
+  const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
   const [clientSelectionVisible, setClientSelectionVisible] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -179,6 +181,7 @@ const EditUnitFlatScreen = () => {
         gst_amount: gstAmount ? parseFloat(gstAmount) : 0,
         status,
         type: type.trim() || undefined,
+        category: category.trim() || undefined,
       };
 
       const projectChanged = unit.project_id !== projectId;
@@ -543,6 +546,41 @@ const EditUnitFlatScreen = () => {
                 onPress={() => {
                   setType(option.value);
                   setTypeMenuVisible(false);
+                }}
+                title={option.label}
+              />
+            ))}
+          </Menu>
+        </View>
+
+        <View style={styles.dropdownContainer}>
+          <TextInput
+            label="Category"
+            value={category}
+            mode="outlined"
+            style={styles.input}
+            outlineColor={theme.colors.outline}
+            activeOutlineColor={theme.colors.primary}
+            right={
+              <TextInput.Icon
+                icon="menu-down"
+                onPress={() => setCategoryMenuVisible(true)}
+              />
+            }
+            onTouchStart={() => setCategoryMenuVisible(true)}
+          />
+          <Menu
+            visible={categoryMenuVisible}
+            onDismiss={() => setCategoryMenuVisible(false)}
+            anchor={{ x: 0, y: 0 }}
+            style={[styles.menu, { marginTop: 60 }]}
+          >
+            {UNIT_CATEGORY_OPTIONS.map((option) => (
+              <Menu.Item
+                key={option.value}
+                onPress={() => {
+                  setCategory(option.value);
+                  setCategoryMenuVisible(false);
                 }}
                 title={option.label}
               />

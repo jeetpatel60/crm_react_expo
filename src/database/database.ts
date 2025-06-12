@@ -400,6 +400,9 @@ export const runMigrations = async (): Promise<void> => {
     const { updateGstRecordsSchema } = await import('./migrations/updateGstRecordsSchema');
     await updateGstRecordsSchema(getDatabase);
 
+    const { addCategoryToUnitsFlats } = await import('./migrations/addCategoryToUnitsFlats');
+    await addCategoryToUnitsFlats(getDatabase);
+
     console.log('Database migrations completed successfully');
   } catch (error) {
     console.error('Error running database migrations:', error);

@@ -81,6 +81,12 @@ export const UNIT_TYPE_OPTIONS = [
   { label: '6 BHK', value: '6 BHK' },
 ];
 
+export const UNIT_CATEGORY_OPTIONS = [
+  { label: 'Flat', value: 'Flat' },
+  { label: 'Shop', value: 'Shop' },
+  { label: 'Office', value: 'Office' },
+];
+
 export const UNIT_CUSTOMER_SCHEDULE_STATUS_OPTIONS = [
   { label: 'Not Started', value: 'Not Started' },
   { label: 'Payment Requested', value: 'Payment Requested' },
