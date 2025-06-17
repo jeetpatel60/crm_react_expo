@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, ScrollView, useWindowDimensions } from 'react-native';
 import { Text, useTheme, Card, Chip, Searchbar, SegmentedButtons, FAB, IconButton, Menu, Divider, Button, Portal, Dialog, TouchableRipple } from 'react-native-paper';
 import { UnitFlatWithDetails, getUnitsFlatWithDetails } from '../database/unitsFlatDb';
 import { Project, getProjects } from '../database/projectsDb';
@@ -1043,11 +1043,11 @@ const FlatsAvailabilityReportScreen = () => {
             .units-grid {
               display: flex;
               flex-wrap: wrap;
-              gap: 15px;
+              gap: 10px; /* Adjusted to prevent overlap */
               margin-bottom: 20px;
             }
             .unit {
-              width: 180px;
+              width: 170px; /* Adjusted to prevent overlap */
               min-height: 120px;
               border: 1px solid #ddd;
               border-radius: 4px;
@@ -1450,7 +1450,14 @@ const FlatsAvailabilityReportScreen = () => {
   );
 };
 
-const createStyles = (theme: any) => StyleSheet.create({
+const createStyles = (theme: any) => {
+  const { width } = useWindowDimensions();
+
+  // Determine number of columns based on screen width
+  const numColumns = width > 768 ? 5 : width > 480 ? 3 : 2; // 5 for tablets/foldables, 3 for larger phones, 2 for small phones
+  const unitContainerWidth = (width - (spacing.sm * 2) - (4 * numColumns)) / numColumns; // Total width - horizontal padding - gap between units
+
+  return StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -1693,13 +1700,13 @@ const createStyles = (theme: any) => StyleSheet.create({
   unitsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'center', // Center items for better alignment
     alignItems: 'flex-start',
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.sm,
   },
   unitContainer: {
-    width: '20%',
-    padding: 1,
+    width: unitContainerWidth,
+    paddingHorizontal: spacing.xs,
     marginBottom: 6,
   },
   unitCard: {
@@ -1710,9 +1717,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     ...shadows.sm,
   },
   unitCardContent: {
-    padding: 6,
+    padding: spacing.xs,
     justifyContent: 'flex-start',
-    minHeight: 'auto', // Remove fixed height
+    minHeight: 'auto',
   },
   unitHeader: {
     flexDirection: 'row',
@@ -1722,26 +1729,26 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   unitNumber: {
     fontWeight: 'bold',
-    fontSize: 14,
-    lineHeight: 16,
+    fontSize: 12,
+    lineHeight: 14,
   },
   unitTypeText: {
-    fontSize: 11,
+    fontSize: 10,
     color: theme.colors.onSurfaceVariant,
-    lineHeight: 13,
+    lineHeight: 12,
     marginBottom: 1,
   },
   unitArea: {
-    fontSize: 11,
+    fontSize: 10,
     color: theme.colors.onSurfaceVariant,
-    lineHeight: 13,
+    lineHeight: 12,
     marginBottom: 1,
   },
   unitClient: {
-    fontSize: 10,
+    fontSize: 9,
     color: theme.colors.onSurfaceVariant,
     fontStyle: 'italic',
-    lineHeight: 12,
+    lineHeight: 11,
   },
   // Dialog styles
   dialog: {
@@ -1775,5 +1782,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: spacing.sm,
   },
 });
+}; // Added closing brace for createStyles function
 
 export default FlatsAvailabilityReportScreen;
