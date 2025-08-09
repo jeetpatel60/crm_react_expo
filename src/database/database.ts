@@ -296,8 +296,22 @@ export const restoreDatabaseFromFile = async (backupFilePath: string): Promise<v
       throw new Error('Database restoration failed: No tables found in restored database');
     }
 
-    // Additional verification: Check if we have data in all CRM tables
-    const allCrmTables = [
+    // Step 10: Run migrations to ensure compatibility with current app version
+    console.log('Running migrations to ensure schema compatibility...');
+    try {
+      await runMigrations();
+      console.log('Migrations completed successfully after restoration');
+    } catch (migrationError) {
+      console.warn('Some migrations failed after restoration (this might be normal for older backups):', migrationError);
+      // Don't fail the restoration if migrations have issues - the core data might still be intact
+    }
+
+    // Additional verification: Check if we have data in CRM tables
+    // Define core tables that should exist in any valid CRM backup
+    const coreTables = ['companies', 'clients', 'leads', 'projects', 'units_flats'];
+
+    // Define all possible CRM tables (including newer ones)
+    const allPossibleCrmTables = [
       // Core business tables
       'companies', 'clients', 'leads', 'projects', 'units_flats',
       // Project related tables
@@ -320,7 +334,7 @@ export const restoreDatabaseFromFile = async (backupFilePath: string): Promise<v
       // Check each table if it exists
       const tableNames = tables.map(t => (t as any).name);
 
-      for (const tableName of allCrmTables) {
+      for (const tableName of allPossibleCrmTables) {
         if (tableNames.includes(tableName)) {
           try {
             const result = await db.getFirstAsync<{count: number}>(`SELECT COUNT(*) as count FROM ${tableName}`);

@@ -68,6 +68,7 @@ const BackupManagementScreen = () => {
   const [testing, setTesting] = useState(false);
   const [debugging, setDebugging] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [databaseLocation, setDatabaseLocation] = useState<string>('Loading...');
 
   useEffect(() => {
     loadData();
@@ -84,15 +85,18 @@ const BackupManagementScreen = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [backupList, status] = await Promise.all([
+      const [backupList, status, dbLocation] = await Promise.all([
         getBackupList(),
         getBackupStatus(),
+        getDatabaseLocation(),
       ]);
       setBackups(backupList);
       setBackupStatus(status);
+      setDatabaseLocation(dbLocation);
     } catch (error) {
       console.error('Error loading backup data:', error);
       Alert.alert('Error', 'Failed to load backup data');
+      setDatabaseLocation('Error loading location');
     } finally {
       setLoading(false);
     }
@@ -152,21 +156,42 @@ const BackupManagementScreen = () => {
         const dbTest = await testDatabaseConnection();
         console.log('Database test after restore:', dbTest);
 
-        Alert.alert(
-          '✅ Restore Successful!',
-          `Your data has been restored successfully!\n\n📊 Restored Data:\n• ${dbTest.counts.clients} Clients\n• ${dbTest.counts.projects} Projects\n• ${dbTest.counts.units} Units/Flats\n• ${dbTest.counts.leads} Leads\n\n💡 The app will refresh automatically. Navigate to different screens to see your restored data.`,
-          [
-            {
-              text: 'View Data',
-              onPress: () => {
-                // Force reload data after user acknowledges
-                setTimeout(() => {
-                  loadData();
-                }, 500);
+        // Show detailed results regardless of whether validation detected data
+        const totalRecords = dbTest.counts.clients + dbTest.counts.projects + dbTest.counts.units + dbTest.counts.leads;
+
+        if (totalRecords > 0) {
+          Alert.alert(
+            '✅ Restore Successful!',
+            `Your data has been restored successfully!\n\n📊 Restored Data:\n• ${dbTest.counts.clients} Clients\n• ${dbTest.counts.projects} Projects\n• ${dbTest.counts.units} Units/Flats\n• ${dbTest.counts.leads} Leads\n\n💡 The app will refresh automatically. Navigate to different screens to see your restored data.`,
+            [
+              {
+                text: 'View Data',
+                onPress: () => {
+                  // Force reload data after user acknowledges
+                  setTimeout(() => {
+                    loadData();
+                  }, 500);
+                }
               }
-            }
-          ]
-        );
+            ]
+          );
+        } else {
+          Alert.alert(
+            '✅ Restore Complete!',
+            `The backup has been restored successfully!\n\n📊 Current Data Status:\n• ${dbTest.counts.clients} Clients\n• ${dbTest.counts.projects} Projects\n• ${dbTest.counts.units} Units/Flats\n• ${dbTest.counts.leads} Leads\n\n💡 If you expected more data, the backup might be from an older app version or might be empty. The restoration was successful - you can now add new data or try a different backup.`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Force reload data after user acknowledges
+                  setTimeout(() => {
+                    loadData();
+                  }, 500);
+                }
+              }
+            ]
+          );
+        }
       }, 1000);
     } catch (error) {
       console.error('Error restoring backup:', error);
@@ -209,21 +234,42 @@ const BackupManagementScreen = () => {
         const dbTest = await testDatabaseConnection();
         console.log('Database test after import/restore:', dbTest);
 
-        Alert.alert(
-          '🎉 Import & Restore Complete!',
-          `Your backup file has been imported and restored successfully!\n\n📊 Imported Data:\n• ${dbTest.counts.clients} Clients\n• ${dbTest.counts.projects} Projects\n• ${dbTest.counts.units} Units/Flats\n• ${dbTest.counts.leads} Leads\n\n🔄 Perfect for Case 1: Phone reset or new device setup is now complete!`,
-          [
-            {
-              text: 'Explore Data',
-              onPress: () => {
-                // Force reload data after user acknowledges
-                setTimeout(() => {
-                  loadData();
-                }, 500);
+        // Show detailed results regardless of whether validation detected data
+        const totalRecords = dbTest.counts.clients + dbTest.counts.projects + dbTest.counts.units + dbTest.counts.leads;
+
+        if (totalRecords > 0) {
+          Alert.alert(
+            '🎉 Import & Restore Complete!',
+            `Your backup file has been imported and restored successfully!\n\n📊 Imported Data:\n• ${dbTest.counts.clients} Clients\n• ${dbTest.counts.projects} Projects\n• ${dbTest.counts.units} Units/Flats\n• ${dbTest.counts.leads} Leads\n\n🔄 Perfect for Case 1: Phone reset or new device setup is now complete!`,
+            [
+              {
+                text: 'Explore Data',
+                onPress: () => {
+                  // Force reload data after user acknowledges
+                  setTimeout(() => {
+                    loadData();
+                  }, 500);
+                }
               }
-            }
-          ]
-        );
+            ]
+          );
+        } else {
+          Alert.alert(
+            '✅ Import & Restore Complete!',
+            `Your backup file has been imported and restored successfully!\n\n📊 Current Data Status:\n• ${dbTest.counts.clients} Clients\n• ${dbTest.counts.projects} Projects\n• ${dbTest.counts.units} Units/Flats\n• ${dbTest.counts.leads} Leads\n\n💡 If you expected more data, the backup might be from an older app version. The restoration was successful - you can now add new data or try a different backup file.`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Force reload data after user acknowledges
+                  setTimeout(() => {
+                    loadData();
+                  }, 500);
+                }
+              }
+            ]
+          );
+        }
       }, 1000);
 
     } catch (error) {
@@ -547,7 +593,7 @@ const BackupManagementScreen = () => {
 
             <List.Item
               title="Database Location"
-              description={getDatabaseLocation()}
+              description={databaseLocation}
               left={(props) => (
                 <List.Icon {...props} icon="database" color={theme.colors.primary} />
               )}

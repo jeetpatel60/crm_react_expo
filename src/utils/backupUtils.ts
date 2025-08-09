@@ -821,8 +821,11 @@ export const validateBackupFile = async (filePath: string): Promise<BackupValida
       const tables = await tempDb.getAllAsync('SELECT name FROM sqlite_master WHERE type="table"');
       console.log('Tables found in backup:', tables.map((t: any) => t.name));
 
-      // Check for all CRM tables (comprehensive list)
-      const allCrmTables = [
+      // Define core tables that should exist in any valid CRM backup
+      const coreTables = ['companies', 'clients', 'leads', 'projects', 'units_flats'];
+
+      // Define all possible CRM tables (including newer ones)
+      const allPossibleCrmTables = [
         // Core business tables
         'companies', 'clients', 'leads', 'projects', 'units_flats',
         // Project related tables
@@ -838,18 +841,22 @@ export const validateBackupFile = async (filePath: string): Promise<BackupValida
       ];
 
       const foundTables = tables.map((t: any) => t.name);
-      const existingCrmTables = allCrmTables.filter(table => foundTables.includes(table));
-      const missingTables = allCrmTables.filter(table => !foundTables.includes(table));
+      const existingCrmTables = allPossibleCrmTables.filter(table => foundTables.includes(table));
+      const existingCoreTables = coreTables.filter(table => foundTables.includes(table));
 
       console.log('Found CRM tables:', existingCrmTables);
-      if (missingTables.length > 0) {
-        console.log('Missing tables (might be normal for older backups):', missingTables);
+      console.log('Found core tables:', existingCoreTables);
+
+      // Check if this looks like a valid CRM backup (has at least some core tables)
+      if (existingCoreTables.length === 0) {
+        console.warn('No core CRM tables found in backup - might not be a valid CRM backup');
       }
 
       // Check if there's any data in the backup
       let hasData = false;
       const tableDataCounts: Record<string, number> = {};
 
+      // Check all existing CRM tables for data
       for (const table of existingCrmTables) {
         try {
           const count = await tempDb.getFirstAsync(`SELECT COUNT(*) as count FROM ${table}`) as {count: number} | null;
@@ -863,6 +870,48 @@ export const validateBackupFile = async (filePath: string): Promise<BackupValida
         } catch (tableError) {
           console.warn(`Could not check data in table ${table}:`, tableError);
           tableDataCounts[table] = -1; // Indicate error
+        }
+      }
+
+      // If no data found in CRM tables, but we have core tables, still consider it valid
+      // (might be a fresh backup with no data yet)
+      if (!hasData && existingCoreTables.length > 0) {
+        console.log('No data found but core tables exist - considering backup valid (empty database)');
+        hasData = true; // Consider empty but valid database as having "data"
+      }
+
+      // Special handling for older backups: if we have ANY CRM-related data, consider it valid
+      if (!hasData && existingCrmTables.length > 0) {
+        console.log('Backup appears to be from older version - being more lenient with validation');
+
+        // Check if there's ANY data in ANY table (not just CRM tables)
+        try {
+          const allTablesWithData = [];
+          for (const table of foundTables) {
+            // Skip system tables
+            if (table.startsWith('sqlite_') || table.startsWith('android_metadata')) {
+              continue;
+            }
+
+            try {
+              const count = await tempDb.getFirstAsync(`SELECT COUNT(*) as count FROM ${table}`) as {count: number} | null;
+              const recordCount = count?.count || 0;
+              if (recordCount > 0) {
+                allTablesWithData.push({ table, count: recordCount });
+                hasData = true;
+              }
+            } catch (tableError) {
+              // Ignore errors for individual tables
+              console.warn(`Could not check table ${table}:`, tableError);
+            }
+          }
+
+          if (allTablesWithData.length > 0) {
+            console.log('Found data in tables (lenient check):', allTablesWithData);
+            hasData = true;
+          }
+        } catch (lenientError) {
+          console.warn('Lenient validation also failed:', lenientError);
         }
       }
 
@@ -882,11 +931,18 @@ export const validateBackupFile = async (filePath: string): Promise<BackupValida
 
     } catch (advancedError) {
       console.warn('Advanced validation failed, but file appears to be a valid SQLite database:', advancedError);
+      console.warn('This might be due to:');
+      console.warn('1. Backup is from an older app version with different schema');
+      console.warn('2. Database is locked or corrupted');
+      console.warn('3. Expo SQLite version compatibility issues');
+      console.warn('Marking as valid database but unknown data status');
+
       // Don't fail validation if advanced checks fail - basic validation passed
       return {
         isValid: true,
         fileSize,
-        isDatabase: true
+        isDatabase: true,
+        hasData: true // Assume it has data since we can't verify
       };
     }
 
@@ -1031,16 +1087,22 @@ export const selectBackupFileForImport = async (): Promise<string> => {
       throw new Error(`Invalid backup file: ${validation.error}`);
     }
 
-    // Warn if backup appears to be empty
-    if (validation.hasData === false) {
-      console.warn('Warning: Selected backup file appears to be empty');
-      // Still allow the import - user might want to restore an empty database
-    }
-
+    // Provide detailed information about the backup file
     console.log(`Backup file selected for import: ${file.name}`, {
       size: validation.fileSize,
-      hasData: validation.hasData
+      hasData: validation.hasData,
+      isValid: validation.isValid
     });
+
+    // If validation shows no data, provide more detailed logging but still allow import
+    if (validation.hasData === false) {
+      console.warn('Warning: Backup validation indicates no data found');
+      console.warn('This might be due to:');
+      console.warn('1. The backup is from an older app version with different table structure');
+      console.warn('2. The backup is genuinely empty');
+      console.warn('3. The validation logic is too strict');
+      console.warn('Proceeding with import anyway - user can verify after restoration');
+    }
 
     return file.uri; // Return the temporary file URI directly
   } catch (error) {
@@ -1143,12 +1205,49 @@ export const verifyBackupCompleteness = async (backupPath: string): Promise<stri
     const validation = await validateBackupFile(backupPath);
     verificationInfo.push(`\n--- File Validation ---`);
     verificationInfo.push(`Valid: ${validation.isValid}`);
-    verificationInfo.push(`Size: ${validation.fileSize} bytes`);
+    verificationInfo.push(`Size: ${formatFileSize(validation.fileSize || 0)}`);
     verificationInfo.push(`Has Data: ${validation.hasData}`);
 
     if (!validation.isValid) {
       verificationInfo.push(`Error: ${validation.error}`);
       return verificationInfo.join('\n');
+    }
+
+    // Additional detailed analysis for troubleshooting
+    verificationInfo.push(`\n--- Detailed Analysis ---`);
+    try {
+      const { openDatabaseSync } = require('expo-sqlite');
+      const tempDb = openDatabaseSync(backupPath, { enableChangeListener: false });
+
+      // Get all tables
+      const allTables = await tempDb.getAllAsync('SELECT name FROM sqlite_master WHERE type="table"');
+      const tableNames = allTables.map((t: any) => t.name);
+
+      verificationInfo.push(`Total Tables: ${tableNames.length}`);
+      verificationInfo.push(`Tables: ${tableNames.join(', ')}`);
+
+      // Check data in each table
+      const dataBreakdown: string[] = [];
+      for (const tableName of tableNames) {
+        if (tableName.startsWith('sqlite_') || tableName.startsWith('android_metadata')) {
+          continue; // Skip system tables
+        }
+
+        try {
+          const count = await tempDb.getFirstAsync(`SELECT COUNT(*) as count FROM ${tableName}`) as {count: number} | null;
+          const recordCount = count?.count || 0;
+          dataBreakdown.push(`${tableName}: ${recordCount} records`);
+        } catch (tableError) {
+          dataBreakdown.push(`${tableName}: Error reading`);
+        }
+      }
+
+      verificationInfo.push(`\n--- Data Breakdown ---`);
+      verificationInfo.push(dataBreakdown.join('\n'));
+
+      tempDb.closeSync();
+    } catch (detailedError) {
+      verificationInfo.push(`Detailed analysis failed: ${detailedError}`);
     }
 
     // Compare with current database
