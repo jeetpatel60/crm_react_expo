@@ -15,6 +15,7 @@ import { getProjects } from '../database/projectsDb';
 import { UnitFlatCard, LoadingIndicator, EmptyState, DocumentTemplateSelectionModal } from '../components';
 import { spacing, shadows, animations } from '../constants/theme';
 import { UNIT_STATUS_OPTIONS } from '../constants';
+import { useAutoRefreshOnRestore } from '../hooks/useDataRefresh';
 
 type UnitsFlatScreenNavigationProp = CompositeNavigationProp<
   DrawerNavigationProp<DrawerParamList, 'UnitsFlats'>,
@@ -91,6 +92,9 @@ const UnitsFlatScreen = () => {
       loadData();
     }, [loadData])
   );
+
+  // Auto-refresh data when database is restored
+  useAutoRefreshOnRestore(loadData);
 
   const onRefresh = () => {
     setRefreshing(true);

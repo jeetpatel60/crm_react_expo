@@ -36,7 +36,8 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
   onUnitPress
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { width } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(theme, width), [theme, width]);
   const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
   const [selectedWing, setSelectedWing] = useState<string | null>(null);
 
@@ -540,7 +541,8 @@ const BuildingVisualization: React.FC<BuildingVisualizationProps> = ({
 
 const FlatsAvailabilityReportScreen = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { width } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(theme, width), [theme, width]);
   const [units, setUnits] = useState<UnitFlatWithDetails[]>([]);
   const [filteredUnits, setFilteredUnits] = useState<UnitFlatWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1450,9 +1452,7 @@ const FlatsAvailabilityReportScreen = () => {
   );
 };
 
-const createStyles = (theme: any) => {
-  const { width } = useWindowDimensions();
-
+const createStyles = (theme: any, width: number) => {
   // Determine number of columns based on screen width
   const numColumns = width > 768 ? 5 : width > 480 ? 3 : 2; // 5 for tablets/foldables, 3 for larger phones, 2 for small phones
   const unitContainerWidth = (width - (spacing.sm * 2) - (4 * numColumns)) / numColumns; // Total width - horizontal padding - gap between units

@@ -21,6 +21,10 @@ export const initializeDb = async (): Promise<boolean> => {
 
     database = await SQLite.openDatabaseAsync('crm.db');
     console.log('SUCCESS: Using SQLite database. Database object:', database);
+
+    // After opening the database, try to find where it's actually stored
+    await findActualDatabasePath();
+
     return true;
   } catch (error) {
     console.error('Error initializing database:', error);
@@ -38,6 +42,422 @@ export const getDatabase = (): SQLite.SQLiteDatabase => {
   console.log('DEBUG: getDatabase() returning database object:', database);
   return database;
 };
+
+// Close the current database connection
+export const closeDatabase = async (): Promise<void> => {
+  try {
+    if (database && (database as any).closeAsync) {
+      await (database as any).closeAsync();
+    }
+  } catch (e) {
+    console.warn('Warning: error while closing database (continuing):', e);
+  } finally {
+    database = null;
+  }
+};
+
+// Find the actual database path by testing where the database file exists
+const findActualDatabasePath = async (): Promise<void> => {
+  try {
+    const FileSystem = require('expo-file-system');
+
+    // Test if we can create a test table and then find the file
+    if (database) {
+      // Create a temporary test to ensure database is working
+      await database.execAsync('CREATE TABLE IF NOT EXISTS _test_table_for_path (id INTEGER);');
+      await database.execAsync('DROP TABLE IF EXISTS _test_table_for_path;');
+
+      console.log('Database is working, now searching for the actual file...');
+
+      // Search for the database file in common locations
+      const searchPaths = [
+        `${FileSystem.documentDirectory}SQLite/`,
+        `${FileSystem.documentDirectory}`,
+        `${FileSystem.documentDirectory}databases/`,
+      ];
+
+      for (const searchDir of searchPaths) {
+        try {
+          const dirInfo = await FileSystem.getInfoAsync(searchDir);
+          if (dirInfo.exists) {
+            const files = await FileSystem.readDirectoryAsync(searchDir);
+            for (const file of files) {
+              if (file.includes('crm') && file.endsWith('.db')) {
+                const fullPath = `${searchDir}${file}`;
+                const fileInfo = await FileSystem.getInfoAsync(fullPath);
+                if (fileInfo.exists && (fileInfo as any).size > 0) {
+                  console.log(`Found active database file at: ${fullPath} (Size: ${(fileInfo as any).size} bytes)`);
+                  return;
+                }
+              }
+            }
+          }
+        } catch (searchError) {
+          console.log(`Could not search directory ${searchDir}:`, searchError);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Could not determine actual database path:', error);
+  }
+};
+
+// Get the actual database file path
+export const getDatabasePath = async (): Promise<string> => {
+  try {
+    const FileSystem = require('expo-file-system');
+
+    // List of possible database locations to check
+    const possiblePaths = [
+      // Standard Expo SQLite location
+      `${FileSystem.documentDirectory}SQLite/crm.db`,
+      // Alternative location for newer Expo versions
+      `${FileSystem.documentDirectory}crm.db`,
+      // Another possible location
+      `${FileSystem.documentDirectory}databases/crm.db`,
+      // Platform-specific locations
+      Platform.OS === 'ios'
+        ? `${FileSystem.documentDirectory}Library/LocalDatabase/crm.db`
+        : `${FileSystem.documentDirectory}databases/crm.db`,
+    ];
+
+    console.log('Searching for database file in possible locations...');
+
+    // Check each possible path
+    for (const dbPath of possiblePaths) {
+      console.log('Checking database path:', dbPath);
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(dbPath);
+        console.log(`Database file exists at ${dbPath}:`, fileInfo.exists);
+        if (fileInfo.exists && (fileInfo as any).size > 0) {
+          console.log('Found database at:', dbPath, 'Size:', (fileInfo as any).size);
+          return dbPath;
+        }
+      } catch (pathError) {
+        console.log(`Error checking path ${dbPath}:`, pathError);
+        continue;
+      }
+    }
+
+    // If no existing database found, try to find it by scanning directories
+    console.log('No database found in standard locations, scanning directories...');
+
+    try {
+      // Scan the documents directory for any .db files
+      const documentsFiles = await FileSystem.readDirectoryAsync(FileSystem.documentDirectory);
+      console.log('Files in documents directory:', documentsFiles);
+
+      for (const file of documentsFiles) {
+        if (file === 'crm.db') {
+          const foundPath = `${FileSystem.documentDirectory}${file}`;
+          const fileInfo = await FileSystem.getInfoAsync(foundPath);
+          if (fileInfo.exists && (fileInfo as any).size > 0) {
+            console.log('Found database file in documents root:', foundPath);
+            return foundPath;
+          }
+        }
+      }
+
+      // Check SQLite subdirectory
+      const sqliteDir = `${FileSystem.documentDirectory}SQLite/`;
+      const sqliteDirInfo = await FileSystem.getInfoAsync(sqliteDir);
+      if (sqliteDirInfo.exists) {
+        const sqliteFiles = await FileSystem.readDirectoryAsync(sqliteDir);
+        console.log('Files in SQLite directory:', sqliteFiles);
+
+        for (const file of sqliteFiles) {
+          if (file === 'crm.db') {
+            const foundPath = `${sqliteDir}${file}`;
+            const fileInfo = await FileSystem.getInfoAsync(foundPath);
+            if (fileInfo.exists && (fileInfo as any).size > 0) {
+              console.log('Found database file in SQLite directory:', foundPath);
+              return foundPath;
+            }
+          }
+        }
+      }
+    } catch (scanError) {
+      console.warn('Error scanning for database files:', scanError);
+    }
+
+    // If still not found, create the SQLite directory and return the standard path
+    const sqliteDir = `${FileSystem.documentDirectory}SQLite/`;
+    const sqliteDirInfo = await FileSystem.getInfoAsync(sqliteDir);
+    if (!sqliteDirInfo.exists) {
+      console.log('Creating SQLite directory:', sqliteDir);
+      await FileSystem.makeDirectoryAsync(sqliteDir, { intermediates: true });
+    }
+
+    const defaultPath = `${sqliteDir}crm.db`;
+    console.log('Using default database path (will be created when database is initialized):', defaultPath);
+    return defaultPath;
+  } catch (error) {
+    console.error('Error getting database path:', error);
+    // Fallback to standard path
+    const fallbackPath = `${require('expo-file-system').documentDirectory}SQLite/crm.db`;
+    console.log('Using fallback database path:', fallbackPath);
+    return fallbackPath;
+  }
+};
+
+// Reset database connection: close and reopen, then ensure schema/migrations
+export const resetDatabase = async (): Promise<void> => {
+  console.log('Resetting database connection...');
+  await closeDatabase();
+
+  // Add a small delay to ensure the connection is fully closed
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  await initializeDb();
+
+  // Don't call initDatabase() here as it might recreate tables
+  // The restored database should already have the correct schema
+  console.log('Database connection reset complete');
+};
+
+// Restore database from backup file - handles the complete restoration process
+export const restoreDatabaseFromFile = async (backupFilePath: string): Promise<void> => {
+  try {
+    console.log('Starting database restoration from:', backupFilePath);
+
+    // Step 1: Close the current database connection completely
+    console.log('Closing current database connection...');
+    await closeDatabase();
+
+    // Step 2: Get the target database path
+    const targetDbPath = await getDatabasePath();
+    console.log('Target database path:', targetDbPath);
+
+    // Step 3: Ensure the SQLite directory exists
+    const FileSystem = require('expo-file-system');
+    const sqliteDir = `${FileSystem.documentDirectory}SQLite/`;
+    const sqliteDirInfo = await FileSystem.getInfoAsync(sqliteDir);
+    if (!sqliteDirInfo.exists) {
+      console.log('Creating SQLite directory:', sqliteDir);
+      await FileSystem.makeDirectoryAsync(sqliteDir, { intermediates: true });
+    }
+
+    // Step 4: Verify backup file before copying
+    const backupFileInfo = await FileSystem.getInfoAsync(backupFilePath);
+    console.log('Backup file info before copy:', {
+      exists: backupFileInfo.exists,
+      size: (backupFileInfo as any).size,
+      path: backupFilePath
+    });
+
+    if (!backupFileInfo.exists) {
+      throw new Error(`Backup file does not exist: ${backupFilePath}`);
+    }
+
+    // Step 5: Copy the backup file to the database location
+    console.log('Copying backup file to database location...');
+    console.log('From:', backupFilePath);
+    console.log('To:', targetDbPath);
+
+    await FileSystem.copyAsync({
+      from: backupFilePath,
+      to: targetDbPath,
+    });
+
+    // Step 6: Verify the file was copied successfully
+    const restoredFileInfo = await FileSystem.getInfoAsync(targetDbPath);
+    if (!restoredFileInfo.exists) {
+      throw new Error('Failed to copy backup file to database location');
+    }
+
+    const originalSize = (backupFileInfo as any).size || 0;
+    const restoredSize = (restoredFileInfo as any).size || 0;
+
+    console.log('File copy verification:', {
+      originalSize,
+      restoredSize,
+      sizesMatch: originalSize === restoredSize
+    });
+
+    if (originalSize !== restoredSize) {
+      throw new Error(`File copy failed: size mismatch (original: ${originalSize}, restored: ${restoredSize})`);
+    }
+
+    // Step 7: Wait a moment to ensure file system operations are complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Step 8: Reinitialize the database connection
+    console.log('Reinitializing database connection...');
+    await initializeDb();
+
+    // Step 9: Verify the restoration by checking if we can query the database
+    console.log('Verifying database restoration...');
+
+    // First, check if we can connect and query basic schema
+    const tables = await db.getAllAsync('SELECT name FROM sqlite_master WHERE type="table"');
+    console.log('Available tables after restoration:', tables.map(t => (t as any).name));
+
+    if (tables.length === 0) {
+      throw new Error('Database restoration failed: No tables found in restored database');
+    }
+
+    // Additional verification: Check if we have data in all CRM tables
+    const allCrmTables = [
+      // Core business tables
+      'companies', 'clients', 'leads', 'projects', 'units_flats',
+      // Project related tables
+      'project_schedules', 'milestones',
+      // Unit related tables
+      'unit_customer_schedules', 'unit_payment_requests', 'unit_payment_receipts', 'unit_gst_records',
+      // Quotation related tables
+      'quotations', 'quotation_annexure_a', 'quotation_annexure_b', 'quotation_annexure_c',
+      // Template tables
+      'agreement_templates', 'payment_request_templates', 'payment_receipt_templates',
+      // Legacy tables (might exist in older backups)
+      'contacts', 'tasks'
+    ];
+
+    const verificationResults: Record<string, number> = {};
+    let totalRecords = 0;
+    let hasData = false;
+
+    try {
+      // Check each table if it exists
+      const tableNames = tables.map(t => (t as any).name);
+
+      for (const tableName of allCrmTables) {
+        if (tableNames.includes(tableName)) {
+          try {
+            const result = await db.getFirstAsync<{count: number}>(`SELECT COUNT(*) as count FROM ${tableName}`);
+            const count = result?.count || 0;
+            verificationResults[tableName] = count;
+            totalRecords += count;
+
+            if (count > 0) {
+              hasData = true;
+              console.log(`Restored table ${tableName}: ${count} records`);
+            }
+          } catch (tableError) {
+            console.warn(`Could not verify table ${tableName}:`, tableError);
+            verificationResults[tableName] = -1; // Indicate error
+          }
+        }
+      }
+
+      console.log('Complete restored database verification:', {
+        totalTables: Object.keys(verificationResults).length,
+        totalRecords,
+        hasData,
+        tableBreakdown: verificationResults
+      });
+
+      if (!hasData) {
+        console.warn('WARNING: Restored database appears to be empty (no data in any tables)');
+        console.warn('This might indicate the backup file was empty or the restoration failed');
+      } else {
+        console.log(`SUCCESS: Restored database contains ${totalRecords} total records across ${Object.keys(verificationResults).length} tables`);
+      }
+
+      // Test actual data retrieval for tables that have data
+      if (verificationResults.clients > 0) {
+        const sampleClient = await db.getFirstAsync('SELECT * FROM clients LIMIT 1');
+        console.log('Sample client data:', sampleClient);
+      }
+
+      if (verificationResults.projects > 0) {
+        const sampleProject = await db.getFirstAsync('SELECT * FROM projects LIMIT 1');
+        console.log('Sample project data:', sampleProject);
+      }
+
+    } catch (verificationError) {
+      console.error('Error during database verification:', verificationError);
+      throw new Error(`Database verification failed: ${verificationError instanceof Error ? verificationError.message : String(verificationError)}`);
+    }
+
+    console.log('Database restoration completed successfully');
+  } catch (error) {
+    console.error('Error in restoreDatabaseFromFile:', error);
+    throw error;
+  }
+};
+
+// Test database connectivity and data availability
+export const testDatabaseConnection = async (): Promise<{
+  connected: boolean;
+  tablesExist: boolean;
+  dataAvailable: boolean;
+  counts: { clients: number; projects: number; units: number; leads: number };
+  allTableCounts?: Record<string, number>;
+  totalRecords?: number;
+}> => {
+  try {
+    console.log('Testing database connection...');
+
+    // Test basic connectivity
+    const tables = await db.getAllAsync('SELECT name FROM sqlite_master WHERE type="table"');
+    console.log('Available tables:', tables.map(t => (t as any).name));
+
+    // Define all CRM tables to check
+    const allCrmTables = [
+      'companies', 'clients', 'leads', 'projects', 'units_flats',
+      'project_schedules', 'milestones',
+      'unit_customer_schedules', 'unit_payment_requests', 'unit_payment_receipts', 'unit_gst_records',
+      'quotations', 'quotation_annexure_a', 'quotation_annexure_b', 'quotation_annexure_c',
+      'agreement_templates', 'payment_request_templates', 'payment_receipt_templates',
+      'contacts', 'tasks'
+    ];
+
+    // Test data availability in core tables (for backward compatibility)
+    const clientCount = await db.getFirstAsync<{count: number}>('SELECT COUNT(*) as count FROM clients') || { count: 0 };
+    const projectCount = await db.getFirstAsync<{count: number}>('SELECT COUNT(*) as count FROM projects') || { count: 0 };
+    const unitCount = await db.getFirstAsync<{count: number}>('SELECT COUNT(*) as count FROM units_flats') || { count: 0 };
+    const leadCount = await db.getFirstAsync<{count: number}>('SELECT COUNT(*) as count FROM leads') || { count: 0 };
+
+    // Check all CRM tables for comprehensive verification
+    const tableNames = tables.map(t => (t as any).name);
+    const allTableCounts: Record<string, number> = {};
+    let totalRecords = 0;
+
+    for (const tableName of allCrmTables) {
+      if (tableNames.includes(tableName)) {
+        try {
+          const result = await db.getFirstAsync<{count: number}>(`SELECT COUNT(*) as count FROM ${tableName}`);
+          const count = result?.count || 0;
+          allTableCounts[tableName] = count;
+          totalRecords += count;
+        } catch (tableError) {
+          console.warn(`Could not check table ${tableName}:`, tableError);
+          allTableCounts[tableName] = -1; // Indicate error
+        }
+      }
+    }
+
+    const result = {
+      connected: true,
+      tablesExist: tables.length > 0,
+      dataAvailable: totalRecords > 0,
+      counts: {
+        clients: clientCount.count,
+        projects: projectCount.count,
+        units: unitCount.count,
+        leads: leadCount.count
+      },
+      allTableCounts,
+      totalRecords
+    };
+
+    console.log('Database test result:', {
+      ...result,
+      tableBreakdown: allTableCounts
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Database connection test failed:', error);
+    return {
+      connected: false,
+      tablesExist: false,
+      dataAvailable: false,
+      counts: { clients: 0, projects: 0, units: 0, leads: 0 }
+    };
+  }
+};
+
 
 // For backward compatibility with existing code
 // We create a simpler wrapper around the database

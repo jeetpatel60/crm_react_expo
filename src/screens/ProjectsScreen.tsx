@@ -13,6 +13,7 @@ import { db } from '../database/database';
 import { ProjectCard, LoadingIndicator, EmptyState } from '../components';
 import { spacing, shadows, animations } from '../constants/theme';
 import { PROJECT_STATUS_OPTIONS } from '../constants';
+import { useAutoRefreshOnRestore } from '../hooks/useDataRefresh';
 
 type ProjectsScreenNavigationProp = CompositeNavigationProp<
   DrawerNavigationProp<DrawerParamList, 'Projects'>,
@@ -97,6 +98,33 @@ const ProjectsScreen = () => {
 
     initialLoad();
   }, []);  // Empty dependency array means this runs once on mount
+
+  // Auto-refresh data when database is restored
+  useAutoRefreshOnRestore(() => {
+    console.log('Database restored, refreshing projects...');
+    const refreshData = async () => {
+      try {
+        const projectsData = await getProjects();
+        setProjects(projectsData);
+
+        // Apply filters
+        let filtered = projectsData;
+        if (searchQuery) {
+          filtered = filtered.filter(project =>
+            project.name.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
+        if (statusFilter !== 'all') {
+          filtered = filtered.filter(project => project.status === statusFilter);
+        }
+
+        setFilteredProjects(filtered);
+      } catch (error) {
+        console.error('Error refreshing projects after restore:', error);
+      }
+    };
+    refreshData();
+  });
 
   // Refresh when screen comes into focus (but not on initial load)
   useFocusEffect(

@@ -6,12 +6,12 @@ import {
   Button,
   List,
   Switch,
-  Divider,
   Dialog,
   Portal,
   useTheme,
   ActivityIndicator,
   Chip,
+  ProgressBar,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -19,19 +19,26 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 import { RootStackParamList } from '../types';
 import { spacing, shadows } from '../constants/theme';
+import { eventBus, EVENTS } from '../utils/eventBus';
+import { testDatabaseConnection } from '../database/database';
 import {
   BackupInfo,
   BackupStatus,
+  BackupProgress,
   createBackup,
   getBackupList,
   getBackupStatus,
   setAutoBackupEnabled,
   restoreFromBackup,
+  restoreFromImportedFile,
   deleteBackup,
+  exportBackupWithPicker,
   getDatabaseLocation,
   getBackupLocation,
   formatFileSize,
   formatBackupDate,
+  debugBackupSystem,
+  verifyBackupCompleteness,
 } from '../utils/backupUtils';
 
 type BackupManagementScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -50,12 +57,28 @@ const BackupManagementScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreProgress, setRestoreProgress] = useState<BackupProgress | null>(null);
   const [restoreDialogVisible, setRestoreDialogVisible] = useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState<BackupInfo | null>(null);
+  const [importRestoreDialogVisible, setImportRestoreDialogVisible] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [debugging, setDebugging] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     loadData();
+
+    // Listen for database restoration events
+    const unsubscribe = eventBus.on(EVENTS.DATABASE_RESTORED, () => {
+      console.log('Database restored, refreshing backup management screen');
+      loadData();
+    });
+
+    return unsubscribe;
   }, []);
 
   const loadData = async () => {
@@ -113,17 +136,168 @@ const BackupManagementScreen = () => {
     if (!selectedBackup) return;
 
     try {
-      await restoreFromBackup(selectedBackup.path);
+      setRestoring(true);
+      setRestoreProgress(null);
+
+      await restoreFromBackup(selectedBackup.path, (progress) => {
+        setRestoreProgress(progress);
+      });
+
       setRestoreDialogVisible(false);
       setSelectedBackup(null);
+      setRestoreProgress(null);
+
+      // Test database after restoration
+      setTimeout(async () => {
+        const dbTest = await testDatabaseConnection();
+        console.log('Database test after restore:', dbTest);
+
+        Alert.alert(
+          '✅ Restore Successful!',
+          `Your data has been restored successfully!\n\n📊 Restored Data:\n• ${dbTest.counts.clients} Clients\n• ${dbTest.counts.projects} Projects\n• ${dbTest.counts.units} Units/Flats\n• ${dbTest.counts.leads} Leads\n\n💡 The app will refresh automatically. Navigate to different screens to see your restored data.`,
+          [
+            {
+              text: 'View Data',
+              onPress: () => {
+                // Force reload data after user acknowledges
+                setTimeout(() => {
+                  loadData();
+                }, 500);
+              }
+            }
+          ]
+        );
+      }, 1000);
+    } catch (error) {
+      console.error('Error restoring backup:', error);
+      Alert.alert('Error', `Failed to restore backup: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setRestoring(false);
+      setRestoreProgress(null);
+    }
+  };
+
+  const handleExportBackup = async (backup?: BackupInfo) => {
+    try {
+      setExporting(true);
+      await exportBackupWithPicker(backup?.path);
+      Alert.alert('Success', 'Backup exported successfully');
+    } catch (error) {
+      console.error('Error exporting backup:', error);
+      if (error instanceof Error && error.message !== 'File selection cancelled') {
+        Alert.alert('Error', `Failed to export backup: ${error.message}`);
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportAndRestore = async () => {
+    try {
+      setImporting(true);
+      setRestoreProgress(null);
+
+      await restoreFromImportedFile((progress) => {
+        setRestoreProgress(progress);
+      });
+
+      setImportRestoreDialogVisible(false);
+      setRestoreProgress(null);
+
+      // Test database after restoration
+      setTimeout(async () => {
+        const dbTest = await testDatabaseConnection();
+        console.log('Database test after import/restore:', dbTest);
+
+        Alert.alert(
+          '🎉 Import & Restore Complete!',
+          `Your backup file has been imported and restored successfully!\n\n📊 Imported Data:\n• ${dbTest.counts.clients} Clients\n• ${dbTest.counts.projects} Projects\n• ${dbTest.counts.units} Units/Flats\n• ${dbTest.counts.leads} Leads\n\n🔄 Perfect for Case 1: Phone reset or new device setup is now complete!`,
+          [
+            {
+              text: 'Explore Data',
+              onPress: () => {
+                // Force reload data after user acknowledges
+                setTimeout(() => {
+                  loadData();
+                }, 500);
+              }
+            }
+          ]
+        );
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error importing and restoring backup:', error);
+      if (error instanceof Error && error.message !== 'File selection cancelled') {
+        Alert.alert('Error', `Failed to import backup: ${error.message}`);
+      }
+    } finally {
+      setImporting(false);
+      setRestoreProgress(null);
+    }
+  };
+
+  const handleTestDatabase = async () => {
+    try {
+      setTesting(true);
+      const dbTest = await testDatabaseConnection();
+
       Alert.alert(
-        'Success',
-        'Database restored successfully. Please restart the app for changes to take effect.',
+        'Database Test Results',
+        `Connected: ${dbTest.connected ? 'Yes' : 'No'}\n` +
+        `Tables Exist: ${dbTest.tablesExist ? 'Yes' : 'No'}\n` +
+        `Data Available: ${dbTest.dataAvailable ? 'Yes' : 'No'}\n\n` +
+        `Data Counts:\n` +
+        `• Clients: ${dbTest.counts.clients}\n` +
+        `• Projects: ${dbTest.counts.projects}\n` +
+        `• Units/Flats: ${dbTest.counts.units}\n` +
+        `• Leads: ${dbTest.counts.leads}`,
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Error restoring backup:', error);
-      Alert.alert('Error', 'Failed to restore backup');
+      Alert.alert('Error', `Failed to test database: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleDebugSystem = async () => {
+    try {
+      setDebugging(true);
+      const debugInfo = await debugBackupSystem();
+
+      Alert.alert(
+        'Backup System Debug',
+        debugInfo,
+        [
+          { text: 'Copy to Console', onPress: () => console.log(debugInfo) },
+          { text: 'OK' }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', `Failed to debug system: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setDebugging(false);
+    }
+  };
+
+  const handleVerifyBackup = async (backup: BackupInfo) => {
+    try {
+      setVerifying(true);
+      const verificationReport = await verifyBackupCompleteness(backup.path);
+
+      Alert.alert(
+        'Backup Verification Report',
+        verificationReport,
+        [
+          { text: 'Copy to Console', onPress: () => console.log(verificationReport) },
+          { text: 'OK' }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', `Failed to verify backup: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -195,6 +369,22 @@ const BackupManagementScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
+        {/* Quick Guide Card */}
+        <Card style={[styles.card, shadows.md, { backgroundColor: theme.colors.primaryContainer }]}>
+          <Card.Content>
+            <Text variant="titleMedium" style={[styles.cardTitle, { color: theme.colors.onPrimaryContainer }]}>
+              📖 Complete Data Protection
+            </Text>
+            <Text variant="bodyMedium" style={[styles.cardDescription, { color: theme.colors.onPrimaryContainer }]}>
+              <Text style={{ fontWeight: 'bold' }}>✅ ALL Data Backed Up:</Text> Companies, Clients, Projects, Units, Leads, Schedules, Payments, Quotations, Templates, and more
+              {'\n\n'}
+              <Text style={{ fontWeight: 'bold' }}>Case 1 - Phone Reset:</Text> Export → Reset → Import & restore
+              {'\n'}
+              <Text style={{ fontWeight: 'bold' }}>Case 2 - Recover Data:</Text> Choose backup → Restore
+            </Text>
+          </Card.Content>
+        </Card>
+
         {/* Status Card */}
         <Card style={[styles.card, shadows.md]}>
           <Card.Content>
@@ -229,20 +419,23 @@ const BackupManagementScreen = () => {
           </Card.Content>
         </Card>
 
-        {/* Controls Card */}
+        {/* Auto Backup Card */}
         <Card style={[styles.card, shadows.md]}>
           <Card.Content>
             <Text variant="titleMedium" style={styles.cardTitle}>
-              Backup Controls
+              Automatic Backup
+            </Text>
+            <Text variant="bodyMedium" style={styles.cardDescription}>
+              Automatically creates backups 5 times daily to protect your data
             </Text>
 
             <List.Item
               title="Auto Backup"
-              description="Automatically backup database every 2 hours"
+              description="Daily backups at: 6 AM, 10 AM, 2 PM, 6 PM, 10 PM"
               left={(props) => (
                 <List.Icon {...props} icon="backup-restore" color={theme.colors.primary} />
               )}
-              right={(props) => (
+              right={() => (
                 <Switch
                   value={backupStatus.isEnabled}
                   onValueChange={handleToggleAutoBackup}
@@ -250,8 +443,18 @@ const BackupManagementScreen = () => {
                 />
               )}
             />
+          </Card.Content>
+        </Card>
 
-            <Divider style={styles.divider} />
+        {/* Manual Backup Card */}
+        <Card style={[styles.card, shadows.md]}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.cardTitle}>
+              Manual Backup
+            </Text>
+            <Text variant="bodyMedium" style={styles.cardDescription}>
+              Create and export backups manually for extra security
+            </Text>
 
             <Button
               mode="contained"
@@ -261,7 +464,76 @@ const BackupManagementScreen = () => {
               style={styles.button}
               icon="content-save"
             >
-              Create Manual Backup
+              Create Backup Now
+            </Button>
+
+            <Button
+              mode="outlined"
+              onPress={() => handleExportBackup()}
+              loading={exporting}
+              disabled={exporting || backups.length === 0}
+              style={styles.button}
+              icon="export"
+            >
+              Export Latest Backup
+            </Button>
+          </Card.Content>
+        </Card>
+
+        {/* Restore Data Card */}
+        <Card style={[styles.card, shadows.md]}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.cardTitle}>
+              Restore Data
+            </Text>
+            <Text variant="bodyMedium" style={styles.cardDescription}>
+              Restore your data from automatic backups or imported files
+            </Text>
+
+            <Button
+              mode="contained-tonal"
+              onPress={() => setImportRestoreDialogVisible(true)}
+              loading={importing}
+              disabled={importing}
+              style={styles.button}
+              icon="import"
+            >
+              Import & Restore from File
+            </Button>
+
+            <Text variant="bodySmall" style={styles.restoreNote}>
+              💡 You can also restore from any automatic backup listed below
+            </Text>
+          </Card.Content>
+        </Card>
+
+        {/* Diagnostics Card */}
+        <Card style={[styles.card, shadows.md]}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.cardTitle}>
+              Diagnostics
+            </Text>
+
+            <Button
+              mode="text"
+              onPress={handleTestDatabase}
+              loading={testing}
+              disabled={testing}
+              style={styles.button}
+              icon="database-check"
+            >
+              Test Database Connection
+            </Button>
+
+            <Button
+              mode="text"
+              onPress={handleDebugSystem}
+              loading={debugging}
+              disabled={debugging}
+              style={styles.button}
+              icon="bug-check"
+            >
+              Debug Backup System
             </Button>
           </Card.Content>
         </Card>
@@ -295,6 +567,9 @@ const BackupManagementScreen = () => {
         <View style={styles.sectionHeader}>
           <Text variant="titleMedium" style={styles.sectionTitle}>
             Available Backups ({backups.length})
+          </Text>
+          <Text variant="bodySmall" style={styles.sectionSubtitle}>
+            Tap "Restore" on any backup to replace your current data
           </Text>
         </View>
 
@@ -361,7 +636,7 @@ const BackupManagementScreen = () => {
                     mode="contained-tonal"
                     compact
                     onPress={() => showRestoreDialog(backup)}
-                    style={styles.restoreButton}
+                    style={styles.actionButton}
                     icon="restore"
                   >
                     Restore
@@ -369,8 +644,30 @@ const BackupManagementScreen = () => {
                   <Button
                     mode="outlined"
                     compact
+                    onPress={() => handleExportBackup(backup)}
+                    style={styles.actionButton}
+                    icon="export"
+                    loading={exporting}
+                    disabled={exporting}
+                  >
+                    Export
+                  </Button>
+                  <Button
+                    mode="text"
+                    compact
+                    onPress={() => handleVerifyBackup(backup)}
+                    style={styles.actionButton}
+                    icon="check-circle-outline"
+                    loading={verifying}
+                    disabled={verifying}
+                  >
+                    Verify
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    compact
                     onPress={() => showDeleteDialog(backup)}
-                    style={styles.deleteButton}
+                    style={styles.actionButton}
                     textColor={theme.colors.error}
                     icon="delete-outline"
                   >
@@ -389,33 +686,45 @@ const BackupManagementScreen = () => {
           visible={restoreDialogVisible}
           onDismiss={() => setRestoreDialogVisible(false)}
         >
-          <Dialog.Title>Restore Database</Dialog.Title>
+          <Dialog.Title>Restore from Automatic Backup</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              Are you sure you want to restore the database from this backup?
+              <Text style={{ fontWeight: 'bold' }}>Use Case 2: Restore from Automatic Backup</Text>
+              {'\n'}Perfect for recovering data from our automatic backup system.
               {'\n\n'}
-              This will replace your current database with the backup data.
-              A backup of your current database will be created before restoring.
+              <Text style={{ fontWeight: 'bold' }}>This will:</Text>
+              {'\n'}• Create a safety backup of your current data
+              {'\n'}• Replace all current data with this backup
+              {'\n'}• Refresh the app to show the restored data
+              {'\n\n'}
+              <Text style={{ fontWeight: 'bold', color: theme.colors.error }}>
+                ⚠️ All current data will be replaced with the backup data.
+              </Text>
             </Text>
             {selectedBackup && (
               <View style={styles.dialogBackupInfo}>
                 <Text variant="labelMedium" style={styles.dialogLabel}>Backup Details:</Text>
                 <Text variant="bodySmall" style={styles.dialogDetail}>
-                  Date: {selectedBackup.formattedDate}
+                  📅 Date: {selectedBackup.formattedDate}
                 </Text>
                 <Text variant="bodySmall" style={styles.dialogDetail}>
-                  Size: {formatFileSize(selectedBackup.size)}
+                  📦 Size: {formatFileSize(selectedBackup.size)}
                 </Text>
                 <Text variant="bodySmall" style={styles.dialogDetail}>
-                  File: {selectedBackup.filename}
+                  📄 File: {selectedBackup.filename}
                 </Text>
               </View>
             )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setRestoreDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleRestoreBackup} textColor={theme.colors.primary}>
-              Restore
+            <Button
+              onPress={handleRestoreBackup}
+              mode="contained"
+              loading={restoring}
+              disabled={restoring}
+            >
+              Restore Data
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -457,6 +766,70 @@ const BackupManagementScreen = () => {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {/* Import and Restore Confirmation Dialog */}
+      <Portal>
+        <Dialog visible={importRestoreDialogVisible} onDismiss={() => setImportRestoreDialogVisible(false)}>
+          <Dialog.Title>Import & Restore from File</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              <Text style={{ fontWeight: 'bold' }}>Use Case 1: Restore from Exported Backup</Text>
+              {'\n'}Perfect for when you've reset your phone or installed the app on a new device.
+              {'\n\n'}
+              <Text style={{ fontWeight: 'bold' }}>This process will:</Text>
+              {'\n'}• Let you select a backup file (.db) from your device
+              {'\n'}• Create a safety backup of your current data
+              {'\n'}• Replace all current data with the imported backup
+              {'\n'}• Refresh the app to show the restored data
+              {'\n\n'}
+              <Text style={{ fontWeight: 'bold', color: theme.colors.error }}>
+                ⚠️ Warning: All current data will be replaced with the backup data.
+              </Text>
+              {'\n\n'}
+              <Text style={{ color: theme.colors.primary }}>
+                💡 Tip: Your current data will be safely backed up before restoration.
+              </Text>
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setImportRestoreDialogVisible(false)}>Cancel</Button>
+            <Button
+              onPress={handleImportAndRestore}
+              mode="contained"
+              loading={importing}
+              disabled={importing}
+            >
+              Select File & Restore
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Progress Dialog */}
+      <Portal>
+        <Dialog visible={!!restoreProgress} dismissable={false}>
+          <Dialog.Title>
+            {restoreProgress?.stage === 'validating' && 'Validating Backup'}
+            {restoreProgress?.stage === 'backing_up' && 'Creating Safety Backup'}
+            {restoreProgress?.stage === 'restoring' && 'Restoring Database'}
+            {restoreProgress?.stage === 'cleaning_up' && 'Cleaning Up'}
+            {restoreProgress?.stage === 'complete' && 'Complete'}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.progressText}>
+              {restoreProgress?.message}
+            </Text>
+            <ProgressBar
+              progress={(restoreProgress?.progress || 0) / 100}
+              color={theme.colors.primary}
+              style={styles.progressBar}
+            />
+            <Text variant="bodySmall" style={styles.progressPercentage}>
+              {Math.round(restoreProgress?.progress || 0)}%
+            </Text>
+          </Dialog.Content>
+        </Dialog>
+      </Portal>
     </View>
   );
 };
@@ -477,6 +850,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     fontWeight: 'bold',
   },
+  cardDescription: {
+    marginBottom: spacing.md,
+    color: '#666',
+    lineHeight: 20,
+  },
+  restoreNote: {
+    marginTop: spacing.sm,
+    fontStyle: 'italic',
+    color: '#666',
+    textAlign: 'center',
+  },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -494,8 +878,28 @@ const styles = StyleSheet.create({
   button: {
     marginTop: spacing.sm,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+  },
+  halfButton: {
+    flex: 0.48,
+  },
   loadingText: {
     marginTop: spacing.md,
+  },
+  progressText: {
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  progressBar: {
+    marginBottom: spacing.sm,
+    height: 8,
+  },
+  progressPercentage: {
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
   // Section Header Styles
   sectionHeader: {
@@ -506,6 +910,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: 'bold',
     color: '#666',
+  },
+  sectionSubtitle: {
+    marginTop: spacing.xs,
+    color: '#888',
+    fontStyle: 'italic',
   },
   // Empty State Styles
   emptyContainer: {
@@ -587,14 +996,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingLeft: 56, // Align with icon + margin
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  restoreButton: {
+  actionButton: {
     flex: 1,
-  },
-  deleteButton: {
-    flex: 1,
-    borderColor: '#ef4444',
   },
   // Dialog Styles
   dialogBackupInfo: {

@@ -11,6 +11,7 @@ import { Client } from '../types';
 import { getClients, deleteClient } from '../database';
 import { ClientCard, LoadingIndicator, EmptyState } from '../components';
 import { spacing, shadows, animations } from '../constants/theme';
+import { useAutoRefreshOnRestore } from '../hooks/useDataRefresh';
 
 type ClientsScreenNavigationProp = CompositeNavigationProp<
   DrawerNavigationProp<DrawerParamList, 'Clients'>,
@@ -58,6 +59,9 @@ const ClientsScreen = () => {
       loadClients();
     }, [])
   );
+
+  // Auto-refresh data when database is restored
+  useAutoRefreshOnRestore(loadClients);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);

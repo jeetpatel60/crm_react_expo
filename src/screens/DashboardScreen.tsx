@@ -13,6 +13,7 @@ import { fetchDashboardData, DashboardData, generateUnitsByStatusData, generateU
 import { getUnitsFlats, UnitFlat } from '../database/unitsFlatDb';
 import { formatCurrency } from '../utils/formatters';
 import { DrawerParamList } from '../types';
+import { useAutoRefreshOnRestore } from '../hooks/useDataRefresh';
 
 type DashboardScreenNavigationProp = DrawerNavigationProp<DrawerParamList, 'Dashboard'>;
 
@@ -82,6 +83,9 @@ const DashboardScreen = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Auto-refresh data when database is restored
+  useAutoRefreshOnRestore(loadData);
 
   // Navigation handlers
   const handleTotalLeadsPress = () => {
